@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="5;url=/login" />
+  <title>{{ t('admin_wrong_title') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=auth8" />
+</head>
+<body class="login-page">
+  <div class="login-shell">
+    <section class="login-brand">
+      <p class="login-kicker">AtempoSports</p>
+      <h1 class="login-logo">{{ t('admin_wrong_heading') }}</h1>
+      <p class="login-lead">{{ t('admin_wrong_lead') }}</p>
+    </section>
+    <section class="login-panel">
+      <h2>{{ t('admin_wrong_heading') }}</h2>
+      <p class="muted">{{ t('admin_wrong_body') }}</p>
+      <p style="margin-top:1.25rem">
+        <a class="text-action" href="/login">{{ t('admin_wrong_go_login') }}</a>
+      </p>
+      {% if recovery_configured %}
+      <p class="muted" style="margin-top:1.5rem;font-size:0.8rem">
+        <a class="text-action" href="/admin/login" style="opacity:0.55">{{ t('admin_wrong_operator') }}</a>
+      </p>
+      {% endif %}
+      <p class="muted" style="margin-top:0.75rem;font-size:0.85rem">{{ t('admin_wrong_redirect') }}</p>
+    </section>
+  </div>
+</body>
+</html>

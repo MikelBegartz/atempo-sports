@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('change_title') }}{% endblock %}
+{% block content %}
+<div class="change-page">
+  <div class="page-head change-head">
+    <div class="page-head-copy">
+      <p class="change-back">
+        <a href="/season/{{ season.id }}/calendar">← {{ t('nav_calendar') }}</a>
+      </p>
+      <h1>{{ t('change_title') }}</h1>
+      {% if match.team.category %}
+      <p class="match-comp">{{ match.team.category }}</p>
+      {% endif %}
+      <p class="change-matchup">
+        <span>{{ match|match_local }}</span>
+        <span class="change-vs">–</span>
+        <span>{{ match|match_away }}</span>
+      </p>
+      <p class="muted change-now">
+        {% if match.match_date %}{{ match.match_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+        {% if match.start_time %} · {{ match.start_time|time_input }}{% endif %}
+        {% if match.end_time %}–{{ match.end_time|time_input }}{% endif %}
+        {% if match|match_place != '—' %} · {{ match|match_place }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  {% if match.locked or match.team.immovable %}
+  <div class="conflict hard">{{ t('change_locked') }}</div>
+  {% else %}
+
+  <form class="change-form" method="post" action="/season/{{ season.id }}/matches/{{ match.id }}/change">
+    <div class="change-fields">
+      <label>{{ t('change_new_date') }}
+        <input type="date" name="proposed_date"
+               value="{{ result.frame.proposed_date.isoformat() if result and result.frame and result.frame.proposed_date else (match.match_date.isoformat() if match.match_date else '') }}" />
+      </label>
+      <label>{{ t('col_from') }}
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="proposed_start"
+               value="{{ result.frame.proposed_start.isoformat(timespec='minutes') if result and result.frame and result.frame.proposed_start else (match.start_time|time_input if match.start_time else '') }}" />
+      </label>
+      <label>{{ t('col_to') }}
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="proposed_end"
+               value="{{ result.frame.proposed_end.isoformat(timespec='minutes') if result and result.frame and result.frame.proposed_end else (match.end_time|time_input if match.end_time else '') }}" />
+      </label>
+      {% if match.is_home and venues %}
+      <label>{{ t('col_venue') }}
+        <select name="proposed_venue_id">
+          <option value="">—</option>
+          {% for v in venues %}
+          <option value="{{ v.id }}"
+            {% if result and result.frame and result.frame.proposed_venue_id == v.id %}selected
+            {% elif (not result or not result.frame or not result.frame.proposed_venue_id) and match.venue_id == v.id %}selected{% endif %}
+          >{{ v.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+    </div>
+
+    <details class="change-more">
+      <summary>{{ t('change_frame_toggle') }}</summary>
+      <div class="change-frame">
+        <div class="change-fields">
+          <label>{{ t('change_window_from') }}
+            <input type="date" name="window_start"
+                   value="{{ result.frame.window_start.isoformat() if result and result.frame and result.frame.window_start else '' }}" />
+          </label>
+          <label>{{ t('change_window_to') }}
+            <input type="date" name="window_end"
+                   value="{{ result.frame.window_end.isoformat() if result and result.frame and result.frame.window_end else '' }}" />
+          </label>
+          <label>{{ t('change_time_from') }}
+            <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="time_from" value="{{ result.frame.time_from|time_input if result and result.frame and result.frame.time_from else '17:00' }}" />
+          </label>
+          <label>{{ t('change_time_to') }}
+            <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="time_to" value="{{ result.frame.time_to|time_input if result and result.frame and result.frame.time_to else '21:00' }}" />
+          </label>
+        </div>
+        <div class="change-days">
+          {% for name in weekdays %}
+          <label class="check">
+            <input type="checkbox" name="weekday" value="{{ loop.index0 }}"
+              {% if result and result.frame and result.frame.allowed_weekdays %}
+                {% if loop.index0 in result.frame.allowed_weekdays %}checked{% endif %}
+              {% elif loop.index0 == 5 %}checked{% endif %}
+            />
+            {{ name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </details>
+
+    <div class="change-actions">
+      <button type="submit">{{ t('change_analyze') }}</button>
+    </div>
+  </form>
+
+  {% if result %}
+  <section class="change-result">
+    {% if result.block_reason %}
+    <div class="conflict hard">{{ result.block_reason }}</div>
+    {% endif %}
+
+    {% if result.concrete %}
+    <div class="change-option {% if result.concrete.hard %}is-bad{% else %}is-ok{% endif %}">
+      <div class="change-option-main">
+        <strong>{{ result.concrete.label }}</strong>
+        {% if result.concrete.hard %}
+        <span class="badge hard">{{ t('change_not_viable') }}</span>
+        {% else %}
+        <span class="badge ok">{{ t('change_alts_clean') }}</span>
+        {% endif %}
+      </div>
+      {% for c in result.concrete.hard %}
+      <p class="change-option-note">{{ c.message }}</p>
+      {% endfor %}
+      {% for c in result.concrete.soft[:2] %}
+      <p class="change-option-note muted">{{ c.message }}</p>
+      {% endfor %}
+      {% if not result.concrete.hard %}
+      <form method="post" action="/season/{{ season.id }}/matches/{{ match.id }}/apply">
+        <input type="hidden" name="match_date" value="{{ result.concrete.match_date.isoformat() }}" />
+        <input type="hidden" name="start_time" value="{{ result.concrete.start_time.isoformat() }}" />
+        <input type="hidden" name="end_time" value="{{ result.concrete.end_time.isoformat() }}" />
+        <input type="hidden" name="venue_id" value="{{ result.concrete.venue_id or '' }}" />
+        <button type="submit">{{ t('change_alts_apply') }}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if result.alternatives is not none %}
+    <h2 class="change-alts-title">{{ t('change_alts_heading') }}</h2>
+    {% if result.alternatives %}
+    <ul class="change-alts">
+      {% for opt in result.alternatives %}
+      <li class="change-option {% if opt.hard %}is-bad{% else %}is-ok{% endif %}">
+        <div class="change-option-main">
+          <strong>{{ opt.label }}</strong>
+          {% if not opt.hard %}
+          <span class="badge ok">{{ t('change_alts_clean') }}</span>
+          {% endif %}
+        </div>
+        {% if not opt.hard %}
+        <form method="post" action="/season/{{ season.id }}/matches/{{ match.id }}/apply">
+          <input type="hidden" name="match_date" value="{{ opt.match_date.isoformat() }}" />
+          <input type="hidden" name="start_time" value="{{ opt.start_time.isoformat() }}" />
+          <input type="hidden" name="end_time" value="{{ opt.end_time.isoformat() }}" />
+          <input type="hidden" name="venue_id" value="{{ opt.venue_id or '' }}" />
+          <button type="submit" class="secondary">{{ t('change_alts_apply') }}</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('change_alts_empty') }}</p>
+    {% endif %}
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

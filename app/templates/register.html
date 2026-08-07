@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ t('register_title') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=auth2" />
+</head>
+<body class="login-page">
+  <div class="login-shell">
+    <section class="login-brand">
+      <p class="login-kicker">{{ t('login_kicker') }}</p>
+      <h1 class="login-logo">AtempoSports</h1>
+      <p class="login-lead">{{ t('register_lead') }}</p>
+    </section>
+    <section class="login-panel">
+      <h2>{{ t('register_heading') }}</h2>
+      <p class="muted">{{ t('register_hint') }}</p>
+      {% if error %}
+      <div class="conflict hard">{{ error }}</div>
+      {% endif %}
+      <form class="stack login-form" method="post" action="/register">
+        <label>{{ t('register_name') }}
+          <input name="name" value="{{ name or '' }}" autocomplete="organization" required maxlength="120" />
+        </label>
+        <label>{{ t('forgot_email') }}
+          <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required />
+        </label>
+        <label>{{ t('register_password') }}
+          <input type="password" name="password" autocomplete="new-password" required minlength="8" />
+        </label>
+        <label>{{ t('pwd_confirm') }}
+          <input type="password" name="password2" autocomplete="new-password" required minlength="8" />
+        </label>
+        <button type="submit">{{ t('register_submit') }}</button>
+      </form>
+      <p class="login-extra">
+        {{ t('register_have_account') }}
+        <a class="text-action" href="/login">{{ t('register_go_login') }}</a>
+      </p>
+      <nav class="lang-switch" aria-label="{{ t('lang_label') }}">
+        {% for code, meta in langs.items() %}
+          {% set label = meta[0] %}
+          {% set mark = meta[1] %}
+          <a href="/lang/{{ code }}?next=/register" class="lang-mark{% if code == lang %} is-active{% endif %}" title="{{ label }}">{{ mark }}</a>
+        {% endfor %}
+      </nav>
+    </section>
+  </div>
+</body>
+</html>

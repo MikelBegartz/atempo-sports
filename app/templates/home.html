@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ club.name if club else t('nav_home') }}{% endblock %}
+{% block content %}
+{% if not season %}
+  <h1>{{ t('home_no_season') }}</h1>
+  <p class="muted">{{ t('home_no_season_hint') }}</p>
+{% else %}
+  <h1 class="home-club-title"><a href="/season/{{ season.id }}/club">{{ club.name }}</a></h1>
+  <p class="muted">{{ t('home_season') }} {{ season.name }}</p>
+
+  {% if club_seasons and club_seasons|length > 1 %}
+  <p class="muted" style="margin-bottom:1rem">
+    {{ t('home_seasons') }}:
+    {% for s in club_seasons %}
+      <a href="/season/{{ s.id }}">{% if s.id == season.id %}<strong>{{ s.name }}</strong>{% else %}{{ s.name }}{% endif %}</a>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  {% if fed_unseen_count %}
+  <div class="conflict hard" style="margin-bottom:1rem">
+    <strong>{{ t('home_fed_attention') }}</strong>
+    {% if fed_unseen_count == 1 %}{{ t('home_fed_changes').format(n=fed_unseen_count) }}{% else %}{{ t('home_fed_changes_pl').format(n=fed_unseen_count) }}{% endif %}
+    {% if fed_changes_conflicts %}{{ t('home_fed_conflicts') }}{% endif %}
+    <a href="/season/{{ season.id }}/federation-changes" style="margin-left:0.5rem">{{ t('home_fed_view') }}</a>
+  </div>
+  {% endif %}
+
+  <div class="stat-grid">
+    <a class="card card-link" href="/season/{{ season.id }}/matches">
+      <div class="muted">{{ t('home_matches') }}</div>
+      <div class="stat">{{ match_total if match_total is defined else matches|length }}</div>
+    </a>
+    <a class="card card-link" href="/season/{{ season.id }}/conflicts">
+      <div class="muted">{{ t('nav_conflicts') }}</div>
+      <div class="stat {% if conflicts_unique_count %}danger{% endif %}">{{ conflicts_unique_count }} {{ t('home_unique') }}</div>
+      <div class="muted" style="font-size:0.75rem; opacity:0.7">{{ conflicts_count }} {{ t('home_occurrences') }}</div>
+    </a>
+  </div>
+
+  <h2 style="margin-top:1.5rem">{{ t('home_quick_actions') }}</h2>
+  <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:0.75rem">
+    <a class="card card-link" href="/season/{{ season.id }}/calendar"><div class="muted">{{ t('nav_calendar') }}</div></a>
+    <a class="card card-link" href="/season/{{ season.id }}/trainings"><div class="muted">{{ t('nav_trainings') }}</div></a>
+    <a class="card card-link" href="/season/{{ season.id }}/teams"><div class="muted">{{ t('nav_teams') }}</div></a>
+    <a class="card card-link" href="/season/{{ season.id }}/people"><div class="muted">{{ t('nav_people') }}</div></a>
+    <a class="card card-link" href="/season/{{ season.id }}/venues"><div class="muted">{{ t('nav_venues') }}</div></a>
+    <a class="card card-link" href="/season/{{ season.id }}/data"><div class="muted">{{ t('data_title') }}</div></a>
+  </div>
+
+  {% if conflicts_count %}
+  <h2>{{ t('nav_conflicts') }}</h2>
+  {% for c in conflicts_unique %}
+  <a href="/season/{{ season.id }}/conflict/{{ c.key }}" class="conflict {{ c.severity }}" style="display:block;text-decoration:none;color:inherit">
+    <div>{{ c.message }}</div>
+  </a>
+  {% endfor %}
+  {% if conflicts|length > 8 %}
+  <p><a href="/season/{{ season.id }}/conflicts">{{ t('home_see_all') }} ({{ conflicts_count }})</a></p>
+  {% endif %}
+  {% endif %}
+{% endif %}
+{% endblock %}

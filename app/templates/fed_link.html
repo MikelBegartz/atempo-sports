@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ source|upper }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ source|upper }}</h1>
+    <p class="muted">{{ t('rfep_intro') }}</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/fed">{{ t('teams_import_fed') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('nav_teams') }}</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="conflict hard">{{ error }}</div>
+{% endif %}
+
+<form method="get" action="/season/{{ season.id }}/fed/{{ source }}" class="cal-goto" style="margin:1.25rem 0" autocomplete="off">
+  <label class="cal-goto-label" for="q">{{ t('rfep_search_label') }}</label>
+  <input id="q" type="search" name="q" value="{{ q or '' }}" placeholder="{{ t('rfep_search_ph') }}" style="min-width:16rem" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" />
+  <button type="submit" class="cal-goto-btn">{{ t('rfep_search') }}</button>
+</form>
+
+{% if q and not hit_groups %}
+<p class="muted">{{ t('rfep_no_hits') }}</p>
+{% endif %}
+
+{% if hit_groups %}
+<form method="post" action="/season/{{ season.id }}/fed/{{ source }}/import">
+  <input type="hidden" name="q" value="{{ q }}" />
+  <p class="muted">{{ t('rfep_pick_hint') }}</p>
+  <div class="entity-list" style="margin-top:0.75rem">
+    {% for team_name, items in hit_groups %}
+    <div class="entity-entry" style="display:block;padding:0.75rem 1rem">
+      <strong class="entity-name" style="display:block;margin-bottom:0.4rem">{{ team_name }}</strong>
+      {% for h in items %}
+      <label class="entity-entry" style="cursor:pointer;align-items:flex-start;gap:0.6rem;padding:0.35rem 0;border:none">
+        <input type="checkbox" name="pick" value="{{ h.pick_value }}"
+               style="margin-top:0.2rem" />
+        <span style="flex:1">
+          <span class="muted">
+            {% if source == 'global' %}<span class="badge" style="font-size:0.75rem;text-transform:uppercase">{{ h.source }}</span> {% endif %}
+            {{ h.competition }}
+          </span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <p style="margin-top:1rem">
+    <button type="submit">{{ t('rfep_import') }}</button>
+  </p>
+</form>
+{% elif not q %}
+<p class="muted">{{ t('rfep_examples') }}</p>
+{% endif %}
+{% endblock %}

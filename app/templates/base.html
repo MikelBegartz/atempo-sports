@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}AtempoSports{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan45" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">AtempoSports</a>
+        <p class="tagline">{{ t('tagline') }}</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="{{ t('lang_label') }}">
+          {% for code, meta in langs.items() %}
+            {% set label = meta[0] %}
+            {% set mark = meta[1] %}
+            <a href="/lang/{{ code }}?next={{ request.url.path|urlencode }}" class="lang-mark{% if code == lang %} is-active{% endif %}" title="{{ label }}">{{ mark }}</a>
+          {% endfor %}
+        </nav>
+        {% if club %}
+        <a href="/ajuda" class="text-action" style="margin-right:0.75rem">{{ t('help_link') }}</a>
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">{{ t('logout') }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% if season and club %}
+    <nav class="main-nav">
+      <div class="nav-left">
+        {% if setup_status and not setup_status.ready %}
+        <a href="/season/{{ season.id }}/data">{{ t('data_title') }}</a>
+        <a href="/season/{{ season.id }}/venues">{{ t('nav_venues') }}</a>
+        <a href="/season/{{ season.id }}/teams">{{ t('nav_teams') }}</a>
+        <a href="/season/{{ season.id }}/people">{{ t('nav_people') }}</a>
+        {% else %}
+        <a href="/app">{{ t('nav_home') }}</a>
+        <a href="/season/{{ season.id }}/calendar">{{ t('nav_calendar') }}</a>
+        <a href="/season/{{ season.id }}/matches">{{ t('nav_matches') }}</a>
+        <a href="/season/{{ season.id }}/trainings">{{ t('nav_trainings') }}</a>
+        <a href="/season/{{ season.id }}/club">{{ t('nav_club') }}</a>
+        {% endif %}
+      </div>
+      <div class="nav-right">
+        {% if conflicts_count %}
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">{{ t('nav_conflicts') }}</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/{{ season.id }}/conflicts#m1">
+              <span class="nav-conflict-horizon">{{ t('horizon_m1') }}</span>
+              <span class="nav-conflict-count">{{ conflicts_by_horizon.get('m1', [])|length }}</span>
+              <span class="nav-conflict-unique">({{ conflicts_unique_by_horizon.get('m1', 0) }} {{ t('home_unique') }})</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/{{ season.id }}/conflicts#m2">
+              <span class="nav-conflict-horizon">{{ t('horizon_m2') }}</span>
+              <span class="nav-conflict-count">{{ conflicts_by_horizon.get('m2', [])|length }}</span>
+              <span class="nav-conflict-unique">({{ conflicts_unique_by_horizon.get('m2', 0) }} {{ t('home_unique') }})</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/{{ season.id }}/conflicts#later">
+              <span class="nav-conflict-horizon">{{ t('horizon_later') }}</span>
+              <span class="nav-conflict-count">{{ conflicts_by_horizon.get('later', [])|length }}</span>
+              <span class="nav-conflict-unique">({{ conflicts_unique_by_horizon.get('later', 0) }} {{ t('home_unique') }})</span>
+            </a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/season/{{ season.id }}/conflicts">{{ t('nav_conflicts') }}</a>
+        {% endif %}
+      </div>
+    </nav>
+    <p class="context">{{ club.name }} · {{ season.name }}</p>
+    {% endif %}
+  </header>
+  <main>
+    {% if season and club and setup_status and not setup_status.complete %}
+    <p class="setup-banner">{{ t('setup_banner') }}</p>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    async function copyToClipboard(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      const text = el.value;
+      let copied = false;
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+          copied = false;
+        }
+      }
+      if (!copied) {
+        try {
+          copied = document.execCommand('copy');
+        } catch (e) {
+          copied = false;
+        }
+      }
+      const btn = document.activeElement;
+      if (btn && btn.tagName === 'BUTTON' && copied) {
+        const original = btn.textContent;
+        btn.textContent = "{{ t('clipboard_copied') }}";
+        setTimeout(() => btn.textContent = original, 1500);
+      }
+    }
+  </script>
+</body>
+</html>

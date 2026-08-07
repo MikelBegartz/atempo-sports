@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('federation_changes_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('federation_changes_title') }}</h1>
+    <p class="muted">{{ t('federation_changes_intro') }}</p>
+  </div>
+</div>
+
+{% if changes %}
+<p class="setup-banner">{{ t('federation_changes_summary').format(total=changes_count, with_conflicts=changes_with_conflicts, locked=changes_locked) }}</p>
+<table class="data-table" style="width:100%; margin-top:1rem">
+  <thead>
+    <tr>
+      <th>{{ t('federation_changes_match') }}</th>
+      <th>{{ t('federation_changes_source') }}</th>
+      <th>{{ t('federation_changes_old') }}</th>
+      <th>{{ t('federation_changes_new') }}</th>
+      <th>{{ t('federation_changes_conflicts') }}</th>
+      <th>{{ t('federation_changes_status') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in changes %}
+    <tr style="{% if c.has_conflict %}background:#fff0f0{% endif %}{% if c.is_locked and c.has_conflict %};{% endif %}{% if c.is_locked %}opacity:0.7{% endif %}">
+      <td>
+        {{ c.match.team.name }} vs {{ c.match.opponent }}
+        <br><span class="muted">{% if c.match.is_home %}{{ t('federation_changes_home') }}{% else %}{{ t('federation_changes_away') }}{% endif %}</span>
+      </td>
+      <td>{{ c.source.upper() }}</td>
+      <td>
+        {% if c.old_match_date %}{{ c.old_match_date.strftime('%d/%m/%Y') }}{% else %}-{% endif %}
+        {% if c.old_start_time %}{{ c.old_start_time|time_input }}{% else %}-{% endif %}
+      </td>
+      <td>
+        {% if c.new_match_date %}{{ c.new_match_date.strftime('%d/%m/%Y') }}{% else %}-{% endif %}
+        {% if c.new_start_time %}{{ c.new_start_time|time_input }}{% else %}-{% endif %}
+      </td>
+      <td>
+        {% if c.has_conflict %}
+        <span class="badge hard">{{ c.conflict_count }} {{ t('federation_changes_conflict') }}{% if c.conflict_count > 1 %}{{ t('federation_changes_conflict_pl') }}{% endif %}</span>
+        {% else %}
+        <span class="muted">{{ t('federation_changes_none') }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.is_locked %}<span class="badge soft">{{ t('federation_changes_locked') }}</span>{% endif %}
+        {% if c.seen_at %}<span class="muted">{{ t('federation_changes_seen') }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">{{ t('federation_changes_empty') }}</p>
+{% endif %}
+
+<p style="margin-top:1.5rem"><a href="/season/{{ season.id }}/matches">{{ t('federation_changes_back') }}</a></p>
+{% endblock %}

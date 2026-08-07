@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('tr_solapes_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('tr_solapes_title') }}</h1>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/trainings">{{ t('tr_back') }}</a>
+  </div>
+</div>
+
+{% if flash %}<div class="badge ok" style="display:inline-block;margin-bottom:1rem">{{ flash }}</div>{% endif %}
+{% if error %}<div class="conflict hard" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
+
+<p class="muted" style="margin-top:0">{{ t('tr_solapes_intro') }}</p>
+<p class="plan-meta muted">
+  {% if capacity.fits_solo %}{{ t('tr_fit_solo_yes') }}{% else %}{{ t('tr_fit_solo_no') }}{% endif %}
+  · {{ capacity.team_count }} {{ t('tr_meta_teams') }}
+  · {{ (capacity.demand_minutes/60)|round(1) }} h / {{ (capacity.supply_minutes/60)|round(1) }} h
+</p>
+
+{% if solapes %}
+<div class="group-board" style="margin-bottom:1.5rem">
+  {% for s in solapes %}
+  <article class="group-card{% if edit_solape and edit_solape.id == s.id %} is-editing{% endif %}">
+    <header>
+      <strong>{{ s.label }}</strong>
+      <span class="muted">{{ s.overlap_minutes }}′</span>
+    </header>
+    <p class="muted" style="margin:0.35rem 0;font-size:0.85rem">
+      {{ s.side_a }} → {{ s.side_b }}
+    </p>
+    <p class="muted" style="margin:0.35rem 0;font-size:0.85rem">
+      {% for w in s.weekdays %}{{ weekdays[w] }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+    <div class="row" style="gap:0.45rem;flex-wrap:wrap">
+      <a class="text-action" href="/season/{{ season.id }}/trainings/solapes?edit={{ s.id }}#solape-form">{{ t('tr_solapes_edit') }}</a>
+      <form method="post" action="/season/{{ season.id }}/trainings/solapes/{{ s.id }}/delete" style="margin:0"
+            onsubmit="return confirm('{{ t('tr_solapes_delete_confirm') }}');">
+        <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('tr_solapes_delete') }}</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+
+<section class="panel-sheet" id="solape-form" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">
+    {% if edit_solape %}{{ t('tr_solapes_edit_heading') }}{% else %}{{ t('tr_solapes_create') }}{% endif %}
+  </h2>
+  {% if edit_solape %}
+  <p class="muted" style="margin-top:0">{{ t('tr_solapes_edit_hint') }}</p>
+  {% else %}
+  <p class="muted" style="margin-top:0">{{ t('tr_solapes_create_hint') }}</p>
+  {% endif %}
+  <form class="stack" method="post" action="/season/{{ season.id }}/trainings/solapes">
+    {% if edit_solape %}
+    <input type="hidden" name="edit_solape_id" value="{{ edit_solape.id }}" />
+    {% endif %}
+    <label>
+      {{ t('tr_solapes_side_a') }}
+      <select name="side_a" required {% if not options %}disabled{% endif %}>
+        <option value="">—</option>
+        {% for opt in options %}
+        <option value="{{ opt.code }}" {% if opt.code == form_code_a %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      {{ t('tr_solapes_side_b') }}
+      <select name="side_b" required {% if not options %}disabled{% endif %}>
+        <option value="">—</option>
+        {% for opt in options %}
+        <option value="{{ opt.code }}" {% if opt.code == form_code_b %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      {{ t('tr_solapes_overlap') }}
+      <select name="overlap_minutes">
+        {% for m in overlap_choices %}
+        <option value="{{ m }}" {% if m == form_overlap %}selected{% endif %}>
+          {% if m == 0 %}{{ t('tr_solapes_overlap_0') }}{% else %}{{ m }}′{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <fieldset class="group-pick">
+      <legend>{{ t('tr_solapes_weekdays') }}</legend>
+      {% for i in range(7) %}
+      <label class="check">
+        <input type="checkbox" name="weekdays" value="{{ i }}" {% if i in form_weekdays %}checked{% endif %} />
+        {{ weekdays[i] }}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <div class="row" style="gap:0.75rem;flex-wrap:wrap">
+      <button type="submit" {% if not options %}disabled{% endif %}>
+        {% if edit_solape %}{{ t('tr_solapes_save_edit') }}{% else %}{{ t('tr_solapes_form') }}{% endif %}
+      </button>
+      {% if edit_solape %}
+      <a class="text-action" href="/season/{{ season.id }}/trainings/solapes">{{ t('tr_solapes_cancel_edit') }}</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+{% if not solapes %}
+<p class="muted">{{ t('tr_solapes_empty') }}</p>
+{% endif %}
+{% endblock %}

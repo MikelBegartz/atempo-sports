@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ t('help_title') }}{% endblock %}
+{% block content %}
+<div class="help-header">
+  <h1>{{ t('help_heading') }}</h1>
+  <div class="help-search">
+    <label for="help-search-input" class="visually-hidden">{{ t('help_search') }}</label>
+    <input id="help-search-input" type="search" class="input" placeholder="{{ t('help_search_placeholder') }}" autocomplete="off">
+  </div>
+</div>
+
+<div id="help-sections">
+  {% for section in sections %}
+  <section class="help-section" data-section="{{ section.id }}">
+    <h2 id="{{ section.id }}">{{ section.title }}</h2>
+    <div class="help-items">
+      {% for item in section.questions %}
+      <div class="help-item">
+        <h3 class="help-question">{{ item.q }}</h3>
+        <p class="help-answer">{{ item.a }}</p>
+
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<p id="help-empty" class="help-empty" style="display:none">{{ t('help_empty') }}</p>
+
+<script>
+  (function () {
+    const input = document.getElementById('help-search-input');
+    const sections = document.querySelectorAll('.help-section');
+    const empty = document.getElementById('help-empty');n
+    function normalize(s) {
+      return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    input.addEventListener('input', function () {
+      const q = normalize(input.value || '');
+      let any = false;
+      sections.forEach(function (sec) {
+        let secAny = false;
+        sec.querySelectorAll('.help-item').forEach(function (item) {
+          const text = normalize(item.textContent || '');
+          const show = !q || text.indexOf(q) !== -1;
+          item.style.display = show ? '' : 'none';
+          if (show) {
+            any = true;
+            secAny = true;
+          }
+        });
+        sec.style.display = secAny ? '' : 'none';
+      });
+      empty.style.display = any ? 'none' : '';
+    });
+  })();
+</script>
+{% endblock %}

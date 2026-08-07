@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atempo · Equips</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan38" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">Atempo</a>
+        <p class="tagline">Organitza&#39;t sense embolics</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="Idioma">
+          
+            
+            
+            <a href="/lang/ca?next=/season/1/teams" class="lang-mark is-active" title="Català">CAT</a>
+          
+            
+            
+            <a href="/lang/es?next=/season/1/teams" class="lang-mark" title="Castellano">ESP</a>
+          
+            
+            
+            <a href="/lang/pt?next=/season/1/teams" class="lang-mark" title="Português">POR</a>
+          
+            
+            
+            <a href="/lang/fr?next=/season/1/teams" class="lang-mark" title="Français">FRA</a>
+          
+            
+            
+            <a href="/lang/it?next=/season/1/teams" class="lang-mark" title="Italiano">ITA</a>
+          
+            
+            
+            <a href="/lang/en?next=/season/1/teams" class="lang-mark" title="English (US)">ENG</a>
+          
+            
+            
+            <a href="/lang/de?next=/season/1/teams" class="lang-mark" title="Deutsch">DEU</a>
+          
+        </nav>
+        
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">Surt</button>
+        </form>
+        
+      </div>
+    </div>
+    
+    <nav class="main-nav">
+      <div class="nav-left">
+        
+        <a href="/app">Inici</a>
+        <a href="/season/1/calendar">Calendari</a>
+        <a href="/season/1/matches">Partits</a>
+        <a href="/season/1/trainings">Entrenaments</a>
+        <a href="/season/1/club">Club</a>
+        
+      </div>
+      <div class="nav-right">
+        
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">Conflictes</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/1/conflicts#m1">
+              <span class="nav-conflict-horizon">&lt;30 dies</span>
+              <span class="nav-conflict-count">2</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/1/conflicts#m2">
+              <span class="nav-conflict-horizon">31–60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/1/conflicts#later">
+              <span class="nav-conflict-horizon">&gt;60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+    </nav>
+    <p class="context">CH Mataró · 2026/27</p>
+    
+  </header>
+  <main>
+    
+    <p class="setup-banner">Configuració incompleta: falten persones a cada equip (pots seguir treballant amb el calendari).</p>
+    
+    
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>Equips</h1>
+    <p class="muted">Els equips s’agrupen per base i sènior.</p>
+    <p class="muted">Clica un equip per editar el nom i les persones.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/1/fed">Importar de federació</a>
+    <a class="text-action" href="/season/1/teams/link">Vinculació federativa</a>
+    <a class="text-action" href="/season/1/teams?new=equip">Crear equip</a>
+    
+    <a class="text-action" href="/season/1/teams?new=edit">Modificar equip</a>
+    <button type="button" class="text-action-btn" id="teams-overlap-btn" hidden>Veure solapaments</button>
+    
+  </div>
+</div>
+<p class="muted" id="teams-overlap-hint" style="margin-top:-0.75rem">Ctrl+clic (⌘+clic) en dos o més equips per veure solapaments probables.</p>
+
+
+
+
+
+
+
+<section class="team-branch">
+  <h2 class="team-branch-title">Base mixta</h2>
+  <ul class="entity-list">
+    
+    <li>
+      <a class="entity-name team-pick"
+         href="/season/1/teams?t=4"
+         data-team-id="4">Aleví A</a>
+      
+      <p class="entity-meta">Aleví</p>
+      
+      
+      
+      <p class="entity-meta">1 persones</p>
+      
+    </li>
+    
+    <li>
+      <a class="entity-name team-pick"
+         href="/season/1/teams?t=3"
+         data-team-id="3">Juvenil</a>
+      
+      <p class="entity-meta">Mixte</p>
+      
+      
+      
+      <p class="entity-meta">1 persones</p>
+      
+    </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+<section class="team-branch">
+  <h2 class="team-branch-title">Sènior masculí</h2>
+  <ul class="entity-list">
+    
+    <li>
+      <a class="entity-name team-pick"
+         href="/season/1/teams?t=5"
+         data-team-id="5">Juvenil C</a>
+      
+      <p class="entity-meta">Juvenil</p>
+      
+      
+      
+      <p class="entity-meta">Encara sense persones</p>
+      
+    </li>
+    
+    <li>
+      <a class="entity-name team-pick"
+         href="/season/1/teams?t=1"
+         data-team-id="1">Senior A</a>
+      
+      <p class="entity-meta">Senior</p>
+      
+      
+      
+      <p class="entity-meta">2 persones</p>
+      
+    </li>
+    
+  </ul>
+</section>
+
+
+
+<section class="team-branch">
+  <h2 class="team-branch-title">Sènior femení</h2>
+  <ul class="entity-list">
+    
+    <li>
+      <a class="entity-name team-pick"
+         href="/season/1/teams?t=2"
+         data-team-id="2">Sènior</a>
+      
+      <p class="entity-meta">Femení</p>
+      
+      
+      
+      <p class="entity-meta">1 persones</p>
+      
+    </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+
+
+<datalist id="people-list">
+  
+  <option value="Jordi Coach"></option>
+  
+  <option value="Maria Refuerzo"></option>
+  
+  <option value="Pau Senior"></option>
+  
+</datalist>
+<datalist id="team-name-suggestions">
+  <option value="Prebenjamí A"></option>
+  <option value="Prebenjamí B"></option>
+  <option value="Benjamí A"></option>
+  <option value="Benjamí B"></option>
+  <option value="Aleví A"></option>
+  <option value="Aleví B"></option>
+  <option value="Infantil"></option>
+  <option value="Cadet"></option>
+  <option value="Juvenil"></option>
+  <option value="Minifem"></option>
+  <option value="Fem 11"></option>
+  <option value="Fem 13"></option>
+  <option value="Fem 15"></option>
+  <option value="Fem 17"></option>
+  <option value="Fem 19"></option>
+  <option value="Sènior A"></option>
+  <option value="Sènior B"></option>
+  <option value="Sènior Femení"></option>
+</datalist>
+<script>
+(function () {
+  var selected = {};
+  var btn = document.getElementById("teams-overlap-btn");
+  var seasonId = 1;
+  function sync() {
+    var ids = Object.keys(selected);
+    if (!btn) return;
+    if (ids.length >= 2) {
+      btn.hidden = false;
+      btn.textContent = btn.getAttribute("data-label") || btn.textContent;
+    } else {
+      btn.hidden = true;
+    }
+  }
+  document.querySelectorAll("a.team-pick").forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      if (!ev.ctrlKey && !ev.metaKey) return;
+      ev.preventDefault();
+      var id = a.getAttribute("data-team-id");
+      if (selected[id]) {
+        delete selected[id];
+        a.classList.remove("is-picked");
+      } else {
+        selected[id] = true;
+        a.classList.add("is-picked");
+      }
+      sync();
+    });
+  });
+  if (btn) {
+    btn.setAttribute("data-label", btn.textContent);
+    btn.addEventListener("click", function () {
+      var ids = Object.keys(selected);
+      if (ids.length < 2) return;
+      window.location.href = "/season/" + seasonId + "/overlaps?teams=" + ids.join(",");
+    });
+  }
+})();
+</script>
+
+  </main>
+  <script>
+    async function copyToClipboard(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      const text = el.value;
+      let copied = false;
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+          copied = false;
+        }
+      }
+      if (!copied) {
+        try {
+          copied = document.execCommand('copy');
+        } catch (e) {
+          copied = false;
+        }
+      }
+      const btn = document.activeElement;
+      if (btn && btn.tagName === 'BUTTON' && copied) {
+        const original = btn.textContent;
+        btn.textContent = 'Copiat!';
+        setTimeout(() => btn.textContent = original, 1500);
+      }
+    }
+  </script>
+</body>
+</html>

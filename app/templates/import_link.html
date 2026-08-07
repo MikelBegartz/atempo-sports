@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('import_link_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('import_link_title') }}</h1>
+<p class="muted">{{ t('import_link_intro') }}</p>
+
+<form id="link-form" method="post" action="/season/{{ season.id }}/import/run">
+  <input type="hidden" name="source" value="{{ source }}" />
+  <input type="hidden" name="idc" value="{{ idc }}" />
+  <input type="hidden" name="label" value="{{ label or '' }}" />
+  <input type="hidden" name="apply" value="1" />
+
+  <div class="link-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start">
+    <section>
+      <h3>{{ t('import_link_internal') }}</h3>
+      <ul class="entity-list" id="internal-list">
+        {% for tm in internal_teams %}
+        <li class="link-internal" data-team-id="{{ tm.id }}">
+          <span class="entity-name">{{ tm.name }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h3>{{ t('import_link_target') }}</h3>
+      <p class="muted" style="font-size:0.85rem">{{ t('import_link_target_hint') }}</p>
+      <ul class="entity-list" id="target-list">
+        {% for tm in internal_teams %}
+        <li class="link-target" data-target="{{ tm.id }}" tabindex="0">
+          <input type="hidden" name="map_{{ tm.id }}" value="" />
+          <span class="link-target-value">—</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h3>{{ t('import_link_official') }}</h3>
+      <p class="muted" style="font-size:0.85rem">{{ t('import_link_official_hint') }}</p>
+      <ul class="entity-list" id="official-list">
+        {% for ext in external_teams %}
+        <li class="link-official" data-official="{{ ext }}">
+          <span class="entity-name">{{ ext }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <h3 style="margin-top:1.5rem">{{ t('import_link_unlinked') }}</h3>
+      <p class="muted" style="font-size:0.85rem">{{ t('import_link_unlinked_hint') }}</p>
+      <div id="unlinked-list" class="entity-list">
+        {% for ext in external_teams %}
+        <div class="link-unlinked" data-official="{{ ext }}">
+          <span class="entity-name">{{ ext }}</span>
+          <input type="text" name="new_{{ ext }}" placeholder="{{ t('import_link_new_name') }}" style="margin-top:0.25rem;width:100%" />
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div style="margin-top:1.5rem;display:flex;gap:0.5rem;align-items:center">
+    <button type="submit">{{ t('import_link_save_and_import') }}</button>
+    <span id="link-status" class="muted" style="font-size:0.9rem"></span>
+  </div>
+</form>
+
+<script>
+  (function () {
+    const targetList = document.getElementById('target-list');
+    const officialList = document.getElementById('official-list');
+    const unlinkedList = document.getElementById('unlinked-list');
+    const status = document.getElementById('link-status');
+    const i18n = {
+      selected: "{{ t('import_link_status_selected') }}",
+      first: "{{ t('import_link_status_first') }}",
+      linked: "{{ t('import_link_status_linked') }}"
+    };
+    let activeTarget = null;
+
+    targetList.addEventListener('click', function (e) {
+      const li = e.target.closest('.link-target');
+      if (!li) return;
+      if (activeTarget) activeTarget.classList.remove('active');
+      activeTarget = li;
+      activeTarget.classList.add('active');
+      status.textContent = i18n.selected + ' ' + activeTarget.dataset.target;
+    });
+
+    function bindOfficial(list) {
+      list.addEventListener('click', function (e) {
+        if (!e.ctrlKey) return;
+        const li = e.target.closest('.link-official');
+        if (!li) return;
+        if (!activeTarget) {
+          status.textContent = i18n.first;
+          return;
+        }
+        const official = li.dataset.official;
+        const teamId = activeTarget.dataset.target;
+        const input = activeTarget.querySelector('input');
+        const display = activeTarget.querySelector('.link-target-value');
+        input.value = official;
+        display.textContent = official;
+        activeTarget.classList.add('linked');
+        status.textContent = i18n.linked + ' ' + teamId + ' → ' + official;
+      });
+    }
+
+    bindOfficial(officialList);
+  })();
+</script>
+
+<style>
+  .link-target { cursor: pointer; padding: 0.35rem 0.5rem; border: 1px solid transparent; border-radius: 6px; }
+  .link-target.active { border-color: var(--accent); background: #e8f0fe; }
+  .link-target.linked { background: #e8f5e9; }
+  .link-official { cursor: pointer; }
+  .link-official:hover { background: #f0f0f0; }
+</style>
+{% endblock %}

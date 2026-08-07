@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('setup_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('setup_title') }}</h1>
+<p class="muted">{{ t('setup_intro') }}</p>
+
+<nav class="club-hub setup-hub" aria-label="{{ t('setup_title') }}">
+  <a class="club-link {% if status.has_rfep %}is-done{% elif status.step == 'rfep' %}is-current{% endif %}"
+     href="/season/{{ season.id }}/rfep">
+    <strong>{{ t('setup_step_rfep') }}</strong>
+    <span>{{ t('setup_rfep_desc') }}</span>
+    <em>{% if status.has_rfep %}✓{% else %}·{% endif %}</em>
+  </a>
+  <a class="club-link {% if status.has_venues %}is-done{% elif status.step == 'venues' %}is-current{% endif %}"
+     href="/season/{{ season.id }}/venues">
+    <strong>{{ t('setup_step_venues') }}</strong>
+    <span>{{ t('club_venues_desc') }}</span>
+    <em>{{ status.venue_count }}</em>
+  </a>
+  <a class="club-link {% if status.has_teams %}is-done{% elif status.step == 'teams' %}is-current{% endif %}"
+     href="/season/{{ season.id }}/teams">
+    <strong>{{ t('setup_step_teams') }}</strong>
+    <span>{{ t('club_teams_desc') }}</span>
+    <em>{{ status.team_count }}</em>
+  </a>
+  <a class="club-link {% if status.teams_staffed %}is-done{% elif status.step == 'people' %}is-current{% endif %}"
+     href="/season/{{ season.id }}/people">
+    <strong>{{ t('setup_step_people') }}</strong>
+    <span>{{ t('club_people_desc') }}</span>
+    <em>{{ status.teams_ready }}/{{ status.team_count }}</em>
+  </a>
+  <a class="club-link" href="/season/{{ season.id }}/data">
+    <strong>{{ t('data_title') }}</strong>
+    <span>{{ t('club_data_desc') }}</span>
+  </a>
+</nav>
+
+{% if status.complete %}
+  <div class="conflict ok" style="margin-top:1.25rem">
+    {{ t('setup_done') }}
+  </div>
+  <p style="margin-top:1rem"><a class="button-link" href="/app">{{ t('setup_go_home') }}</a></p>
+{% endif %}
+{% endblock %}

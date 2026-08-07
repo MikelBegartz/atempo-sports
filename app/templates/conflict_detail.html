@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('conflict_detail_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('conflict_detail_title') }}</h1>
+    <p class="muted">{{ t('conflict_detail_subtitle') }}</p>
+  </div>
+</div>
+
+<div class="conflict {{ conflict.severity }}" style="margin:1rem 0;padding:1rem;border-radius:10px">
+  <div style="font-size:1.05rem;font-weight:600">{{ conflict.message }}</div>
+</div>
+
+<div class="setup-banner" style="margin:0.75rem 0">
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem">
+    <p style="margin:0;font-weight:600">{{ t('conflict_detail_question') }}</p>
+    <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" onsubmit="return confirm('{{ t('conflict_action_ignore') }}?')" style="margin:0">
+      <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_action_ignore') }}</button>
+    </form>
+  </div>
+  <div class="conflict-actions" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:baseline">
+    {% if conflict.match_ids %}
+    <a href="/season/{{ season.id }}/matches?m={{ conflict.match_ids[0] }}&conflict={{ conflict.key }}#fitxa">{{ t('conflict_action_edit_match') }}</a>
+    {% endif %}
+    {% if conflict.severity == 'soft' and conflict.training_ids|length >= 2 %}
+    <a href="/season/{{ season.id }}/trainings/groups?propose=1&t={{ conflict.training_ids|join(',') }}#propose">{{ t('conflict_action_merge_training') }}</a>
+    {% endif %}
+    {% if conflict.person_id %}
+    <a href="/season/{{ season.id }}/people">{{ t('conflict_action_check_person') }}</a>
+    {% endif %}
+  </div>
+</div>
+
+<details style="margin:0.75rem 0">
+  <summary>{{ t('conflict_detail_open_cases').format(count=related|length) }}</summary>
+  <div style="margin-top:0.5rem">
+    {% for c in related %}
+    <div class="conflict {{ c.severity }}" style="margin:0.4rem 0;font-size:0.95rem">
+      <div>{{ c.message }}</div>
+      {% if c.match_ids %}
+      <div class="conflict-actions">
+        <a href="/season/{{ season.id }}/matches?m={{ c.match_ids[0] }}#fitxa">{{ t('conflict_view_match') }}</a>
+      </div>
+      {% endif %}
+      {% if c.severity == 'soft' and c.training_ids|length == 2 %}
+      <div class="conflict-merge-prompt" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--line)">
+        <a class="text-action" href="/season/{{ season.id }}/trainings/merge?t1={{ c.training_ids[0] }}&t2={{ c.training_ids[1] }}">{{ t('conflict_merge_yes') }}</a>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</details>
+
+<p style="margin-top:1.5rem">
+  <a href="/season/{{ season.id }}/conflicts">{{ t('conflict_detail_back') }}</a>
+</p>
+{% endblock %}

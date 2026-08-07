@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('tr_groups_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('tr_groups_title') }}</h1>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/trainings">{{ t('tr_back') }}</a>
+  </div>
+</div>
+
+{% if flash %}<div class="badge ok" style="display:inline-block;margin-bottom:1rem">{{ flash }}</div>{% endif %}
+{% if error %}<div class="conflict hard" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
+
+<p class="plan-meta muted">
+  {% if capacity.fits_solo %}{{ t('tr_fit_solo_yes') }}{% else %}{{ t('tr_fit_solo_no') }}{% endif %}
+  · {{ capacity.team_count }} {{ t('tr_meta_teams') }}
+  · {{ (capacity.demand_minutes/60)|round(1) }} h / {{ (capacity.supply_minutes/60)|round(1) }} h
+</p>
+
+{% if groups %}
+<div class="group-board" style="margin-bottom:1.5rem">
+  {% for g in groups %}
+  <article class="group-card{% if edit_group and edit_group.id == g.id %} is-editing{% endif %}">
+    <header>
+      <strong>{{ g.label or t('tr_groups_unnamed') }}</strong>
+      <span class="muted">{{ t('tr_groups_unit') }}</span>
+    </header>
+    <p class="muted" style="margin:0.35rem 0;font-size:0.85rem">
+      {% for w in g.weekday_list %}{{ weekdays[w] }}{% if not loop.last %}, {% endif %}{% endfor %}
+      · {{ g.time_label }} · {{ g.venue_name }}
+      <br>
+      <span style="font-size:0.8rem">{{ g.date_label }}</span>
+    </p>
+    <ul class="group-members">
+      {% for label in g.member_labels %}
+      <li><span class="plan-team">{{ label }}</span></li>
+      {% endfor %}
+    </ul>
+    <div class="row" style="gap:0.45rem;flex-wrap:wrap">
+      <a class="text-action" href="/season/{{ season.id }}/trainings/groups?edit={{ g.id }}#group-form">{{ t('tr_groups_edit') }}</a>
+      <form method="post" action="/season/{{ season.id }}/trainings/groups/{{ g.id }}/delete" style="margin:0"
+            onsubmit="return confirm('{{ t('tr_groups_delete_confirm') }}');">
+        <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('tr_groups_delete') }}</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+
+<section class="panel-sheet" id="group-form" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">
+    {% if edit_group %}{{ t('tr_groups_edit_heading') }}{% else %}{{ t('tr_groups_create') }}{% endif %}
+  </h2>
+  {% if edit_group %}
+  <p class="muted" style="margin-top:0">{{ t('tr_groups_edit_hint') }}</p>
+  {% endif %}
+  <form class="stack" method="post" action="/season/{{ season.id }}/trainings/groups">
+    {% if edit_group %}
+    <input type="hidden" name="edit_group_id" value="{{ edit_group.id }}" />
+    {% endif %}
+    <fieldset class="group-pick">
+      <legend>{{ t('tr_groups_pick_teams') }}</legend>
+      {% for tm in pick_teams %}
+      <label class="check">
+        <input type="checkbox" name="team_ids" value="{{ tm.id }}"
+               {% if tm.id in form_selected %}checked{% endif %} />
+        <span class="plan-team" {% if draft_colors.get(tm.id) %}style="color:{{ draft_colors[tm.id] }}"{% endif %}>
+          {{ tm.display_label }}
+        </span>
+      </label>
+      {% else %}
+      <p class="muted">{{ t('tr_groups_none_free') }}</p>
+      {% endfor %}
+    </fieldset>
+    <fieldset class="group-pick">
+      <legend>{{ t('tr_groups_weekdays') }}</legend>
+      {% for i in range(7) %}
+      <label class="check">
+        <input type="checkbox" name="weekdays" value="{{ i }}" {% if i in form_weekdays %}checked{% endif %} />
+        {{ weekdays[i] }}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <div class="row" style="gap:1rem;flex-wrap:wrap;margin-top:0.5rem">
+      <div>
+        <label>{{ t('tr_group_from') }}</label>
+        <input type="date" name="start_date" value="{{ edit_start_date }}">
+      </div>
+      <div>
+        <label>{{ t('tr_group_to') }}</label>
+        <input type="date" name="end_date" value="{{ edit_end_date }}">
+      </div>
+    </div>
+    <div class="row" style="gap:1rem;flex-wrap:wrap;margin-top:0.5rem">
+      <div>
+        <label>{{ t('tr_group_time') }}</label>
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" value="{{ edit_start_time }}">
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" value="{{ edit_end_time }}">
+      </div>
+      <div>
+        <label>{{ t('tr_group_venue') }}</label>
+        <select name="venue_id">
+          {% for v in venues %}
+          <option value="{{ v.id }}" {% if edit_venue_id is not none and v.id == edit_venue_id %}selected{% endif %}>{{ v.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="row" style="gap:0.75rem;flex-wrap:wrap">
+      <button type="submit" {% if not pick_teams %}disabled{% endif %}>
+        {% if edit_group %}{{ t('tr_groups_save_edit') }}{% else %}{{ t('tr_groups_form') }}{% endif %}
+      </button>
+      {% if edit_group %}
+      <a class="text-action" href="/season/{{ season.id }}/trainings/groups">{{ t('tr_groups_cancel_edit') }}</a>
+      {% else %}
+      <button type="submit" class="secondary" formaction="/season/{{ season.id }}/trainings/groups/propose" formmethod="post">{{ t('tr_groups_propose_btn') }}</button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+{% if propose_mode %}
+<section class="panel-sheet" id="propose" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">{{ t('tr_group_propose_title') }}</h2>
+  <form method="post" action="/season/{{ season.id }}/trainings/group-propose" style="display:flex;flex-direction:column;gap:0.75rem">
+    <div>
+      <label>{{ t('tr_group_weekdays') }}</label>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.25rem">
+        {% for name in weekdays %}
+        <label style="display:flex;align-items:center;gap:0.25rem">
+          <input type="checkbox" name="weekdays" value="{{ loop.index0 }}" {% if loop.index0 in propose_weekdays %}checked{% endif %}>
+          <span>{{ name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem">
+      <div>
+        <label>{{ t('tr_group_from') }}</label>
+        <input type="date" name="start_date" value="{{ propose_start_date }}">
+      </div>
+      <div>
+        <label>{{ t('tr_group_to') }}</label>
+        <input type="date" name="end_date" value="{{ propose_end_date }}">
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem">
+      <div>
+        <label>{{ t('tr_group_time') }}</label>
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" value="09:00">
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" value="10:30">
+      </div>
+      <div>
+        <label>{{ t('tr_group_venue') }}</label>
+        <select name="venue_id">
+          {% for v in propose_venues %}
+          <option value="{{ v.id }}">{{ v.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div>
+      <label style="display:flex;align-items:center;gap:0.25rem">
+        <input type="checkbox" name="keep_originals" value="1" checked>
+        <span>{{ t('tr_group_keep_originals') }}</span>
+      </label>
+    </div>
+    <input type="hidden" name="training_ids" value="{{ propose_training_ids }}">
+    <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+      <button type="submit" class="primary">{{ t('tr_group_generate_draft') }}</button>
+    </div>
+  </form>
+  {% if propose_draft_created %}
+  <div class="setup-banner" style="margin-top:0.75rem">
+    <h3>{{ t('tr_group_draft_heading') }}</h3>
+    <p class="muted">{{ propose_draft_message }}</p>
+    <form method="post" action="/season/{{ season.id }}/trainings/group-apply" style="margin-top:0.5rem">
+      <input type="hidden" name="group_id" value="{{ propose_group_id }}">
+      <button type="submit" class="primary">{{ t('tr_group_ok') }}</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if not groups %}
+<p class="muted">{{ t('tr_groups_empty') }}</p>
+{% endif %}
+{% endblock %}

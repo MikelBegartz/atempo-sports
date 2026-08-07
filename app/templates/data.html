@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('data_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('data_title') }}</h1>
+<p class="muted">{{ t('data_intro') }}</p>
+
+{% if report %}
+<div class="conflict {% if report.links_created or report.teams_created or report.people_created %}ok{% else %}hard{% endif %}" style="margin-top:1rem">
+  {{ t('data_report') }}:
+  {{ t('nav_teams') }} +{{ report.teams_created }},
+  {{ t('nav_people') }} +{{ report.people_created }},
+  {{ t('data_links') }} +{{ report.links_created }},
+  {{ t('data_skipped') }} {{ report.skipped }}
+  {% if report.errors %}
+  <ul>{% for e in report.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+</div>
+{% endif %}
+
+<section class="setup-panel">
+  <h2>{{ t('data_roster_heading') }}</h2>
+  <p class="setup-banner">{{ t('data_copy_paste_hint') }}</p>
+  <p class="muted">{{ t('data_roster_hint') }}</p>
+  <pre class="data-sample">{{ roster_template }}</pre>
+  <form class="stack" method="post" action="/season/{{ season.id }}/data" enctype="multipart/form-data">
+    <input type="hidden" name="kind" value="roster" />
+    {% if next_setup %}<input type="hidden" name="next" value="setup" />{% endif %}
+    <label>{{ t('data_paste') }}
+      <textarea name="paste" rows="8" placeholder="{{ t('data_roster_placeholder') }}"></textarea>
+    </label>
+    <label>{{ t('data_file') }}
+      <input type="file" name="file" accept=".csv,text/csv,text/plain" />
+    </label>
+    <button type="submit">{{ t('data_import') }}</button>
+  </form>
+</section>
+
+<details class="data-more">
+  <summary>{{ t('data_more') }}</summary>
+  <div class="grid" style="margin-top:1rem">
+    <form class="stack" method="post" action="/season/{{ season.id }}/data" enctype="multipart/form-data">
+      <input type="hidden" name="kind" value="teams" />
+      {% if next_setup %}<input type="hidden" name="next" value="setup" />{% endif %}
+      <h2>{{ t('nav_teams') }}</h2>
+      <pre class="data-sample">{{ teams_template }}</pre>
+      <label>{{ t('data_paste') }}
+        <textarea name="paste" rows="5"></textarea>
+      </label>
+      <label>{{ t('data_file') }}
+        <input type="file" name="file" accept=".csv,text/csv,text/plain" />
+      </label>
+      <button type="submit" class="secondary">{{ t('data_import') }}</button>
+    </form>
+    <form class="stack" method="post" action="/season/{{ season.id }}/data" enctype="multipart/form-data">
+      <input type="hidden" name="kind" value="people" />
+      {% if next_setup %}<input type="hidden" name="next" value="setup" />{% endif %}
+      <h2>{{ t('nav_people') }}</h2>
+      <pre class="data-sample">{{ people_template }}</pre>
+      <label>{{ t('data_paste') }}
+        <textarea name="paste" rows="5"></textarea>
+      </label>
+      <label>{{ t('data_file') }}
+        <input type="file" name="file" accept=".csv,text/csv,text/plain" />
+      </label>
+      <button type="submit" class="secondary">{{ t('data_import') }}</button>
+    </form>
+  </div>
+</details>
+
+<p class="muted" style="margin-top:1.5rem">
+  <a href="/season/{{ season.id }}/import">{{ t('data_fed_link') }}</a>
+</p>
+{% endblock %}

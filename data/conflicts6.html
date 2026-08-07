@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atempo · Conflictes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan33" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">Atempo</a>
+        <p class="tagline">Organitza&#39;t sense embolics</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="Idioma">
+          
+            
+            
+            <a href="/lang/ca?next=/season/1/conflicts" class="lang-mark is-active" title="Català">CAT</a>
+          
+            
+            
+            <a href="/lang/es?next=/season/1/conflicts" class="lang-mark" title="Castellano">ESP</a>
+          
+            
+            
+            <a href="/lang/pt?next=/season/1/conflicts" class="lang-mark" title="Português">POR</a>
+          
+            
+            
+            <a href="/lang/fr?next=/season/1/conflicts" class="lang-mark" title="Français">FRA</a>
+          
+            
+            
+            <a href="/lang/it?next=/season/1/conflicts" class="lang-mark" title="Italiano">ITA</a>
+          
+            
+            
+            <a href="/lang/en?next=/season/1/conflicts" class="lang-mark" title="English (US)">ENG</a>
+          
+            
+            
+            <a href="/lang/de?next=/season/1/conflicts" class="lang-mark" title="Deutsch">DEU</a>
+          
+        </nav>
+        
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">Surt</button>
+        </form>
+        
+      </div>
+    </div>
+    
+    <nav class="main-nav">
+      <div class="nav-left">
+        
+        <a href="/app">Inici</a>
+        <a href="/season/1/calendar">Calendari</a>
+        <a href="/season/1/matches">Partits</a>
+        <a href="/season/1/trainings">Entrenaments</a>
+        <a href="/season/1/club">Club</a>
+        
+      </div>
+      <div class="nav-right">
+        
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">Conflictes</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/1/conflicts#m1">
+              <span class="nav-conflict-horizon">&lt;30 dies</span>
+              <span class="nav-conflict-count">2</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/1/conflicts#m2">
+              <span class="nav-conflict-horizon">31–60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/1/conflicts#later">
+              <span class="nav-conflict-horizon">&gt;60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+    </nav>
+    <p class="context">CH Mataró · 2026/27</p>
+    
+  </header>
+  <main>
+    
+    
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>Conflictes</h1>
+    <p class="muted">Conflictes per franja de temps · 2</p>
+  </div>
+</div>
+
+
+
+
+<section class="horizon-block" id="m1">
+  <h2 class="horizon-title">&lt;30 dies <span class="muted">(2)</span></h2>
+  
+  <div class="conflict hard">
+    <div>Senior A (partit vs Barcelona): comença a les 09:00 però no pot abans de 18:00</div>
+    
+    <div class="conflict-actions">
+      <a href="/season/1/matches?m=5#fitxa">Anar al partit</a>
+    </div>
+    
+    
+    <details class="wa-prompt" style="margin-top:0.5rem">
+      <summary>Preparar missatge per WhatsApp</summary>
+      <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.5rem">
+        <textarea readonly id="wa-m1-1" style="min-height:5rem;resize:vertical" class="wa-text">⚠️ Conflicte a Atempo:
+Senior A (partit vs Barcelona): comença a les 09:00 però no pot abans de 18:00
+
+Pots resoldre’l des de l’app.</textarea>
+        <button type="button" class="secondary" onclick="copyToClipboard('wa-m1-1')">Copiar missatge</button>
+      </div>
+    </details>
+  </div>
+  
+  <div class="conflict hard">
+    <div>Pista 1 fora d&#39;horari disponible per a Senior A (partit vs Barcelona) 09:00–10:30</div>
+    
+    <div class="conflict-actions">
+      <a href="/season/1/matches?m=5#fitxa">Anar al partit</a>
+    </div>
+    
+    
+    <details class="wa-prompt" style="margin-top:0.5rem">
+      <summary>Preparar missatge per WhatsApp</summary>
+      <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.5rem">
+        <textarea readonly id="wa-m1-2" style="min-height:5rem;resize:vertical" class="wa-text">⚠️ Conflicte a Atempo:
+Pista 1 fora d&#39;horari disponible per a Senior A (partit vs Barcelona) 09:00–10:30
+
+Pots resoldre’l des de l’app.</textarea>
+        <button type="button" class="secondary" onclick="copyToClipboard('wa-m1-2')">Copiar missatge</button>
+      </div>
+    </details>
+  </div>
+  
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  </main>
+  <script>
+    async function copyToClipboard(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      const text = el.value;
+      let copied = false;
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+          copied = false;
+        }
+      }
+      if (!copied) {
+        try {
+          copied = document.execCommand('copy');
+        } catch (e) {
+          copied = false;
+        }
+      }
+      const btn = document.activeElement;
+      if (btn && btn.tagName === 'BUTTON' && copied) {
+        const original = btn.textContent;
+        btn.textContent = 'Copiat!';
+        setTimeout(() => btn.textContent = original, 1500);
+      }
+    }
+  </script>
+</body>
+</html>

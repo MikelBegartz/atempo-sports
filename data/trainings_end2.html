@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atempo · Entrenaments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan38" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">Atempo</a>
+        <p class="tagline">Organitza&#39;t sense embolics</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="Idioma">
+          
+            
+            
+            <a href="/lang/ca?next=/season/1/trainings" class="lang-mark is-active" title="Català">CAT</a>
+          
+            
+            
+            <a href="/lang/es?next=/season/1/trainings" class="lang-mark" title="Castellano">ESP</a>
+          
+            
+            
+            <a href="/lang/pt?next=/season/1/trainings" class="lang-mark" title="Português">POR</a>
+          
+            
+            
+            <a href="/lang/fr?next=/season/1/trainings" class="lang-mark" title="Français">FRA</a>
+          
+            
+            
+            <a href="/lang/it?next=/season/1/trainings" class="lang-mark" title="Italiano">ITA</a>
+          
+            
+            
+            <a href="/lang/en?next=/season/1/trainings" class="lang-mark" title="English (US)">ENG</a>
+          
+            
+            
+            <a href="/lang/de?next=/season/1/trainings" class="lang-mark" title="Deutsch">DEU</a>
+          
+        </nav>
+        
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">Surt</button>
+        </form>
+        
+      </div>
+    </div>
+    
+    <nav class="main-nav">
+      <div class="nav-left">
+        
+        <a href="/app">Inici</a>
+        <a href="/season/1/calendar">Calendari</a>
+        <a href="/season/1/matches">Partits</a>
+        <a href="/season/1/trainings">Entrenaments</a>
+        <a href="/season/1/club">Club</a>
+        
+      </div>
+      <div class="nav-right">
+        
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">Conflictes</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/1/conflicts#m1">
+              <span class="nav-conflict-horizon">&lt;30 dies</span>
+              <span class="nav-conflict-count">2</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/1/conflicts#m2">
+              <span class="nav-conflict-horizon">31–60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/1/conflicts#later">
+              <span class="nav-conflict-horizon">&gt;60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+    </nav>
+    <p class="context">CH Mataró · 2026/27</p>
+    
+  </header>
+  <main>
+    
+    
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>Entrenaments</h1>
+  </div>
+  <div class="page-head-actions">
+    
+    <a class="text-action" href="/season/1/trainings/hours">Hores</a>
+    <a class="text-action" href="/season/1/trainings/groups">Grups</a>
+    <a class="text-action" href="/season/1/trainings/solapes">Solapes</a>
+    
+  </div>
+</div>
+
+
+
+
+
+<section class="fit-panel is-ok" aria-label="Capacitat">
+  <p class="fit-prose">
+    Els equips del club poden entrenar en solitari.
+    4 equips · 18.0 h d’entreno · 67.5 h de pista disponibles.
+  </p>
+  
+  
+  <p class="fit-prose">
+    Caben en solitari. 
+     Et puc fer una <a class="fit-link" href="/season/1/trainings/propose"><strong>proposta d’horaris</strong></a> o pots ajustar a <a class="fit-link" href="/season/1/trainings/groups"><strong>grups</strong></a>. El calendari oficial no es toca fins a Aplicar.
+  </p>
+  
+</section>
+
+
+
+<section class="draft-explain" aria-label="Què hi ha al borrador">
+  <p class="fit-prose">
+    
+      Borrador setmanal: 12 sessions (es repeteix cada setmana).
+      
+    
+  </p>
+</section>
+
+
+<section class="plan-chart" id="draft" aria-label="Planning">
+  <div class="plan-chart-toolbar">
+    
+    <span class="cal-nav-step" style="visibility:hidden">←</span>
+    
+    <div class="plan-chart-title">
+      <strong>
+        Borrador
+        
+      </strong>
+      <span class="muted">03/08 – 09/08</span>
+    </div>
+    
+    <a class="cal-nav-step cal-nav-step--next" href="/season/1/trainings?draft_week=2026-08-10#draft">
+      <span class="cal-nav-arrow" aria-hidden="true">→</span>
+    </a>
+    
+  </div>
+
+  <p class="plan-chart-legend muted">Cada fila és una pista. El verd clar és l’horari d’hockey disponible aquell dia; el ratllat, fora d’horari. Configura-ho a Club → Pistes.</p>
+
+  <div class="plan-chart-body" style="--rink-count: 3">
+    <div class="plan-chart-hours" aria-hidden="true">
+      <span class="plan-chart-day-label"></span>
+      <span class="plan-chart-rink-label"></span>
+      <div class="plan-chart-hour-track">
+        
+        <span class="plan-chart-hour" style="left: 0.0%">09</span>
+        
+        <span class="plan-chart-hour" style="left: 7.69%">10</span>
+        
+        <span class="plan-chart-hour" style="left: 15.38%">11</span>
+        
+        <span class="plan-chart-hour" style="left: 23.08%">12</span>
+        
+        <span class="plan-chart-hour" style="left: 30.77%">13</span>
+        
+        <span class="plan-chart-hour" style="left: 38.46%">14</span>
+        
+        <span class="plan-chart-hour" style="left: 46.15%">15</span>
+        
+        <span class="plan-chart-hour" style="left: 53.85%">16</span>
+        
+        <span class="plan-chart-hour" style="left: 61.54%">17</span>
+        
+        <span class="plan-chart-hour" style="left: 69.23%">18</span>
+        
+        <span class="plan-chart-hour" style="left: 76.92%">19</span>
+        
+        <span class="plan-chart-hour" style="left: 84.62%">20</span>
+        
+        <span class="plan-chart-hour" style="left: 92.31%">21</span>
+        
+        <span class="plan-chart-hour" style="left: 100.0%">22</span>
+        
+      </div>
+    </div>
+    <div class="plan-chart-vline-layer" aria-hidden="true">
+      
+      <span style="left: 0.0%"></span>
+      
+      <span style="left: 7.69%"></span>
+      
+      <span style="left: 15.38%"></span>
+      
+      <span style="left: 23.08%"></span>
+      
+      <span style="left: 30.77%"></span>
+      
+      <span style="left: 38.46%"></span>
+      
+      <span style="left: 46.15%"></span>
+      
+      <span style="left: 53.85%"></span>
+      
+      <span style="left: 61.54%"></span>
+      
+      <span style="left: 69.23%"></span>
+      
+      <span style="left: 76.92%"></span>
+      
+      <span style="left: 84.62%"></span>
+      
+      <span style="left: 92.31%"></span>
+      
+      <span style="left: 100.0%"></span>
+      
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DL</strong>
+        <span class="muted">03/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 61.54%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 61.54%; width: 11.54%; background: #6b3d7a; --bar-color: #6b3d7a">
+              <span class="plan-chart-bar-text">Sènior · Femení</span>
+              <span class="plan-chart-tip" role="tooltip">Sènior (Femení) · Dilluns 03/08 · 17:00–18:30 · Pista 1</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 69.23%; width: 26.92%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 69.23%; width: 11.54%; background: #8b5a1f; --bar-color: #8b5a1f">
+              <span class="plan-chart-bar-text">Senior A</span>
+              <span class="plan-chart-tip" role="tooltip">Senior A · Dilluns 03/08 · 18:00–19:30 · Pista 2</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 53.85%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 53.85%; width: 11.54%; background: #2a7a5c; --bar-color: #2a7a5c">
+              <span class="plan-chart-bar-text">Aleví A</span>
+              <span class="plan-chart-tip" role="tooltip">Aleví A · Dilluns 03/08 · 16:00–17:30 · Pista 3</span>
+            </div>
+            
+            <div class="plan-chart-bar" style="left: 65.38%; width: 11.54%; background: #1f5f8b; --bar-color: #1f5f8b">
+              <span class="plan-chart-bar-text">Juvenil · Mixte</span>
+              <span class="plan-chart-tip" role="tooltip">Juvenil (Mixte) · Dilluns 03/08 · 17:30–19:00 · Pista 3</span>
+            </div>
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DM</strong>
+        <span class="muted">04/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 61.54%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 69.23%; width: 26.92%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 53.85%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DX</strong>
+        <span class="muted">05/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 61.54%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 61.54%; width: 11.54%; background: #6b3d7a; --bar-color: #6b3d7a">
+              <span class="plan-chart-bar-text">Sènior · Femení</span>
+              <span class="plan-chart-tip" role="tooltip">Sènior (Femení) · Dimecres 05/08 · 17:00–18:30 · Pista 1</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 69.23%; width: 26.92%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 69.23%; width: 11.54%; background: #8b5a1f; --bar-color: #8b5a1f">
+              <span class="plan-chart-bar-text">Senior A</span>
+              <span class="plan-chart-tip" role="tooltip">Senior A · Dimecres 05/08 · 18:00–19:30 · Pista 2</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 53.85%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 53.85%; width: 11.54%; background: #2a7a5c; --bar-color: #2a7a5c">
+              <span class="plan-chart-bar-text">Aleví A</span>
+              <span class="plan-chart-tip" role="tooltip">Aleví A · Dimecres 05/08 · 16:00–17:30 · Pista 3</span>
+            </div>
+            
+            <div class="plan-chart-bar" style="left: 65.38%; width: 11.54%; background: #1f5f8b; --bar-color: #1f5f8b">
+              <span class="plan-chart-bar-text">Juvenil · Mixte</span>
+              <span class="plan-chart-tip" role="tooltip">Juvenil (Mixte) · Dimecres 05/08 · 17:30–19:00 · Pista 3</span>
+            </div>
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DJ</strong>
+        <span class="muted">06/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 61.54%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 69.23%; width: 26.92%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 53.85%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DV</strong>
+        <span class="muted">07/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 61.54%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 61.54%; width: 11.54%; background: #6b3d7a; --bar-color: #6b3d7a">
+              <span class="plan-chart-bar-text">Sènior · Femení</span>
+              <span class="plan-chart-tip" role="tooltip">Sènior (Femení) · Divendres 07/08 · 17:00–18:30 · Pista 1</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 69.23%; width: 26.92%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 69.23%; width: 11.54%; background: #8b5a1f; --bar-color: #8b5a1f">
+              <span class="plan-chart-bar-text">Senior A</span>
+              <span class="plan-chart-tip" role="tooltip">Senior A · Divendres 07/08 · 18:00–19:30 · Pista 2</span>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 53.85%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+            <div class="plan-chart-bar" style="left: 53.85%; width: 11.54%; background: #2a7a5c; --bar-color: #2a7a5c">
+              <span class="plan-chart-bar-text">Aleví A</span>
+              <span class="plan-chart-tip" role="tooltip">Aleví A · Divendres 07/08 · 16:00–17:30 · Pista 3</span>
+            </div>
+            
+            <div class="plan-chart-bar" style="left: 65.38%; width: 11.54%; background: #1f5f8b; --bar-color: #1f5f8b">
+              <span class="plan-chart-bar-text">Juvenil · Mixte</span>
+              <span class="plan-chart-tip" role="tooltip">Juvenil (Mixte) · Divendres 07/08 · 17:30–19:00 · Pista 3</span>
+            </div>
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DS</strong>
+        <span class="muted">08/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 30.77%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 84.62%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>DG</strong>
+        <span class="muted">09/08</span>
+      </div>
+      <div class="plan-chart-lanes">
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 1">Pista 1</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 38.46%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 2">Pista 2</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 30.77%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="Pista 3">Pista 3</span>
+          <div class="plan-chart-track">
+            
+            <div class="plan-chart-avail" style="left: 0.0%; width: 84.62%" title="Horari d’hockey disponible"></div>
+            
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  
+</section>
+
+
+<div class="plan-actions">
+  
+  <form method="post" action="/season/1/trainings/plan/apply"
+        onsubmit="return confirm('ATENCIÓ: això aplicarà 48 sessions del borrador fins a la data indicada. Pots desfer-ho després amb «Desfer aplicació». Continuar?');"
+        class="plan-apply-form">
+    <label class="muted">Aplicar fins a
+      <input type="date" name="until"
+             value="2027-06-30" />
+    </label>
+    <button type="submit">Aplicar al calendari</button>
+  </form>
+  
+  <a class="button secondary" href="#modify" onclick="document.getElementById('modify').open=true">Modificar</a>
+  
+  <form method="post" action="/season/1/trainings/plan/discard"
+        onsubmit="return confirm('Esborrar 48 sessions de borrador?');">
+    <button type="submit" class="secondary">Descartar</button>
+  </form>
+  
+  
+</div>
+<p class="muted plan-meta" style="margin-top:-0.5rem">Modificar = ajustar · Aplicar = calendari · Desfer aplicació = tornar enrere · Descartar = treure la prova</p>
+
+
+<details class="plan-details" id="team-list">
+  <summary>Llistat d’equips (4)</summary>
+  <p class="muted team-week-list-intro">Horari de la setmana per equip (els grups es desglossen). El patró es repeteix cada setmana.</p>
+  <ul class="team-week-list-body">
+    
+    <li class="team-week-row">
+      <div class="team-week-row-head">
+        <span class="team-week-swatch" style="background: #2a7a5c" aria-hidden="true"></span>
+        <strong class="team-week-name">Aleví A</strong>
+        
+        <span class="muted">Aleví</span>
+        
+      </div>
+      <ul class="team-week-slots">
+        
+        <li>
+          <span class="team-week-slot-when">Dilluns 03/08 · 16:00–17:30</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Dimecres 05/08 · 16:00–17:30</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Divendres 07/08 · 16:00–17:30</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="team-week-row">
+      <div class="team-week-row-head">
+        <span class="team-week-swatch" style="background: #1f5f8b" aria-hidden="true"></span>
+        <strong class="team-week-name">Juvenil</strong>
+        
+        <span class="muted">Mixte</span>
+        
+      </div>
+      <ul class="team-week-slots">
+        
+        <li>
+          <span class="team-week-slot-when">Dilluns 03/08 · 17:30–19:00</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Dimecres 05/08 · 17:30–19:00</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Divendres 07/08 · 17:30–19:00</span>
+          <span class="muted"> · Pista 3</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="team-week-row">
+      <div class="team-week-row-head">
+        <span class="team-week-swatch" style="background: #8b5a1f" aria-hidden="true"></span>
+        <strong class="team-week-name">Senior A</strong>
+        
+        <span class="muted">Senior</span>
+        
+      </div>
+      <ul class="team-week-slots">
+        
+        <li>
+          <span class="team-week-slot-when">Dilluns 03/08 · 18:00–19:30</span>
+          <span class="muted"> · Pista 2</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Dimecres 05/08 · 18:00–19:30</span>
+          <span class="muted"> · Pista 2</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Divendres 07/08 · 18:00–19:30</span>
+          <span class="muted"> · Pista 2</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="team-week-row">
+      <div class="team-week-row-head">
+        <span class="team-week-swatch" style="background: #6b3d7a" aria-hidden="true"></span>
+        <strong class="team-week-name">Sènior</strong>
+        
+        <span class="muted">Femení</span>
+        
+      </div>
+      <ul class="team-week-slots">
+        
+        <li>
+          <span class="team-week-slot-when">Dilluns 03/08 · 17:00–18:30</span>
+          <span class="muted"> · Pista 1</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Dimecres 05/08 · 17:00–18:30</span>
+          <span class="muted"> · Pista 1</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+        <li>
+          <span class="team-week-slot-when">Divendres 07/08 · 17:00–18:30</span>
+          <span class="muted"> · Pista 1</span>
+          
+          <span class="muted team-week-solo"> — individual</span>
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
+</details>
+
+
+<details class="plan-details" id="modify">
+  <summary>Modificar</summary>
+  <p class="muted" style="margin:0.65rem 0 0.85rem;font-size:0.9rem">Canvia hores, grups, solapes o el període. El calendari oficial no es toca fins a aplicar.</p>
+  <div class="plan-modify-links">
+    <a class="text-action" href="/season/1/trainings/hours">Hores</a>
+    <a class="text-action" href="/season/1/trainings/groups">Grups</a>
+    <a class="text-action" href="/season/1/trainings/solapes">Solapes</a>
+  </div>
+  <form class="plan-gen-form" method="post" action="/season/1/trainings/plan/generate" style="margin-top:0.85rem">
+    <input type="date" name="range_start" required value="2026-08-03" aria-label="Des de" />
+    <input type="date" name="range_end" required value="2026-08-30" aria-label="Fins a" />
+    <button type="submit" class="secondary">Actualitzar borrador</button>
+  </form>
+</details>
+
+
+<details class="plan-details">
+  <summary>Sessions del borrador (48)</summary>
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Hora</th>
+        <th>Equip</th>
+        <th>Pista</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>2026-08-03</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-03</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-03</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-03</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-05</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-05</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-05</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-05</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-07</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-07</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-07</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-07</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-10</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-10</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-10</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-10</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-12</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-12</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-12</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-12</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-14</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-14</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-14</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-14</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-17</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-17</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-17</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-17</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-19</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-19</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-19</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-19</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-21</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-21</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-21</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-21</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-24</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-24</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-24</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-24</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-26</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-26</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-26</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-26</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-28</td>
+        <td>16:00–17:30</td>
+        <td><span class="plan-team" style="color: #2a7a5c">Aleví A · Aleví</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-28</td>
+        <td>17:00–18:30</td>
+        <td><span class="plan-team" style="color: #6b3d7a">Sènior · Femení</span></td>
+        <td>Pista 1</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-28</td>
+        <td>17:30–19:00</td>
+        <td><span class="plan-team" style="color: #1f5f8b">Juvenil · Mixte</span></td>
+        <td>Pista 3</td>
+      </tr>
+      
+      <tr>
+        <td>2026-08-28</td>
+        <td>18:00–19:30</td>
+        <td><span class="plan-team" style="color: #8b5a1f">Senior A · Senior</span></td>
+        <td>Pista 2</td>
+      </tr>
+      
+    </tbody>
+  </table>
+</details>
+
+
+<details class="plan-details">
+  <summary>Sessió solta / Excepció</summary>
+  <div class="grid" style="margin-top:1rem">
+    <div>
+      <h3>Un de solt</h3>
+      <form class="stack" method="post" action="/season/1/trainings">
+        <label>Equip
+          <select name="team_id" required>
+            
+            <option value="4">Aleví A · Aleví</option>
+            
+            <option value="3">Juvenil · Mixte</option>
+            
+            <option value="1">Senior A · Senior</option>
+            
+            <option value="2">Sènior · Femení</option>
+            
+          </select>
+        </label>
+        <div class="row">
+          <label>Data<input type="date" name="session_date" required /></label>
+          <label>Des de<input type="time" name="start_time" required /></label>
+          <label>Fins a<input type="time" name="end_time" required /></label>
+        </div>
+        <div class="row">
+          <label>Pista
+            <select name="venue_id">
+              <option value="">—</option>
+              <option value="1">Pista 1</option><option value="2">Pista 2</option><option value="3">Pista 3</option>
+            </select>
+          </label>
+          <label class="check" style="align-self:end">
+            <input type="checkbox" name="allows_share" value="1" /> Compartir pista
+          </label>
+        </div>
+        <label>Notes<input name="notes" placeholder="opcional" /></label>
+        <button type="submit">Afegir</button>
+      </form>
+    </div>
+    <div>
+      <h3>Sèrie setmanal</h3>
+      <form class="stack" method="post" action="/season/1/trainings/recurring">
+        <label>Equip
+          <select name="team_id" required>
+            
+            <option value="4">Aleví A · Aleví</option>
+            
+            <option value="3">Juvenil · Mixte</option>
+            
+            <option value="1">Senior A · Senior</option>
+            
+            <option value="2">Sènior · Femení</option>
+            
+          </select>
+        </label>
+        <label>Dia
+          <select name="weekday" required>
+            
+            <option value="0" >Dilluns</option>
+            
+            <option value="1" >Dimarts</option>
+            
+            <option value="2" >Dimecres</option>
+            
+            <option value="3" >Dijous</option>
+            
+            <option value="4" >Divendres</option>
+            
+            <option value="5" selected>Dissabte</option>
+            
+            <option value="6" >Diumenge</option>
+            
+          </select>
+        </label>
+        <div class="row">
+          <label>Des de<input type="date" name="range_start" required /></label>
+          <label>Fins a<input type="date" name="range_end" required /></label>
+        </div>
+        <div class="row">
+          <label>Des de<input type="time" name="start_time" required value="18:00" /></label>
+          <label>Fins a<input type="time" name="end_time" required value="19:00" /></label>
+        </div>
+        <div class="row">
+          <label>Pista
+            <select name="venue_id">
+              <option value="">—</option>
+              <option value="1">Pista 1</option><option value="2">Pista 2</option><option value="3">Pista 3</option>
+            </select>
+          </label>
+          <label class="check" style="align-self:end">
+            <input type="checkbox" name="allows_share" value="1" /> Compartir pista
+          </label>
+        </div>
+        <button type="submit">Generar sèrie</button>
+      </form>
+    </div>
+  </div>
+</details>
+
+
+
+
+
+  </main>
+  <script>
+    async function copyToClipboard(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      const text = el.value;
+      let copied = false;
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+          copied = false;
+        }
+      }
+      if (!copied) {
+        try {
+          copied = document.execCommand('copy');
+        } catch (e) {
+          copied = false;
+        }
+      }
+      const btn = document.activeElement;
+      if (btn && btn.tagName === 'BUTTON' && copied) {
+        const original = btn.textContent;
+        btn.textContent = 'Copiat!';
+        setTimeout(() => btn.textContent = original, 1500);
+      }
+    }
+  </script>
+</body>
+</html>

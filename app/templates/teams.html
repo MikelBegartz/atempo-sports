@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('nav_teams') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('nav_teams') }}</h1>
+    <p class="muted" style="margin-bottom:0">{{ t('teams_edit_hint') }}</p>
+    <p class="muted" style="margin-top:0" id="teams-overlap-hint">{{ t('teams_overlap_hint') }}</p>
+    <div style="display:flex; gap:0.55rem; flex-wrap:wrap; margin-top:0.45rem">
+      <a class="text-action" href="/season/{{ season.id }}/fed">{{ t('teams_import_fed') }}</a>
+      <a class="text-action" href="/season/{{ season.id }}/teams/link">{{ t('teams_link') }}</a>
+    </div>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" id="teams-create-link" href="/season/{{ season.id }}/teams?new=equip">{{ t('setup_add_team') }}</a>
+    {% if teams %}
+    <a class="text-action" id="teams-edit-link" href="/season/{{ season.id }}/teams?new=edit">{{ t('teams_edit_link') }}</a>
+    {% endif %}
+    <button type="button" class="text-action-btn" id="teams-overlap-btn" hidden>{{ t('teams_overlap_action') }}</button>
+    <button type="button" class="text-action-btn danger" id="teams-delete-btn" hidden>{{ t('teams_delete_action') }}</button>
+  </div>
+</div>
+
+{% if panel == 'equip' %}
+<section class="panel-sheet">
+  <div class="panel-sheet-head">
+    <h2>{{ t('setup_add_team') }}</h2>
+    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
+  </div>
+  <form class="stack" method="post" action="/season/{{ season.id }}/teams" autocomplete="off">
+    <label>{{ t('teams_branch') }}
+      <select name="branch" required>
+        <option value="base_mixed" selected>{{ branch_labels.base_mixed }}</option>
+        <option value="base_female">{{ branch_labels.base_female }}</option>
+        <option value="senior_male">{{ branch_labels.senior_male }}</option>
+        <option value="senior_female">{{ branch_labels.senior_female }}</option>
+      </select>
+    </label>
+    <label>{{ t('col_team') }}
+      <input name="name" required placeholder="{{ t('teams_name_placeholder') }}" list="team-name-suggestions" value="" autocomplete="off" />
+    </label>
+    <label>{{ t('teams_not_before') }}
+      <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" />
+    </label>
+    <button type="submit">{{ t('setup_add_team') }}</button>
+  </form>
+</section>
+{% elif panel == 'edit' and teams %}
+<section class="panel-sheet">
+  <div class="panel-sheet-head">
+    <h2>{{ t('teams_edit_link') }}</h2>
+    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
+  </div>
+  <p class="muted">{{ t('teams_edit_pick') }}</p>
+  <ul class="entity-list">
+    {% for tm in teams %}
+    <li>
+      <a class="entity-name" href="/season/{{ season.id }}/teams?t={{ tm.id }}">{{ tm.name }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if not panel and not selected %}
+{% if teams %}
+<ul class="entity-list">
+  {% for tm in teams %}
+  <li>
+    <a class="entity-name team-pick"
+       href="/season/{{ season.id }}/teams?t={{ tm.id }}"
+       data-team-id="{{ tm.id }}">{{ tm.name }}</a>
+    {% if tm.category %}
+    <p class="entity-meta">{{ tm.category }}</p>
+    {% endif %}
+    {% if team_group_label.get(tm.id) or tm.id in team_in_solape %}
+    <p class="entity-meta">
+      {% if team_group_label.get(tm.id) %}
+      <span class="badge ok">{{ t('teams_badge_group') }}: {{ team_group_label[tm.id] }}</span>
+      {% endif %}
+      {% if tm.id in team_in_solape %}
+      <span class="badge ok">{{ t('teams_badge_solape') }}</span>
+      {% endif %}
+    </p>
+    {% endif %}
+    {% if tm.memberships %}
+    <p class="entity-meta">{{ tm.memberships|length }} {{ t('teams_people_count') }}</p>
+    {% else %}
+    <p class="entity-meta">{{ t('setup_team_empty') }}</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">{{ t('teams_empty') }}</p>
+{% endif %}
+
+<h2 style="margin-top:1.5rem">{{ t('teams_paste_title') }}</h2>
+<form class="stack" method="post" action="/season/{{ season.id }}/teams/batch" id="team-paste">
+  <label>{{ t('teams_paste_label') }}
+    <textarea name="names" rows="6" placeholder="{{ t('teams_paste_ph') }}"></textarea>
+  </label>
+  <label>{{ t('teams_paste_branch') }}
+    <select name="branch" required>
+      <option value="base_mixed" selected>{{ branch_labels.base_mixed }}</option>
+      <option value="base_female">{{ branch_labels.base_female }}</option>
+      <option value="senior_male">{{ branch_labels.senior_male }}</option>
+      <option value="senior_female">{{ branch_labels.senior_female }}</option>
+    </select>
+  </label>
+  <button type="submit">{{ t('teams_paste_create') }}</button>
+</form>
+
+{% if teams_result %}
+<div class="setup-banner" style="margin-top:0.75rem">
+  {% if teams_result.created %}{{ t('teams_paste_created').format(n=teams_result.created) }}{% endif %}
+  {% if teams_result.skipped %} · {{ t('teams_paste_skipped').format(n=teams_result.skipped) }}{% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% if selected and not panel %}
+<section class="panel-sheet venue-card" id="team-{{ selected.id }}">
+  <div class="venue-head">
+    <div>
+      <span class="badge ok">{{ branch_labels.get(selected.branch, branch_labels.base_mixed) }}</span>
+    </div>
+    <div class="venue-head-actions">
+      <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
+      <form method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/delete" style="margin:0"
+            onsubmit="return confirm({{ teams_delete_confirm|tojson }});">
+        <button type="submit" class="text-action-btn danger">{{ teams_delete_label }}</button>
+      </form>
+    </div>
+  </div>
+
+  <form class="stack" method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/update" style="margin-top:0.75rem">
+    <label>{{ t('col_team') }}
+      <input class="venue-name-input" name="name" value="{{ selected.name }}" required
+             style="width:100%;max-width:24rem" />
+    </label>
+    <div class="row">
+      <label>{{ t('teams_branch') }}
+        <select name="branch" required>
+          <option value="base_mixed" {% if (selected.branch or 'base_mixed') == 'base_mixed' %}selected{% endif %}>{{ branch_labels.base_mixed }}</option>
+          <option value="base_female" {% if selected.branch == 'base_female' %}selected{% endif %}>{{ branch_labels.base_female }}</option>
+          <option value="senior_male" {% if selected.branch == 'senior_male' or selected.branch == 'male' %}selected{% endif %}>{{ branch_labels.senior_male }}</option>
+          <option value="senior_female" {% if selected.branch == 'senior_female' %}selected{% endif %}>{{ branch_labels.senior_female }}</option>
+        </select>
+      </label>
+      <label>{{ t('teams_not_before') }}
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" value="{{ selected.not_before|time_input if selected.not_before else '' }}" />
+      </label>
+    </div>
+    <input type="hidden" name="category" value="{{ selected.category or '' }}" />
+    <button type="submit" class="secondary">{{ t('teams_save') }}</button>
+  </form>
+
+  <h3 class="venue-sub" style="margin-top:1.25rem">{{ t('nav_people') }}</h3>
+  <ul class="members">
+    {% for m in selected.memberships %}
+    <li>
+      <a href="/season/{{ season.id }}/people#person-{{ m.person.id }}">{{ m.person.full_name }}</a>
+      <span class="badge ok">
+        {% if m.role == 'player' %}{{ t('role_player') }}
+        {% elif m.role == 'coach' %}{{ t('role_coach') }}
+        {% elif m.role == 'reinforce' %}{{ t('role_reinforce') }}
+        {% else %}{{ m.role }}{% endif %}
+      </span>
+      <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/delete" style="display:inline;margin:0">
+        <button type="submit" class="text-action-btn danger" style="font-size:0.8rem">{{ t('teams_unlink') }}</button>
+      </form>
+    </li>
+    {% else %}
+    <li class="muted">{{ t('setup_team_empty') }}</li>
+    {% endfor %}
+  </ul>
+
+  <form class="stack" method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/members" style="margin-top:0.85rem">
+    <div class="row" style="align-items:flex-end">
+      <label>{{ t('nav_people') }}
+        <input name="person_name" list="people-list" placeholder="{{ t('setup_person_placeholder') }}" autocomplete="off" />
+      </label>
+      <label>{{ t('setup_role') }}
+        <select name="role">
+          <option value="player">{{ t('role_player') }}</option>
+          <option value="coach">{{ t('role_coach') }}</option>
+          <option value="reinforce">{{ t('role_reinforce') }}</option>
+        </select>
+      </label>
+      <button type="submit" class="secondary">{{ t('setup_link_person') }}</button>
+    </div>
+    <label style="margin-top:0.75rem">{{ t('people_paste_label') }}
+      <textarea name="names" rows="5" placeholder="{{ t('people_paste_ph') }}"></textarea>
+    </label>
+    <p class="muted" style="font-size:0.85rem">{{ t('people_paste_or_create_team') }}</p>
+  </form>
+</section>
+{% endif %}
+
+<datalist id="people-list">
+  {% for p in people %}
+  <option value="{{ p.full_name }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="team-name-suggestions">
+  <option value="Prebenjamí A"></option>
+  <option value="Prebenjamí B"></option>
+  <option value="Benjamí A"></option>
+  <option value="Benjamí B"></option>
+  <option value="Aleví A"></option>
+  <option value="Aleví B"></option>
+  <option value="Infantil"></option>
+  <option value="Cadet"></option>
+  <option value="Juvenil"></option>
+  <option value="Minifem"></option>
+  <option value="Fem 11"></option>
+  <option value="Fem 13"></option>
+  <option value="Fem 15"></option>
+  <option value="Fem 17"></option>
+  <option value="Fem 19"></option>
+  <option value="Sènior A"></option>
+  <option value="Sènior B"></option>
+  <option value="Sènior Femení"></option>
+</datalist>
+<script>
+(function () {
+  var selected = {};
+  var overlapBtn = document.getElementById("teams-overlap-btn");
+  var deleteBtn = document.getElementById("teams-delete-btn");
+  var createLink = document.getElementById("teams-create-link");
+  var editLink = document.getElementById("teams-edit-link");
+  var seasonId = {{ season.id }};
+  var deleteConfirm = {{ t('teams_bulk_delete_confirm')|tojson }};
+  function sync() {
+    var ids = Object.keys(selected);
+    var multi = ids.length >= 2;
+    if (overlapBtn) overlapBtn.hidden = !multi;
+    if (deleteBtn) deleteBtn.hidden = !multi;
+    if (createLink) createLink.hidden = multi;
+    if (editLink) editLink.hidden = multi;
+  }
+  document.querySelectorAll("a.team-pick").forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      if (!ev.ctrlKey && !ev.metaKey) return;
+      ev.preventDefault();
+      var id = a.getAttribute("data-team-id");
+      if (selected[id]) {
+        delete selected[id];
+        a.classList.remove("is-picked");
+      } else {
+        selected[id] = true;
+        a.classList.add("is-picked");
+      }
+      sync();
+    });
+  });
+  if (overlapBtn) {
+    overlapBtn.addEventListener("click", function () {
+      var ids = Object.keys(selected);
+      if (ids.length < 2) return;
+      window.location.href = "/season/" + seasonId + "/overlaps?teams=" + ids.join(",");
+    });
+  }
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", function () {
+      var ids = Object.keys(selected);
+      if (ids.length < 2) return;
+      if (!confirm(deleteConfirm)) return;
+      var form = document.createElement("form");
+      form.method = "post";
+      form.action = "/season/" + seasonId + "/teams/bulk-delete";
+      ids.forEach(function (id) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "team_ids";
+        input.value = id;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    });
+  }
+})();
+</script>
+{% endblock %}

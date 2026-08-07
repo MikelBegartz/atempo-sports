@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('overlaps_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('overlaps_title') }}</h1>
+    <p class="muted">{{ t('overlaps_intro') }}</p>
+    <p class="muted">
+      {% for tm in selected_teams %}
+      <strong>{{ tm.name }}</strong>{% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </p>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
+  </div>
+</div>
+
+{% if overlaps %}
+{% for bucket in horizon_order %}
+{% set items = overlaps_by_horizon.get(bucket, []) %}
+{% if items %}
+<section class="horizon-block">
+  <h2 class="horizon-title">{{ horizon_labels[bucket] }} <span class="muted">({{ items|length }})</span></h2>
+  {% for o in items %}
+  <div class="conflict {{ o.severity }}">
+    <span class="badge {{ o.severity }}">
+      {% if o.kind == 'reinforce' %}{{ t('overlaps_kind_reinforce') }}
+      {% elif o.kind == 'shared' %}{{ t('overlaps_kind_shared') }}
+      {% else %}{{ t('overlaps_kind_probable') }}{% endif %}
+    </span>
+    <div>
+      <strong>{{ o.match_a.team.name }}</strong>
+      vs {{ o.match_a.opponent }}
+      · {{ o.match_a.match_date }}
+      {% if o.match_a.start_time %} {{ o.match_a.start_time|time_input }}{% endif %}
+    </div>
+    <div>
+      <strong>{{ o.match_b.team.name }}</strong>
+      vs {{ o.match_b.opponent }}
+      · {{ o.match_b.match_date }}
+      {% if o.match_b.start_time %} {{ o.match_b.start_time|time_input }}{% endif %}
+    </div>
+    {% if o.same_day %}
+    <p class="muted" style="margin:0.35rem 0 0">{{ t('overlaps_same_day') }}</p>
+    {% else %}
+    <p class="muted" style="margin:0.35rem 0 0">{{ t('overlaps_same_weekend') }}</p>
+    {% endif %}
+    {% if o.reinforce_people %}
+    <p class="muted" style="margin:0.25rem 0 0">{{ t('overlaps_reinforce') }}: {{ o.reinforce_people|join(', ') }}</p>
+    {% endif %}
+    {% if o.shared_people %}
+    <p class="muted" style="margin:0.25rem 0 0">{{ t('overlaps_shared') }}: {{ o.shared_people|join(', ') }}</p>
+    {% endif %}
+    <div class="conflict-actions">
+      <a href="/season/{{ season.id }}/matches?m={{ o.match_a.id }}#fitxa">{{ o.match_a.team.name }} → {{ t('conflicts_manual') }}</a>
+      <a href="/season/{{ season.id }}/matches?m={{ o.match_b.id }}#fitxa">{{ o.match_b.team.name }} → {{ t('conflicts_manual') }}</a>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endfor %}
+{% else %}
+<p class="muted">{{ t('overlaps_empty') }}</p>
+{% endif %}
+{% endblock %}

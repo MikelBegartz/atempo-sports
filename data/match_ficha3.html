@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atempo · Modificar partits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan29" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">Atempo</a>
+        <p class="tagline">Organitza&#39;t sense embolics</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="Idioma">
+          
+            
+            
+            <a href="/lang/ca?next=/season/1/matches" class="lang-mark is-active" title="Català">CAT</a>
+          
+            
+            
+            <a href="/lang/es?next=/season/1/matches" class="lang-mark" title="Castellano">ESP</a>
+          
+            
+            
+            <a href="/lang/pt?next=/season/1/matches" class="lang-mark" title="Português">POR</a>
+          
+            
+            
+            <a href="/lang/fr?next=/season/1/matches" class="lang-mark" title="Français">FRA</a>
+          
+            
+            
+            <a href="/lang/it?next=/season/1/matches" class="lang-mark" title="Italiano">ITA</a>
+          
+            
+            
+            <a href="/lang/en?next=/season/1/matches" class="lang-mark" title="English (US)">ENG</a>
+          
+            
+            
+            <a href="/lang/de?next=/season/1/matches" class="lang-mark" title="Deutsch">DEU</a>
+          
+        </nav>
+        
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">Surt</button>
+        </form>
+        
+      </div>
+    </div>
+    
+    <nav class="main-nav">
+      <div class="nav-left">
+        
+        <a href="/app">Inici</a>
+        <a href="/season/1/calendar">Calendari</a>
+        <a href="/season/1/matches">Partits</a>
+        <a href="/season/1/trainings">Entrenaments</a>
+        <a href="/season/1/club">Club</a>
+        
+      </div>
+      <div class="nav-right">
+        
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">Conflictes</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/1/conflicts#m1">
+              <span class="nav-conflict-horizon">&lt;30 dies</span>
+              <span class="nav-conflict-count">2</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/1/conflicts#m2">
+              <span class="nav-conflict-horizon">31–60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/1/conflicts#later">
+              <span class="nav-conflict-horizon">&gt;60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+    </nav>
+    <p class="context">CH Mataró · 2026/27</p>
+    
+  </header>
+  <main>
+    
+    
+<div class="change-page matches-mod matches-mod--edit">
+  <div class="page-head change-head">
+    <div class="page-head-copy">
+      <h1>Modificar partits</h1>
+      
+      <p class="muted">Canvia data, hora o pista i valida la proposta.</p>
+      
+    </div>
+  </div>
+
+  
+
+  
+  
+  <section class="matches-ficha panel-sheet" id="fitxa">
+    <div class="panel-sheet-head">
+      <h2>Fitxa del partit</h2>
+      <a class="text-action" href="/season/1/matches">← Tornar a la llista</a>
+    </div>
+
+    
+    <p class="match-comp">Senior</p>
+    
+    <p class="change-matchup">
+      <span>Senior A</span>
+      <span class="change-vs">–</span>
+      <span>Vic</span>
+    </p>
+    <p class="muted change-now">
+      05/08/2026
+       · 20:00
+      –21:30
+       · Pista 1
+    </p>
+
+    
+
+    
+    <section class="match-conflicts-now" style="margin-top:1.25rem">
+      <h3>Conflictes actuals</h3>
+      
+      <p class="badge ok">Sense conflictes en aquest moment</p>
+      
+    </section>
+
+    
+    
+    <section class="match-clean-alts" style="margin-top:1.25rem">
+      <h3>Horaris alternatius sense conflicte</h3>
+      <ul class="change-alts">
+        
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>Miércoles 2026-08-05 20:00–21:30 · Pista 1</strong>
+            <span class="badge ok">Sense conflicte</span>
+          </div>
+          <form method="post" action="/season/1/matches/1/apply">
+            <input type="hidden" name="match_date" value="2026-08-05" />
+            <input type="hidden" name="start_time" value="20:00:00" />
+            <input type="hidden" name="end_time" value="21:30:00" />
+            <input type="hidden" name="venue_id" value="1" />
+            <button type="submit" class="secondary">Aplicar</button>
+          </form>
+        </li>
+        
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>Miércoles 2026-08-05 20:00–21:30 · Pista 2</strong>
+            <span class="badge ok">Sense conflicte</span>
+          </div>
+          <form method="post" action="/season/1/matches/1/apply">
+            <input type="hidden" name="match_date" value="2026-08-05" />
+            <input type="hidden" name="start_time" value="20:00:00" />
+            <input type="hidden" name="end_time" value="21:30:00" />
+            <input type="hidden" name="venue_id" value="2" />
+            <button type="submit" class="secondary">Aplicar</button>
+          </form>
+        </li>
+        
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>Miércoles 2026-08-05 19:30–21:00 · Pista 1</strong>
+            <span class="badge ok">Sense conflicte</span>
+          </div>
+          <form method="post" action="/season/1/matches/1/apply">
+            <input type="hidden" name="match_date" value="2026-08-05" />
+            <input type="hidden" name="start_time" value="19:30:00" />
+            <input type="hidden" name="end_time" value="21:00:00" />
+            <input type="hidden" name="venue_id" value="1" />
+            <button type="submit" class="secondary">Aplicar</button>
+          </form>
+        </li>
+        
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>Miércoles 2026-08-05 19:30–21:00 · Pista 2</strong>
+            <span class="badge ok">Sense conflicte</span>
+          </div>
+          <form method="post" action="/season/1/matches/1/apply">
+            <input type="hidden" name="match_date" value="2026-08-05" />
+            <input type="hidden" name="start_time" value="19:30:00" />
+            <input type="hidden" name="end_time" value="21:00:00" />
+            <input type="hidden" name="venue_id" value="2" />
+            <button type="submit" class="secondary">Aplicar</button>
+          </form>
+        </li>
+        
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>Miércoles 2026-08-05 20:30–22:00 · Pista 1</strong>
+            <span class="badge ok">Sense conflicte</span>
+          </div>
+          <form method="post" action="/season/1/matches/1/apply">
+            <input type="hidden" name="match_date" value="2026-08-05" />
+            <input type="hidden" name="start_time" value="20:30:00" />
+            <input type="hidden" name="end_time" value="22:00:00" />
+            <input type="hidden" name="venue_id" value="1" />
+            <button type="submit" class="secondary">Aplicar</button>
+          </form>
+        </li>
+        
+      </ul>
+    </section>
+    
+
+    
+    <form class="change-form" method="post" action="/season/1/matches/1/change" style="margin-top:1.5rem">
+      <h3>Proposar canvi manual</h3>
+      <div class="change-fields">
+        <label>Nova data
+          <input type="date" name="proposed_date"
+                 value="2026-08-05" />
+        </label>
+        <label>Des de
+          <input type="time" name="proposed_start"
+                 value="20:00" />
+        </label>
+        
+        <label>Pista
+          <select name="proposed_venue_id">
+            <option value="">—</option>
+            
+            <option value="1"
+              selected
+            >Pista 1</option>
+            
+            <option value="2"
+              
+            >Pista 2</option>
+            
+            <option value="3"
+              
+            >Pista 3</option>
+            
+          </select>
+        </label>
+        
+      </div>
+      <div class="change-actions">
+        <button type="submit">Comprovar canvi</button>
+      </div>
+    </form>
+
+    
+    
+    
+  </section>
+
+  
+</div>
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('trainings_merge_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('trainings_merge_title') }}</h1>
+    <p class="muted">{{ t('trainings_merge_subtitle') }}</p>
+  </div>
+</div>
+
+<section class="panel-sheet">
+  <div style="display:grid;gap:1.25rem">
+    <div>
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.15rem">{{ t_a.team.name }}</h2>
+      <p class="muted" style="margin:0">
+        {% if t_a.session_date %}{{ t_a.session_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+        · {{ t_a.start_time|time_input }}–{{ t_a.end_time|time_input }}
+      </p>
+    </div>
+    <div>
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.15rem">{{ t_b.team.name }}</h2>
+      <p class="muted" style="margin:0">
+        {% if t_b.session_date %}{{ t_b.session_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+        · {{ t_b.start_time|time_input }}–{{ t_b.end_time|time_input }}
+      </p>
+    </div>
+  </div>
+
+  <section style="margin-top:1.5rem">
+    <h3>{{ t('trainings_shared_people') }} ({{ shared_people|length }})</h3>
+    {% if shared_people %}
+    <ul class="conflict-list">
+      {% for p in shared_people %}
+      <li>{{ p.full_name }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('trainings_no_shared_people') }}</p>
+    {% endif %}
+  </section>
+
+  <section style="margin-top:1.5rem">
+    <h3>{{ t('trainings_merge_proposals') }}</h3>
+    {% if proposals %}
+    <ul class="change-alts">
+      {% for p in proposals %}
+      <li class="change-option is-ok">
+        <div class="change-option-main">
+          <strong>{{ p.label }}</strong>
+          <span class="badge ok">{{ t('change_alts_clean') }}</span>
+        </div>
+        <form method="post" action="/season/{{ season.id }}/trainings/merge/apply">
+          <input type="hidden" name="t1" value="{{ t_a.id }}" />
+          <input type="hidden" name="t2" value="{{ t_b.id }}" />
+          <input type="hidden" name="session_date" value="{{ p.session_date.isoformat() }}" />
+          <input type="hidden" name="start_time" value="{{ p.start_time.isoformat() }}" />
+          <input type="hidden" name="end_time" value="{{ p.end_time.isoformat() }}" />
+          <input type="hidden" name="venue_id" value="{{ p.venue_id or '' }}" />
+          <input type="hidden" name="weekdays" value="{{ p.session_date.weekday() }}" />
+          <button type="submit" class="secondary">{{ t('trainings_merge_apply_btn') }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('trainings_merge_no_proposals') }}</p>
+    {% endif %}
+  </section>
+
+  <section class="panel-sheet" style="margin-top:1.5rem">
+    <h3 style="margin:0 0 0.75rem;font-family:var(--display);font-size:1.15rem">{{ t('trainings_merge_create') }}</h3>
+    <p class="muted">{{ t('trainings_merge_manual_hint') }}</p>
+    <form method="post" action="/season/{{ season.id }}/trainings/merge/apply">
+      <input type="hidden" name="t1" value="{{ t_a.id }}" />
+      <input type="hidden" name="t2" value="{{ t_b.id }}" />
+      <fieldset style="border:none;padding:0;margin:0 0 1rem">
+        <legend class="muted" style="margin-bottom:0.5rem">{{ t('trainings_merge_days') }}</legend>
+        <div class="change-days">
+          {% for name in weekdays %}
+          <label class="check">
+            <input type="checkbox" name="weekdays" value="{{ loop.index0 }}"
+              {% if (t_a.session_date and t_a.session_date.weekday() == loop.index0) or (t_b.session_date and t_b.session_date.weekday() == loop.index0) %}checked{% endif %}
+            />
+            {{ name }}
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <button type="submit">{{ t('trainings_merge_create_btn') }}</button>
+    </form>
+  </section>
+</section>
+{% endblock %}

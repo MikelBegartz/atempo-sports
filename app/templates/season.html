@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('season_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('season_title') }}</h1>
+<p class="muted">{{ club.name }} · {{ t('season_actual') }} <strong>{{ season.name }}</strong></p>
+
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">{{ t('season_copy_heading') }}</h2>
+    <p class="muted">{{ t('season_copy_intro') }}</p>
+    <form class="stack" method="post" action="/season/{{ season.id }}/copy" style="max-width:100%">
+      <label>{{ t('season_copy_name') }}
+        <input name="new_name" required placeholder="{{ t('season_copy_name_ph') }}" />
+      </label>
+      <label class="check"><input type="checkbox" name="copy_unavailability" value="1" checked /> {{ t('season_copy_unavailability') }}</label>
+      <label class="check"><input type="checkbox" name="copy_aliases" value="1" checked /> {{ t('season_copy_aliases') }}</label>
+      <button type="submit">{{ t('season_copy_btn') }}</button>
+    </form>
+    {% if error %}<div class="conflict hard" style="margin-top:0.75rem">{{ error }}</div>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">{{ t('season_export_heading') }}</h2>
+    <p class="muted">{{ t('season_export_intro') }}</p>
+    <p>
+      <a class="btn" href="/season/{{ season.id }}/export/matches" style="text-decoration:none;display:inline-block;margin:0.25rem 0">{{ t('season_export_matches') }}</a>
+    </p>
+    <p>
+      <a class="btn secondary" href="/season/{{ season.id }}/export/trainings" style="text-decoration:none;display:inline-block;background:#3d4a3d">{{ t('season_export_trainings') }}</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

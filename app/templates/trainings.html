@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('tr_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('tr_title') }}</h1>
+  </div>
+  <div class="page-head-actions">
+    {% if default_hours is not none %}
+    <a class="text-action" href="/season/{{ season.id }}/trainings/hours">{{ t('tr_hours_adjust_link') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/by-team">{{ t('tr_by_team_title') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/groups">{{ t('tr_groups_link') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/solapes">{{ t('tr_solapes_link') }}</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if hours_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ hours_flash }}</div>{% endif %}
+{% if plan_warnings %}
+<details class="plan-warns" style="margin-bottom:0.75rem">
+  <summary>{{ t('tr_plan_warnings_title') }} ({{ plan_warnings|length }})</summary>
+  <ul style="margin:0.4rem 0 0;padding-left:1.2rem">
+    {% for w in plan_warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+{% if default_hours is not none %}
+<section class="fit-panel{% if fit.fits_solo %} is-ok{% else %} is-tight{% endif %}" aria-label="{{ t('tr_fit_title') }}">
+  <p class="fit-prose">
+    {% if fit.fits_solo %}{{ t('tr_fit_solo_yes') }}{% else %}{{ t('tr_fit_solo_no') }}{% endif %}
+    {{ t('tr_fit_stats').format(
+      teams=fit.team_count,
+      demand=((fit.demand_minutes/60)|round(1)),
+      supply=((fit.supply_minutes/60)|round(1))
+    ) }}{% if fit.groups_count or fit.solapes_count %}
+    ·
+    {% if fit.groups_count %}{{ fit.groups_count }} {{ t('tr_meta_groups') }}{% endif %}
+    {% if fit.groups_count and fit.solapes_count %} · {% endif %}
+    {% if fit.solapes_count %}{{ fit.solapes_count }} {{ t('tr_meta_solapes') }}{% endif %}{% endif %}
+  </p>
+  {% if not fit.fits_solo and fit.hole_count %}
+  <p class="fit-prose muted">
+    {{ t('tr_fit_puzzle_hint').format(
+      holes=fit.hole_count,
+      shared=fit.shared_slots_needed,
+      sessions=fit.pack_sessions
+    ) }}
+  </p>
+  {% endif %}
+  {% if fit.needs_action or fit.fits_solo %}
+  <p class="fit-prose">
+    {% if fit.needs_action %}{{ t('tr_fit_need_puzzle') }}{% else %}{{ t('tr_fit_solo_ready') }}{% endif %}
+    {{ t('tr_fit_cta_pre') }}<a class="fit-link" href="/season/{{ season.id }}/trainings/propose"><strong>{{ t('tr_fit_cta_propose') }}</strong></a>{{ t('tr_fit_cta_mid') }}<a class="fit-link" href="/season/{{ season.id }}/trainings/groups"><strong>{{ t('tr_fit_cta_groups') }}</strong></a>{{ t('tr_fit_cta_end') }}{{ t('tr_fit_draft_note') }}
+  </p>
+  {% endif %}
+</section>
+
+{% if plan_flash %}
+<div class="fit-flash badge ok">{{ plan_flash }}</div>
+{% endif %}
+
+<section class="draft-explain" aria-label="{{ t('tr_draft_explain_title') }}">
+  <p class="fit-prose">
+    {% if draft_explain == 'proposed_puzzle' %}
+      {{ t('tr_draft_explain_puzzle') }}
+    {% elif draft_explain == 'proposed_solapes' %}
+      {{ t('tr_draft_explain_solapes') }}
+    {% elif draft_explain == 'solo_empty' or (not drafts and fit.needs_action) %}
+      {{ t('tr_draft_explain_empty') }}
+    {% elif chart_source == 'draft' %}
+      {{ t('tr_draft_explain_solo').format(n=draft_week_count) }}
+      {% if fit.needs_action %}{{ t('tr_draft_explain_solo_tight') }}{% endif %}
+    {% else %}
+      {{ t('tr_draft_explain_empty') }}
+    {% endif %}
+  </p>
+</section>
+
+{# ——— Gràfica sempre ——— #}
+<section class="plan-chart" id="draft" aria-label="{{ t('tr_plan_chart_title') }}">
+  <div class="plan-chart-toolbar">
+    {% if draft_chart.prev_monday %}
+    <a class="cal-nav-step" href="/season/{{ season.id }}/trainings?draft_week={{ draft_chart.prev_monday.isoformat() }}#draft">
+      <span class="cal-nav-arrow" aria-hidden="true">←</span>
+    </a>
+    {% else %}
+    <span class="cal-nav-step" style="visibility:hidden">←</span>
+    {% endif %}
+    <div class="plan-chart-title">
+      <strong>
+        {% if chart_source == 'draft' %}{{ t('tr_chart_draft') }}
+        {% elif chart_source == 'live' %}{{ t('tr_chart_live') }}
+        {% else %}{{ t('tr_chart_empty') }}{% endif %}
+      </strong>
+      <span class="muted">{{ draft_chart.monday.strftime('%d/%m') }} – {{ draft_chart.sunday.strftime('%d/%m') }}</span>
+    </div>
+    {% if draft_chart.next_monday %}
+    <a class="cal-nav-step cal-nav-step--next" href="/season/{{ season.id }}/trainings?draft_week={{ draft_chart.next_monday.isoformat() }}#draft">
+      <span class="cal-nav-arrow" aria-hidden="true">→</span>
+    </a>
+    {% else %}
+    <span class="cal-nav-step" style="visibility:hidden">→</span>
+    {% endif %}
+  </div>
+
+  <p class="plan-chart-legend muted">{{ t('tr_chart_rink_hours_hint') }}</p>
+  <div class="plan-chart-legend-line" aria-label="{{ t('tr_chart_legend') }}">
+    <span class="plan-chart-legend-item"><i class="plan-chart-swatch avail"></i>{{ t('tr_chart_legend_avail') }}</span>
+    <span class="plan-chart-legend-item"><i class="plan-chart-swatch solo"></i>{{ t('tr_chart_legend_solo') }}</span>
+    <span class="plan-chart-legend-item"><i class="plan-chart-swatch group"></i>{{ t('tr_chart_legend_group') }}</span>
+    <span class="plan-chart-legend-item"><i class="plan-chart-swatch solape"></i>{{ t('tr_chart_legend_solape') }}</span>
+    <span class="plan-chart-legend-item"><i class="plan-chart-swatch stack"></i>{{ t('tr_chart_legend_stack') }}</span>
+  </div>
+
+  <div class="plan-chart-body" style="--rink-count: {{ draft_chart.rink_count }}">
+    <div class="plan-chart-hours" aria-hidden="true">
+      <span class="plan-chart-day-label"></span>
+      <span class="plan-chart-rink-label"></span>
+      <div class="plan-chart-hour-track">
+        {% for h in draft_chart.hour_marks %}
+        <span class="plan-chart-hour" style="left: {{ ((h - draft_chart.day_start_h) / (draft_chart.day_end_h - draft_chart.day_start_h) * 100)|round(2) }}%">{{ '%02d'|format(h) }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="plan-chart-vline-layer" aria-hidden="true">
+      {% for h in draft_chart.hour_marks %}
+      <span style="left: {{ ((h - draft_chart.day_start_h) / (draft_chart.day_end_h - draft_chart.day_start_h) * 100)|round(2) }}%"></span>
+      {% endfor %}
+    </div>
+    {% for day in draft_chart.days %}
+    <div class="plan-chart-day">
+      <div class="plan-chart-day-label">
+        <strong>{{ weekday_short[day.weekday] }}</strong>
+        <span class="muted">{{ day.date.strftime('%d/%m') }}</span>
+      </div>
+      <div class="plan-chart-lanes">
+        {% for lane in day.lanes %}
+        <div class="plan-chart-lane">
+          <span class="plan-chart-rink-label" title="{{ lane.venue }}">{{ lane.venue }}</span>
+          <div class="plan-chart-track">
+            {% for a in lane.avail %}
+            <div class="plan-chart-avail" style="left: {{ a.left }}%; width: {{ a.width }}%" title="{{ t('tr_chart_avail_title') }}"></div>
+            {% endfor %}
+            {% for bar in lane.bars %}
+            <div class="plan-chart-bar{% if bar.is_group %} is-group{% endif %}{% if bar.is_solape %} is-solape{% endif %}{% if bar.stack and bar.stack != 'full' %} stack-{{ bar.stack }}{% endif %}" style="left: {{ bar.left }}%; width: {{ bar.width }}%; background: {{ bar.color }}; --bar-color: {{ bar.color }}">
+              <span class="plan-chart-bar-text">{{ bar.team }}</span>
+              <span class="plan-chart-tip" role="tooltip">{{ bar.title }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if draft_chart.empty %}
+  <p class="plan-chart-empty muted">{{ t('tr_chart_empty_hint') }}</p>
+  {% endif %}
+</section>
+
+{# Accions: aplicar / modificar / descartar #}
+<div class="plan-actions">
+  {% if drafts %}
+  <form method="post" action="/season/{{ season.id }}/trainings/plan/apply"
+        onsubmit="return confirm('{{ t('tr_plan_apply_confirm').format(n=drafts|length) }}');"
+        class="plan-apply-form">
+    <label class="muted">{{ t('tr_plan_apply_until') }}
+      <input type="date" name="until"
+             value="{{ season.end_date.isoformat() if season.end_date else '2027-06-30' }}" />
+    </label>
+    <button type="submit">{{ t('tr_plan_apply') }}</button>
+  </form>
+  {% endif %}
+  <a class="button secondary" href="#modify" onclick="document.getElementById('modify').open=true">{{ t('tr_plan_modify') }}</a>
+  {% if drafts %}
+  <form method="post" action="/season/{{ season.id }}/trainings/plan/discard"
+        onsubmit="return confirm('{{ t('tr_plan_discard_confirm').format(n=drafts|length) }}');">
+    <button type="submit" class="secondary">{{ t('tr_plan_discard') }}</button>
+  </form>
+  {% endif %}
+  {% if trainings %}
+  <form method="post" action="/season/{{ season.id }}/trainings/clear"
+        onsubmit='return confirm({{ (t("tr_clear_trainings") ~ "?")|tojson }}) && confirm({{ t("tr_clear_trainings_confirm")|tojson }});'>
+    <button type="submit" class="secondary">{{ t('tr_clear_trainings') }}</button>
+  </form>
+  {% endif %}
+  {% if can_revert_apply %}
+  <form method="post" action="/season/{{ season.id }}/trainings/plan/revert-apply"
+        onsubmit="return confirm('{{ t('tr_plan_revert_confirm') }}');">
+    <button type="submit" class="secondary">{{ t('tr_plan_revert') }}</button>
+  </form>
+  {% endif %}
+</div>
+<p class="muted plan-meta" style="margin-top:-0.5rem">{{ t('tr_plan_flow_hint') }}</p>
+
+{% if team_week_list %}
+<details class="plan-details" id="team-list">
+  <summary>{{ t('tr_team_list_title') }} ({{ team_week_list|length }})</summary>
+  <p class="muted team-week-list-intro">{{ t('tr_team_list_intro') }}</p>
+  <ul class="team-week-list-body">
+    {% for row in team_week_list %}
+    <li class="team-week-row">
+      <div class="team-week-row-head">
+        <span class="team-week-swatch" style="background: {{ row.color }}" aria-hidden="true"></span>
+        <strong class="team-week-name">{{ row.team_name }}</strong>
+        {% if row.category and row.category != row.team_name %}
+        <span class="muted">{{ row.category }}</span>
+        {% endif %}
+      </div>
+      <ul class="team-week-slots">
+        {% for slot in row.slots %}
+        <li>
+          <span class="team-week-slot-when">{{ slot.day_label }} · {{ slot.time_label }}</span>
+          {% if slot.venue %}<span class="muted"> · {{ slot.venue }}</span>{% endif %}
+          {% if slot.share_note %}
+          <span class="team-week-share">
+            — {{ t('tr_team_list_shared').format(partners=slot.share_note) }}{% if slot.group_label %} ({{ slot.group_label }}){% endif %}
+          </span>
+          {% elif slot.is_solape %}
+          <span class="team-week-share"> — {{ t('tr_team_list_solape') }}</span>
+          {% else %}
+          <span class="muted team-week-solo"> — {{ t('tr_team_list_solo') }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+<details class="plan-details" id="modify">
+  <summary>{{ t('tr_plan_modify') }}</summary>
+  <p class="muted" style="margin:0.65rem 0 0.85rem;font-size:0.9rem">{{ t('tr_plan_modify_hint') }}</p>
+  <div class="plan-modify-links">
+    <a class="text-action" href="/season/{{ season.id }}/trainings/hours">{{ t('tr_hours_adjust_link') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/by-team">{{ t('tr_by_team_title') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/groups">{{ t('tr_groups_link') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/trainings/solapes">{{ t('tr_solapes_link') }}</a>
+  </div>
+  <form class="plan-gen-form" method="post" action="/season/{{ season.id }}/trainings/plan/generate" style="margin-top:0.85rem">
+    <input type="date" name="range_start" required value="{{ plan_start }}" aria-label="{{ t('tr_range_from') }}" />
+    <label class="muted" style="display:flex;align-items:center;gap:0.25rem">
+      {{ t('tr_draft_weeks') }}
+      <select name="draft_weeks" required style="min-width:3rem">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </label>
+    <button type="submit" class="secondary">{{ t('tr_plan_refresh') }}</button>
+  </form>
+</details>
+
+{% if drafts %}
+<details class="plan-details">
+  <summary>{{ t('tr_plan_sessions_list') }} ({{ drafts|length }})</summary>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t('col_date') }}</th>
+        <th>{{ t('col_time') }}</th>
+        <th>{{ t('col_team') }}</th>
+        <th>{{ t('col_venue') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tr in drafts %}
+      <tr>
+        <td>{{ tr.session_date }}</td>
+        <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
+        <td><span class="plan-team" style="color: {{ draft_colors.get(tr.team_id, 'inherit') }}">{{ tr.team.name }}{% if tr.team.category and tr.team.category != tr.team.name %} · {{ tr.team.category }}{% endif %}</span>{% if tr.is_manual %} <span class="muted" style="font-size:0.8rem">({{ t('tr_manual_tag') }})</span>{% endif %}</td>
+        <td>{{ tr.venue.name if tr.venue else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% endif %}
+
+<details class="plan-details">
+  <summary>{{ t('tr_manual_heading') }}</summary>
+  <div class="grid" style="margin-top:1rem">
+    <div>
+      <h3>{{ t('tr_single_heading') }}</h3>
+      <form class="stack" method="post" action="/season/{{ season.id }}/trainings">
+        <label>{{ t('col_team') }}
+          <select name="team_id" required>
+            {% for tm in teams %}
+            <option value="{{ tm.id }}">{{ tm.name }}{% if tm.category %} · {{ tm.category }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="row">
+          <label>{{ t('col_date') }}<input type="date" name="session_date" required /></label>
+          <label>{{ t('col_from') }}<input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" required /></label>
+          <label>{{ t('col_to') }}<input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" required /></label>
+        </div>
+        <div class="row">
+          <label>{{ t('col_venue') }}
+            <select name="venue_id">
+              <option value="">—</option>
+              {% for v in venues %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="check" style="align-self:end">
+            <input type="checkbox" name="allows_share" value="1" /> {{ t('tr_share') }}
+          </label>
+        </div>
+        <label>{{ t('tr_notes') }}<input name="notes" placeholder="{{ t('tr_notes_ph') }}" /></label>
+        <button type="submit">{{ t('tr_add_one') }}</button>
+      </form>
+    </div>
+    <div>
+      <h3>{{ t('tr_series_heading') }}</h3>
+      <form class="stack" method="post" action="/season/{{ season.id }}/trainings/recurring">
+        <label>{{ t('col_team') }}
+          <select name="team_id" required>
+            {% for tm in teams %}
+            <option value="{{ tm.id }}">{{ tm.name }}{% if tm.category %} · {{ tm.category }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{{ t('col_weekday') }}
+          <select name="weekday" required>
+            {% for name in weekdays %}
+            <option value="{{ loop.index0 }}" {% if loop.index0 == 5 %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="row">
+          <label>{{ t('tr_range_from') }}<input type="date" name="range_start" required /></label>
+          <label>{{ t('tr_range_to') }}<input type="date" name="range_end" required /></label>
+        </div>
+        <div class="row">
+          <label>{{ t('col_from') }}<input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" required value="18:00" /></label>
+          <label>{{ t('col_to') }}<input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" required value="19:00" /></label>
+        </div>
+        <div class="row">
+          <label>{{ t('col_venue') }}
+            <select name="venue_id">
+              <option value="">—</option>
+              {% for v in venues %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="check" style="align-self:end">
+            <input type="checkbox" name="allows_share" value="1" /> {{ t('tr_share') }}
+          </label>
+        </div>
+        <button type="submit">{{ t('tr_gen_series') }}</button>
+      </form>
+    </div>
+  </div>
+</details>
+
+{% if trainings %}
+<details class="plan-details">
+  <summary>{{ t('tr_sessions_heading') }} ({{ trainings|length }})</summary>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t('col_date') }}</th>
+        <th>{{ t('col_time') }}</th>
+        <th>{{ t('col_team') }}</th>
+        <th>{{ t('col_venue') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tr in trainings %}
+      <tr>
+        <td>{{ tr.session_date }}</td>
+        <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
+        <td>{{ tr.team.name }}</td>
+        <td>{{ tr.venue.name if tr.venue else "—" }}</td>
+        <td>
+          <form method="post" action="/season/{{ season.id }}/trainings/{{ tr.id }}/delete" style="display:inline">
+            <button type="submit" class="secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem">{{ t('tr_delete') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% endif %}
+
+{% else %}
+<p class="muted">{{ t('tr_hours_setup_intro').format(n=teams|length) }}</p>
+{% endif %}
+{% endblock %}

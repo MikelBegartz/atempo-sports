@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('tr_group_propose_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('tr_group_propose_title') }}</h1>
+  </div>
+</div>
+
+<form method="post" class="setup-banner" style="display:flex;flex-direction:column;gap:0.75rem">
+  <div>
+    <label>{{ t('tr_group_weekdays') }}</label>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.25rem">
+      {% for name in weekdays %}
+      <label style="display:flex;align-items:center;gap:0.25rem">
+        <input type="checkbox" name="weekdays" value="{{ loop.index0 }}" {% if loop.index0 in default_weekdays %}checked{% endif %}>
+        <span>{{ name }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:1rem">
+    <div>
+      <label>{{ t('tr_group_from') }}</label>
+      <input type="date" name="start_date" value="{{ start_date }}">
+    </div>
+    <div>
+      <label>{{ t('tr_group_to') }}</label>
+      <input type="date" name="end_date" value="{{ end_date }}">
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:1rem">
+    <div>
+      <label>{{ t('tr_group_time') }}</label>
+      <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" value="09:00">
+      <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" value="10:30">
+    </div>
+    <div>
+      <label>{{ t('tr_group_venue') }}</label>
+      <select name="venue_id">
+        {% for v in venues %}
+        <option value="{{ v.id }}">{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div>
+    <label style="display:flex;align-items:center;gap:0.25rem">
+      <input type="checkbox" name="keep_originals" value="1" checked>
+      <span>{{ t('tr_group_keep_originals') }}</span>
+    </label>
+  </div>
+
+  <input type="hidden" name="training_ids" value="{{ training_ids }}">
+
+  <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+    <button type="submit" class="primary">{{ t('tr_group_generate_draft') }}</button>
+  </div>
+</form>
+
+{% if draft_created %}
+<div class="setup-banner" style="margin-top:1rem">
+  <h2>{{ t('tr_group_draft_heading') }}</h2>
+  <p class="muted">{{ draft_message }}</p>
+  <form method="post" action="/season/{{ season.id }}/trainings/group-apply" style="margin-top:0.5rem">
+    <input type="hidden" name="group_id" value="{{ group_id }}">
+    <button type="submit" class="primary">{{ t('tr_group_ok') }}</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('nav_conflicts') }}{% endblock %}
+{% block content %}
+{% if conflict_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ conflict_flash }}</div>{% endif %}
+
+<div class="page-head">
+  <div class="page-head-copy" style="width:100%">
+    <h1>{{ t('nav_conflicts') }}</h1>
+    <p class="muted" style="margin:0">{{ t('conflicts_subtitle') }} · {{ conflicts_count }}</p>
+  </div>
+</div>
+
+<details class="conflicts-help setup-banner" style="margin:0 0 1rem">
+  <summary>{{ t('conflicts_legend_title') }}</summary>
+  <ul style="margin:0.5rem 0 0;padding-left:1.2rem;line-height:1.5;max-width:48rem">
+    <li><strong class="conflict hard" style="display:inline;padding:0.15rem 0.4rem;border-radius:4px">{{ t('conflicts_legend_hard_short') }}</strong> — {{ t('conflicts_legend_hard') }}</li>
+    <li style="margin-top:0.35rem"><strong class="conflict soft" style="display:inline;padding:0.15rem 0.4rem;border-radius:4px">{{ t('conflicts_legend_soft_short') }}</strong> — {{ t('conflicts_legend_soft') }}</li>
+    <li style="margin-top:0.35rem" class="muted">{{ t('conflicts_legend_horizon') }}</li>
+  </ul>
+</details>
+
+<div class="conflicts-tabs" data-tabs style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;margin:0.35rem 0 0.1rem;flex-wrap:wrap">
+  {% for bucket in horizon_order %}
+  {% set items = conflicts_by_horizon.get(bucket, []) %}
+  {% if items %}
+  <button type="button" class="horizon-title conflicts-tab" data-tab="{{ bucket }}" style="margin-bottom:0.15rem;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit">{{ horizon_labels[bucket] }} <span class="muted" style="color:inherit;opacity:0.85">({{ items|length }})</span></button>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<div class="conflicts-search" style="margin:0.5rem 0 1rem">
+  <input type="search" id="conflicts-search" placeholder="{{ t('conflicts_search_placeholder') }}" style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--line);border-radius:8px" />
+</div>
+
+{% for bucket in horizon_order %}
+{% set items = conflicts_by_horizon.get(bucket, []) %}
+{% if items %}
+<section class="horizon-block conflicts-panel" data-panel="{{ bucket }}" style="margin:0.25rem 0 0.75rem;display:none">
+  {% for c in items %}
+  <div class="conflict {{ c.severity }}" data-search="{{ c.message | lower }}">
+    <a href="/season/{{ season.id }}/conflict/{{ c.key }}" style="display:block;text-decoration:none;color:inherit;font-weight:600;margin-bottom:0.35rem">{{ c.message }}</a>
+    {% if c.match_ids %}
+    <div class="conflict-actions">
+      <a href="/season/{{ season.id }}/matches?m={{ c.match_ids[0] }}&conflict={{ c.key }}#fitxa">{{ t('conflict_view_match') }}</a>
+    </div>
+    {% endif %}
+    {% if c.severity == 'soft' and c.training_ids|length == 2 %}
+    <div class="conflict-merge-prompt" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--line)">
+      <p class="muted">{{ t('conflict_merge_prompt') }}</p>
+      <a class="text-action" href="/season/{{ season.id }}/trainings/groups?propose=1&t={{ c.training_ids|join(',') }}#propose">{{ t('conflict_merge_yes') }}</a>
+    </div>
+    {% endif %}
+    <details class="wa-prompt" style="margin-top:0.5rem">
+      <summary>{{ t('conflict_wa_summary') }}</summary>
+      <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.5rem">
+        <textarea readonly id="wa-{{ bucket }}-{{ loop.index }}" style="min-height:5rem;resize:vertical" class="wa-text">{{ t('conflict_wa_intro') }}{{ c.message }}{% if c.alternatives %}{{ t('conflict_wa_alts').format(count=c.alternatives|length) }}{% for opt in c.alternatives %}- {{ opt.label }}
+{% endfor %}{% endif %}{{ t('conflict_wa_outro') }}</textarea>
+        <button type="button" class="secondary" onclick="copyToClipboard('wa-{{ bucket }}-{{ loop.index }}')">{{ t('conflict_wa_copy') }}</button>
+      </div>
+    </details>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endfor %}
+
+{% if not conflicts_count %}
+<p class="muted">{{ t('conflicts_empty') }}</p>
+{% endif %}
+
+{% if ignored_conflicts %}
+<details class="ignored-conflicts" style="margin:1.5rem 0">
+  <summary style="font-weight:600">{{ t('conflicts_ignored') }} ({{ ignored_conflicts|length }})</summary>
+  <ul style="margin:0.5rem 0 0;padding-left:0;list-style:none">
+    {% for c in ignored_conflicts %}
+    <li style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0;border-bottom:1px solid var(--line)">
+      <span class="muted">{{ c.message }}</span>
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ c.conflict_key }}/unignore" style="margin:0">
+        <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('conflict_unignore') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('[data-tab]');
+  var panels = document.querySelectorAll('[data-panel]');
+  var first = tabs[0];
+  if (!first) return;
+
+  function show(bucket) {
+    tabs.forEach(function (t) {
+      if (t.dataset.tab === bucket) {
+        t.classList.add('is-active');
+        t.style.fontSize = '1.35rem';
+        t.style.fontWeight = '700';
+        t.style.opacity = '1';
+        t.style.color = '#1a1a1a';
+      } else {
+        t.classList.remove('is-active');
+        t.style.fontSize = '1rem';
+        t.style.fontWeight = '400';
+        t.style.opacity = '0.85';
+        t.style.color = '#6a9b7a';
+      }
+    });
+    panels.forEach(function (p) {
+      p.style.display = p.dataset.panel === bucket ? 'block' : 'none';
+    });
+  }
+
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { show(t.dataset.tab); });
+  });
+
+  var initial = (location.hash || '#').replace('#', '') || first.dataset.tab;
+  var initialTab = document.querySelector('[data-tab="' + initial + '"]');
+  show(initialTab ? initialTab.dataset.tab : first.dataset.tab);
+
+  window.addEventListener('hashchange', function () {
+    var bucket = (location.hash || '#').replace('#', '') || first.dataset.tab;
+    var tab = document.querySelector('[data-tab="' + bucket + '"]');
+    if (tab) show(bucket);
+  });
+
+  var searchInput = document.getElementById('conflicts-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      var activePanel = document.querySelector('.conflicts-panel:not([style*="display: none"])');
+      if (!activePanel) return;
+      var cards = activePanel.querySelectorAll('.conflict');
+      var any = false;
+      cards.forEach(function (c) {
+        var hay = !q || (c.dataset.search || '').indexOf(q) !== -1;
+        c.style.display = hay ? '' : 'none';
+        if (hay) any = true;
+      });
+      var noResults = activePanel.querySelector('.conflicts-no-results');
+      if (!noResults) {
+        noResults = document.createElement('p');
+        noResults.className = 'conflicts-no-results muted';
+        noResults.textContent = "{{ t('conflicts_no_results') }}";
+        activePanel.appendChild(noResults);
+      }
+      noResults.style.display = any ? 'none' : 'block';
+    });
+  }
+})();
+</script>
+{% endblock %}

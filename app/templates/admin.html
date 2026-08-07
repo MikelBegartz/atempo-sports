@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ t('admin_title') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=auth8" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/admin">AtempoSports</a>
+        <p class="tagline">{{ t('admin_title') }}</p>
+      </div>
+      <form method="post" action="/admin/logout" style="margin:0" autocomplete="off">
+        <button type="submit" class="secondary logout-btn">{{ t('logout') }}</button>
+      </form>
+    </div>
+  </header>
+  <main>
+    <h1>{{ t('admin_title') }}</h1>
+    <p class="muted">{{ t('admin_intro') }}</p>
+
+    <section class="panel-sheet" style="margin-top:1rem">
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.15rem">{{ t('admin_recovery_heading') }}</h2>
+      <p class="muted" style="margin:0 0 0.75rem">
+        {{ t('admin_recovery_intro') }}
+      </p>
+      {% if recovery_configured %}
+      <p class="badge ok" style="display:inline-block;margin:0 0 0.75rem">{{ t('admin_recovery_configured') }}</p>
+      <p class="muted" style="margin:0 0 0.75rem;font-size:0.9rem">{{ t('admin_recovery_change_hint') }}</p>
+      {% else %}
+      <p class="conflict hard" style="margin:0 0 0.75rem">{{ t('admin_recovery_empty') }}</p>
+      {% endif %}
+      {% if recovery_error %}
+      <div class="conflict hard">{{ recovery_error }}</div>
+      {% endif %}
+      <form class="stack" method="post" action="/admin/recovery" autocomplete="off">
+        <input type="text" name="username" value="atempo-recovery-setup" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0" />
+        {% if recovery_configured %}
+        <label>{{ t('admin_recovery_current') }}
+          <input id="rec-cur" type="password" name="recovery_current" required minlength="6" value="" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" />
+        </label>
+        {% endif %}
+        <label>{% if recovery_configured %}{{ t('admin_recovery_new_word') }}{% else %}{{ t('admin_recovery_phrase') }}{% endif %} {{ t('admin_recovery_min') }}
+          <input id="rec-word" type="password" name="recovery_phrase" required minlength="6" value="" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" />
+        </label>
+        <label>{{ t('admin_recovery_repeat') }}{% if recovery_configured %} {{ t('admin_recovery_new_word') }}{% endif %}
+          <input id="rec-word2" type="password" name="recovery_phrase2" required minlength="6" value="" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" />
+        </label>
+        <button type="submit">{% if recovery_configured %}{{ t('admin_recovery_change_btn') }}{% else %}{{ t('admin_recovery_save_btn') }}{% endif %}</button>
+      </form>
+      <script>
+        (function () {
+          ["rec-cur", "rec-word", "rec-word2"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = "";
+            el.setAttribute("readonly", "readonly");
+            el.addEventListener("focus", function () { el.removeAttribute("readonly"); });
+          });
+        })();
+      </script>
+    </section>
+
+    {% if flash %}
+    <div class="badge ok" style="display:inline-block;margin:0.75rem 0">{{ flash }}</div>
+    {% endif %}
+    {% if created_slug %}
+    <div class="panel-sheet" style="margin-top:1rem">
+      <p class="muted" style="margin:0 0 0.35rem">{{ t('admin_created_slug_label') }}</p>
+      <p style="margin:0;font-size:1.25rem"><strong>{{ created_slug }}</strong></p>
+    </div>
+    {% endif %}
+    {% if reset_link %}
+    <div class="panel-sheet" style="margin-top:1rem">
+      <p class="muted" style="margin:0 0 0.35rem">{{ t('admin_reset_link_label') }}</p>
+      <p style="word-break:break-all;margin:0"><a href="{{ reset_link }}">{{ reset_link }}</a></p>
+    </div>
+    {% endif %}
+
+    <section class="panel-sheet" style="margin-top:1.25rem">
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.25rem">{{ t('admin_access_heading') }}</h2>
+      <p class="muted" style="margin:0 0 0.75rem">
+        {{ t('admin_access_intro') }} <strong>{{ my_ip or '—' }}</strong>
+      </p>
+      {% if access_summary %}
+      <table class="data-table" style="width:100%;font-size:0.9rem;margin-bottom:1rem">
+        <thead>
+          <tr>
+            <th style="text-align:left">{{ t('admin_access_ip_th') }}</th>
+            <th style="text-align:left">{{ t('admin_access_fails') }}</th>
+            <th style="text-align:left">{{ t('admin_access_oks') }}</th>
+            <th style="text-align:left">{{ t('admin_access_last') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in access_summary %}
+          <tr>
+            <td>{{ row.ip }}</td>
+            <td>{{ row.fails }}</td>
+            <td>{{ row.oks }}</td>
+            <td>{{ row.last_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="muted">{{ t('admin_access_empty') }}</p>
+      {% endif %}
+      {% if access_log %}
+      <details>
+        <summary class="muted">{{ t('admin_access_detail') }}</summary>
+        <ul style="font-size:0.85rem;margin:0.75rem 0 0;padding-left:1.1rem">
+          {% for row in access_log %}
+          <li>
+            {{ row.at }} · {{ row.ip }} ·
+            {% if row.ok %}{{ t('admin_access_ok') }}{% else %}{{ t('admin_access_error') }} ({{ row.reason }}){% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </section>
+
+    <section class="panel-sheet" style="margin-top:1.25rem">
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.25rem">{{ t('admin_create_heading') }}</h2>
+      <p class="muted" style="margin:0 0 1rem">{{ t('admin_create_hint') }}</p>
+      {% if create_error %}
+      <div class="conflict hard">{{ create_error }}</div>
+      {% endif %}
+      <form class="stack" method="post" action="/admin/clubs/create" autocomplete="off">
+        <label>{{ t('register_name') }}
+          <input name="name" value="{{ create_name or '' }}" required maxlength="120" autocomplete="off" />
+        </label>
+        <label>{{ t('forgot_email') }}
+          <input type="email" name="email" value="{{ create_email or '' }}" required autocomplete="off" />
+        </label>
+        <label>{{ t('admin_set_password') }}
+          <input type="password" name="password" required minlength="8" autocomplete="new-password" />
+        </label>
+        <label>{{ t('pwd_confirm') }}
+          <input type="password" name="password2" required minlength="8" autocomplete="new-password" />
+        </label>
+        <button type="submit">{{ t('admin_create_submit') }}</button>
+      </form>
+    </section>
+
+    {% for c in clubs %}
+    <section class="panel-sheet admin-club" style="margin-top:1.25rem">
+      <h2 style="margin:0 0 0.35rem;font-family:var(--display);font-size:1.25rem">{{ c.name }}</h2>
+      <p class="muted" style="margin:0 0 1rem">
+        {{ t('login_slug') }}: <strong>{{ c.slug or '—' }}</strong>
+        · {{ t('forgot_email') }}: <strong>{{ c.email or '—' }}</strong>
+      </p>
+
+      <form class="stack" method="post" action="/admin/clubs/{{ c.id }}/email" style="margin-bottom:1rem" autocomplete="off">
+        <label>{{ t('admin_set_email') }}
+          <input type="email" name="email" value="{{ c.email or '' }}" placeholder="club@exemple.cat" autocomplete="off" />
+        </label>
+        <button type="submit" class="secondary">{{ t('admin_save_email') }}</button>
+      </form>
+
+      <form class="stack" method="post" action="/admin/clubs/{{ c.id }}/password" style="margin-bottom:1rem" autocomplete="off">
+        <label>{{ t('admin_set_password') }}
+          <input type="password" name="password" autocomplete="new-password" minlength="8" required placeholder="••••••••" />
+        </label>
+        <button type="submit">{{ t('admin_save_password') }}</button>
+      </form>
+
+      {% if c.password_hash %}
+      <form method="post" action="/admin/clubs/{{ c.id }}/delete" style="display:inline" onsubmit="return confirm({{ t('admin_delete_confirm')|tojson }});">
+        <button type="submit" class="text-action-btn danger">{{ t('admin_delete_club') }}</button>
+      </form>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    <p class="muted" style="margin-top:1.5rem">
+      <a href="/admin/seasons">{{ t('admin_seasons_link') }}</a>
+    </p>
+  </main>
+</body>
+</html>

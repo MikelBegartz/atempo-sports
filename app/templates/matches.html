@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('matches_mod_title') }}{% endblock %}
+{% block content %}
+<div class="change-page matches-mod{% if selected %} matches-mod--edit{% endif %}">
+  <div class="page-head change-head">
+    <div class="page-head-copy">
+      <h1>{{ t('matches_mod_title') }}</h1>
+      {% if selected %}
+      <p class="muted">{{ t('matches_mod_editing') }}</p>
+      {% else %}
+      <p class="muted">{{ t('matches_mod_intro') }}</p>
+      {% endif %}
+    </div>
+    <div class="page-head-actions">
+      <form method="post" action="/season/{{ season.id }}/matches/clear"
+            onsubmit='return confirm({{ (t("matches_clear_all") ~ "?")|tojson }}) && confirm({{ t("matches_clear_confirm")|tojson }});' style="margin:0">
+        <button type="submit" class="secondary">{{ t('matches_clear_all') }}</button>
+      </form>
+    </div>
+  </div>
+
+  {% if matches_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ matches_flash }}</div>{% endif %}
+
+  {% if not selected %}
+  <section class="match-draft">
+    <h2 class="match-calendar-title">{{ t('matches_calendar_title') }}</h2>
+    <div class="draft-horizon">
+      <a class="draft-horizon-link{% if horizon == 'm1' %} is-active{% endif %}" href="/season/{{ season.id }}/matches?horizon=m1">{{ t('horizon_m1') }}</a>
+      <a class="draft-horizon-link{% if horizon == 'm2' %} is-active{% endif %}" href="/season/{{ season.id }}/matches?horizon=m2">{{ t('horizon_m2') }}</a>
+      <a class="draft-horizon-link{% if horizon == 'later' %} is-active{% endif %}" href="/season/{{ season.id }}/matches?horizon=later">{{ t('horizon_later') }}</a>
+    </div>
+    <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
+    {% if draft_days %}
+    <div class="draft-scroll">
+      <table class="draft-grid">
+        <thead>
+          <tr>
+            <th class="draft-day-head">{{ t('calendar_week') }}</th>
+            {% for h in draft_hours %}
+            <th class="draft-hour-head">{{ h|time_input }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in draft_days %}
+          <tr class="draft-day{% if d.weekday() >= 5 %} is-weekend{% endif %}">
+            <td class="draft-day-cell">
+              <strong>{{ weekday_names[d.weekday()] }}</strong>
+              <span class="muted">{{ d.strftime('%d/%m') }}</span>
+            </td>
+            {% for h in draft_hours %}
+            <td class="draft-slot">
+              {% for slot in draft_grid[d][h] %}
+              <a class="draft-match status-{{ slot.status }}" href="/season/{{ season.id }}/matches?m={{ slot.id }}#fitxa">
+                <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
+                <div class="draft-sides">
+                  <div class="draft-side">{{ slot.home }}</div>
+                  <div class="draft-side">{{ slot.away }}</div>
+                </div>
+                <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+                {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
+              </a>
+              {% endfor %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">{{ t('matches_empty_period') }}</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if selected %}
+  {# —— Mode edició: fitxa a pantalla completa —— #}
+  <section class="matches-ficha panel-sheet" id="fitxa">
+    <div class="panel-sheet-head">
+      <h2>{{ t('matches_ficha_heading') }}</h2>
+      <div style="display:flex;flex-direction:column;gap:0.35rem;align-items:flex-end">
+        <a class="text-action" href="{{ list_back_href }}">{{ t('matches_back_list') }}</a>
+        {% if conflict_back_href %}
+        <a class="text-action" href="{{ conflict_back_href }}">{{ t('matches_back_conflict') }}</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if selected.team.category %}
+    <p class="match-comp">{{ selected.team.category }}</p>
+    {% endif %}
+    <p class="change-matchup">
+      <span>{{ selected|match_local }}</span>
+      <span class="change-vs">–</span>
+      <span>{{ selected|match_away }}</span>
+    </p>
+    <p class="muted change-now">
+      {% if selected.match_date %}{{ selected.match_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+      {% if selected.start_time %} · {{ selected.start_time|time_input }}{% endif %}
+      {% if selected.end_time %}–{{ selected.end_time|time_input }}{% endif %}
+      {% if selected|match_place != '—' %} · {{ selected|match_place }}{% endif %}
+    </p>
+
+    {% if selected.locked or selected.team.immovable %}
+    <div class="conflict hard" style="margin-top:1rem">{{ t('change_locked') }}</div>
+    {% else %}
+
+    {# Conflictes actuals #}
+    <section class="match-conflicts-now" style="margin-top:1.25rem">
+      <h3>{{ t('match_current_conflicts') }}</h3>
+      {% if match_conflicts %}
+      <ul class="conflict-list">
+        {% for c in match_conflicts %}
+        <li class="conflict {{ c.severity }}">
+          {{ c.message }}
+          <div class="wa-prompt" style="margin-top:0.35rem;display:flex;flex-direction:column;gap:0.5rem">
+            <textarea readonly id="wa-match-{{ loop.index }}" style="min-height:5rem;resize:vertical" class="wa-text">{{ t('conflict_wa_intro') }}{{ c.message }}{% if clean_alternatives %}{{ t('conflict_wa_alts').format(count=clean_alternatives|length) }}{% for opt in clean_alternatives %}- {{ opt.label }}
+{% endfor %}{{ t('conflict_wa_outro_alts') }}{% else %}{{ t('conflict_wa_outro') }}{% endif %}</textarea>
+            <button type="button" class="secondary" onclick="copyToClipboard('wa-match-{{ loop.index }}')">{{ t('conflict_wa_copy') }}</button>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="badge ok">{{ t('match_no_conflicts') }}</p>
+      {% endif %}
+    </section>
+
+    {# Propostes sense conflicte #}
+    {% if clean_alternatives %}
+    <section class="match-clean-alts" style="margin-top:1.25rem">
+      <h3>{{ t('match_clean_alts') }}</h3>
+      <ul class="change-alts">
+        {% for opt in clean_alternatives %}
+        <li class="change-option is-ok">
+          <div class="change-option-main">
+            <strong>{{ opt.label }}</strong>
+            <span class="badge ok">{{ t('change_alts_clean') }}</span>
+          </div>
+          <form method="post" action="/season/{{ season.id }}/matches/{{ selected.id }}/apply">
+            <input type="hidden" name="match_date" value="{{ opt.match_date.isoformat() }}" />
+            <input type="hidden" name="start_time" value="{{ opt.start_time.isoformat() }}" />
+            <input type="hidden" name="end_time" value="{{ opt.end_time.isoformat() }}" />
+            <input type="hidden" name="venue_id" value="{{ opt.venue_id or '' }}" />
+            <label class="check" style="display:flex;align-items:center;gap:0.4rem;margin:0.4rem 0">
+              <input type="checkbox" name="make_official" value="1">
+              <span>{{ t('change_make_official') }}</span>
+            </label>
+            <p class="muted" style="font-size:0.75rem;margin:-0.2rem 0 0.4rem">{{ t('change_make_official_hint') }}</p>
+            <button type="submit" class="secondary">{{ t('change_alts_apply') }}</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {# Formulari de canvi manual #}
+    <form class="change-form" method="post" action="/season/{{ season.id }}/matches/{{ selected.id }}/change" style="margin-top:1.5rem">
+      <h3>{{ t('change_manual_title') }}</h3>
+      <div class="change-fields">
+        <label>{{ t('change_new_date') }}
+          <input type="date" name="proposed_date"
+                 value="{{ result.frame.proposed_date.isoformat() if result and result.frame and result.frame.proposed_date else (selected.match_date.isoformat() if selected.match_date else '') }}" />
+        </label>
+        <label>{{ t('col_from') }}
+          <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="proposed_start"
+                 value="{{ result.frame.proposed_start|time_input if result and result.frame and result.frame.proposed_start else (selected.start_time|time_input if selected.start_time else '') }}" />
+        </label>
+        {% if selected.is_home and venues %}
+        <label>{{ t('col_venue') }}
+          <select name="proposed_venue_id">
+            <option value="">—</option>
+            {% for v in venues %}
+            <option value="{{ v.id }}"
+              {% if result and result.frame and result.frame.proposed_venue_id == v.id %}selected
+              {% elif (not result or not result.frame or not result.frame.proposed_venue_id) and selected.venue_id == v.id %}selected{% endif %}
+            >{{ v.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+      </div>
+      <div class="change-actions">
+        <button type="submit">{{ t('change_analyze') }}</button>
+      </div>
+    </form>
+
+    {# Resultat de l’anàlisi #}
+    {% if result %}
+    <section class="change-result" style="margin-top:1.25rem">
+      {% if result.concrete %}
+        {% if result.concrete.hard %}
+        <div class="conflict hard">{{ t('match_change_conflicts_count', count=result.concrete.hard|length) }}</div>
+        <ul class="conflict-list">
+          {% for c in result.concrete.hard %}
+          <li class="conflict hard">{{ c.message }}</li>
+          {% endfor %}
+        </ul>
+        <form method="post" action="/season/{{ season.id }}/matches/{{ selected.id }}/apply">
+          <input type="hidden" name="match_date" value="{{ result.concrete.match_date.isoformat() }}" />
+          <input type="hidden" name="start_time" value="{{ result.concrete.start_time.isoformat() }}" />
+          <input type="hidden" name="end_time" value="{{ result.concrete.end_time.isoformat() }}" />
+          <input type="hidden" name="venue_id" value="{{ result.concrete.venue_id or '' }}" />
+          <input type="hidden" name="force" value="1" />
+          <label class="check" style="display:flex;align-items:center;gap:0.4rem;margin:0.4rem 0">
+            <input type="checkbox" name="make_official" value="1">
+            <span>{{ t('change_make_official') }}</span>
+          </label>
+          <p class="muted" style="font-size:0.75rem;margin:-0.2rem 0 0.4rem">{{ t('change_make_official_hint') }}</p>
+          <button type="submit" class="secondary">{{ t('change_apply_force') }}</button>
+        </form>
+        {% else %}
+        <p class="badge ok">{{ t('match_change_clean') }}</p>
+        <form method="post" action="/season/{{ season.id }}/matches/{{ selected.id }}/apply">
+          <input type="hidden" name="match_date" value="{{ result.concrete.match_date.isoformat() }}" />
+          <input type="hidden" name="start_time" value="{{ result.concrete.start_time.isoformat() }}" />
+          <input type="hidden" name="end_time" value="{{ result.concrete.end_time.isoformat() }}" />
+          <input type="hidden" name="venue_id" value="{{ result.concrete.venue_id or '' }}" />
+          <label class="check" style="display:flex;align-items:center;gap:0.4rem;margin:0.4rem 0">
+            <input type="checkbox" name="make_official" value="1">
+            <span>{{ t('change_make_official') }}</span>
+          </label>
+          <p class="muted" style="font-size:0.75rem;margin:-0.2rem 0 0.4rem">{{ t('change_make_official_hint') }}</p>
+          <button type="submit">{{ t('change_alts_apply') }}</button>
+        </form>
+        {% endif %}
+      {% endif %}
+
+      {% if result.alternatives %}
+      <h3 class="change-alts-title" style="margin-top:1rem">{{ t('change_alts_heading') }}</h3>
+      <ul class="change-alts">
+        {% for opt in result.alternatives %}
+        <li class="change-option {% if opt.hard %}is-bad{% else %}is-ok{% endif %}">
+          <div class="change-option-main">
+            <strong>{{ opt.label }}</strong>
+            {% if not opt.hard %}
+            <span class="badge ok">{{ t('change_alts_clean') }}</span>
+            {% endif %}
+          </div>
+          {% if not opt.hard %}
+          <form method="post" action="/season/{{ season.id }}/matches/{{ selected.id }}/apply">
+            <input type="hidden" name="match_date" value="{{ opt.match_date.isoformat() }}" />
+            <input type="hidden" name="start_time" value="{{ opt.start_time.isoformat() }}" />
+            <input type="hidden" name="end_time" value="{{ opt.end_time.isoformat() }}" />
+            <input type="hidden" name="venue_id" value="{{ opt.venue_id or '' }}" />
+            <label class="check" style="display:flex;align-items:center;gap:0.4rem;margin:0.4rem 0">
+              <input type="checkbox" name="make_official" value="1">
+              <span>{{ t('change_make_official') }}</span>
+            </label>
+            <p class="muted" style="font-size:0.75rem;margin:-0.2rem 0 0.4rem">{{ t('change_make_official_hint') }}</p>
+            <button type="submit" class="secondary">{{ t('change_alts_apply') }}</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  {% else %}
+  {# —— Mode llista: cercar i triar —— #}
+  <section class="panel-sheet matches-search-panel">
+    <div class="panel-sheet-head">
+      <h2>{{ t('matches_search_title') }}</h2>
+    </div>
+    <form class="matches-search" method="get" action="/season/{{ season.id }}/matches">
+      <div class="change-fields">
+        <label>{{ t('nav_teams') }}
+          <select name="team_id">
+            <option value="">—</option>
+            {% for tm in teams %}
+            <option value="{{ tm.id }}" {% if filter_team_id == tm.id %}selected{% endif %}>{{ tm.name }}{% if tm.category %} · {{ tm.category }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{{ t('matches_search_q') }}
+          <input type="search" name="q" value="{{ filter_q }}" placeholder="{{ t('matches_search_ph') }}" />
+        </label>
+        <label>{{ t('col_date') }}
+          <input type="date" name="day" value="{{ filter_day }}" />
+        </label>
+      </div>
+      <div class="change-actions">
+        <button type="submit">{{ t('matches_search_btn') }}</button>
+        {% if filter_q or filter_team_id or filter_day %}
+        <a class="text-action" href="/season/{{ season.id }}/matches">{{ t('matches_clear') }}</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  {% if search_empty %}
+  <p class="muted" style="margin-top:1rem">{{ t('matches_search_empty') }}</p>
+  {% endif %}
+
+  <div class="matches-list-head">
+    <h2 class="change-alts-title">{{ t('matches_list_heading') }} <span class="muted">({{ matches|length }})</span></h2>
+    {% if matches %}
+    <p class="matches-list-hint">{{ t('matches_pick_hint') }}</p>
+    {% endif %}
+  </div>
+
+  {% if matches %}
+  <div class="matches-pick-list">
+    {% for m in matches %}
+    <a class="matches-pick"
+       href="/season/{{ season.id }}/matches?m={{ m.id }}{% if filter_q %}&q={{ filter_q|urlencode }}{% endif %}{% if filter_team_id %}&team_id={{ filter_team_id }}{% endif %}{% if filter_day %}&day={{ filter_day }}{% endif %}#fitxa">
+      <div class="matches-pick-when">
+        <strong>{% if m.match_date %}{{ m.match_date.strftime('%d/%m') }}{% else %}—{% endif %}</strong>
+        <span>{% if m.start_time %}{{ m.start_time|time_input }}{% else %}TBD{% endif %}</span>
+      </div>
+      <div class="matches-pick-body">
+        {% if m.team.category %}<div class="match-comp">{{ m.team.category }}</div>{% endif %}
+        <div class="matches-pick-sides">
+          <span>{{ m|match_local }}</span>
+          <span class="change-vs">–</span>
+          <span>{{ m|match_away }}</span>
+        </div>
+        <div class="muted matches-pick-place">{{ m|match_place }}</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">{{ t('matches_pick_go') }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">{{ t('matches_list_empty') }}</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

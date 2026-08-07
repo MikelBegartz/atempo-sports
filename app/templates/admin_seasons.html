@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ t('admin_title') }} · {{ club.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=auth8" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/admin">AtempoSports</a>
+        <p class="tagline">{{ t('admin_title') }}</p>
+      </div>
+      <form method="post" action="/admin/logout" style="margin:0" autocomplete="off">
+        <button type="submit" class="secondary logout-btn">{{ t('logout') }}</button>
+      </form>
+    </div>
+  </header>
+  <main>
+    <h1>{{ club.name }}</h1>
+    <p class="muted">{{ t('admin_seasons_intro') }}</p>
+
+    {% if flash %}
+    <div class="badge ok" style="display:inline-block;margin:0.75rem 0">{{ flash }}</div>
+    {% endif %}
+
+    <nav style="margin:1.25rem 0">
+      <a class="text-action" href="/admin">← {{ t('admin_back') }}</a>
+    </nav>
+
+    <section class="panel-sheet" style="margin-top:1rem">
+      <h2 style="margin:0 0 0.75rem;font-family:var(--display);font-size:1.25rem">{{ t('admin_seasons_heading') }}</h2>
+      {% if seasons %}
+      <ul class="admin-seasons-list" style="margin:0;padding:0;list-style:none">
+        {% for s in seasons %}
+        <li style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--line)">
+          <div>
+            <strong>{{ s.name }}</strong>
+            {% if s.is_active %}<span class="badge ok" style="margin-left:0.5rem">{{ t('admin_season_active') }}</span>{% endif %}
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <a class="secondary" href="/season/{{ s.id }}/season">{{ t('nav_season') }}</a>
+            <a class="secondary" href="/season/{{ s.id }}/export/matches">{{ t('admin_export_matches') }}</a>
+            <a class="secondary" href="/season/{{ s.id }}/export/trainings">{{ t('admin_export_trainings') }}</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">{{ t('admin_no_seasons') }}</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

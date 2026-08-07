@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atempo · Modificar partits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=plan30" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <a class="brand" href="/app">Atempo</a>
+        <p class="tagline">Organitza&#39;t sense embolics</p>
+      </div>
+      <div class="top-actions">
+        <nav class="lang-switch lang-switch--compact" aria-label="Idioma">
+          
+            
+            
+            <a href="/lang/ca?next=/season/1/matches" class="lang-mark is-active" title="Català">CAT</a>
+          
+            
+            
+            <a href="/lang/es?next=/season/1/matches" class="lang-mark" title="Castellano">ESP</a>
+          
+            
+            
+            <a href="/lang/pt?next=/season/1/matches" class="lang-mark" title="Português">POR</a>
+          
+            
+            
+            <a href="/lang/fr?next=/season/1/matches" class="lang-mark" title="Français">FRA</a>
+          
+            
+            
+            <a href="/lang/it?next=/season/1/matches" class="lang-mark" title="Italiano">ITA</a>
+          
+            
+            
+            <a href="/lang/en?next=/season/1/matches" class="lang-mark" title="English (US)">ENG</a>
+          
+            
+            
+            <a href="/lang/de?next=/season/1/matches" class="lang-mark" title="Deutsch">DEU</a>
+          
+        </nav>
+        
+        <form method="post" action="/logout" style="margin:0">
+          <button type="submit" class="secondary logout-btn">Surt</button>
+        </form>
+        
+      </div>
+    </div>
+    
+    <nav class="main-nav">
+      <div class="nav-left">
+        
+        <a href="/app">Inici</a>
+        <a href="/season/1/calendar">Calendari</a>
+        <a href="/season/1/matches">Partits</a>
+        <a href="/season/1/trainings">Entrenaments</a>
+        <a href="/season/1/club">Club</a>
+        
+      </div>
+      <div class="nav-right">
+        
+        <div class="nav-conflict-ficha">
+          <div class="nav-conflict-header">Conflictes</div>
+          <div class="nav-conflict-cols">
+            <a class="nav-conflict-col m1" href="/season/1/conflicts#m1">
+              <span class="nav-conflict-horizon">&lt;30 dies</span>
+              <span class="nav-conflict-count">2</span>
+            </a>
+            <a class="nav-conflict-col m2" href="/season/1/conflicts#m2">
+              <span class="nav-conflict-horizon">31–60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+            <a class="nav-conflict-col later" href="/season/1/conflicts#later">
+              <span class="nav-conflict-horizon">&gt;60 dies</span>
+              <span class="nav-conflict-count">0</span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+    </nav>
+    <p class="context">CH Mataró · 2026/27</p>
+    
+  </header>
+  <main>
+    
+    
+<div class="change-page matches-mod">
+  <div class="page-head change-head">
+    <div class="page-head-copy">
+      <h1>Modificar partits</h1>
+      
+      <p class="muted">Tria un partit de la llista (o cerca’l) per obrir la fitxa i canviar data, hora o pista.</p>
+      
+    </div>
+  </div>
+
+  
+  <section class="match-draft">
+    <h2 class="match-calendar-title">Calendari de partits</h2>
+    <div class="draft-horizon">
+      <a class="draft-horizon-link is-active" href="/season/1/matches?horizon=m1">&lt;30 dies</a>
+      <a class="draft-horizon-link" href="/season/1/matches?horizon=m2">31–60 dies</a>
+      <a class="draft-horizon-link" href="/season/1/matches?horizon=later">&gt;60 dies</a>
+    </div>
+    <p class="muted">Període: 31/07/2026 – 30/08/2026</p>
+    
+    <div class="draft-scroll">
+      <table class="draft-grid">
+        <thead>
+          <tr>
+            <th class="draft-day-head">Setmana</th>
+            
+            <th class="draft-hour-head">09:00</th>
+            
+            <th class="draft-hour-head">11:30</th>
+            
+            <th class="draft-hour-head">17:00</th>
+            
+            <th class="draft-hour-head">18:30</th>
+            
+            <th class="draft-hour-head">20:00</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr class="draft-day is-weekend">
+            <td class="draft-day-cell">
+              <strong>Dissabte</strong>
+              <span class="muted">01/08</span>
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+              <a class="draft-match status-changed" href="/season/1/matches?m=2#fitxa">
+                <div class="draft-comp">Aleví</div>
+                <div class="draft-time">18:30–19:45</div>
+                <div class="draft-sides">
+                  <div class="draft-side">Aleví A</div>
+                  <div class="draft-side">Molins</div>
+                </div>
+                <div class="draft-venue">Pista 3</div>
+              </a>
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+          </tr>
+          
+          <tr class="draft-day">
+            <td class="draft-day-cell">
+              <strong>Dimecres</strong>
+              <span class="muted">05/08</span>
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+              <a class="draft-match status-ok" href="/season/1/matches?m=1#fitxa">
+                <div class="draft-comp">Senior</div>
+                <div class="draft-time">20:00–21:30</div>
+                <div class="draft-sides">
+                  <div class="draft-side">Senior A</div>
+                  <div class="draft-side">Vic</div>
+                </div>
+                <div class="draft-venue">Pista 1</div>
+              </a>
+              
+            </td>
+            
+          </tr>
+          
+          <tr class="draft-day">
+            <td class="draft-day-cell">
+              <strong>Dijous</strong>
+              <span class="muted">06/08</span>
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+              <a class="draft-match status-ok" href="/season/1/matches?m=4#fitxa">
+                <div class="draft-comp">Mixte</div>
+                <div class="draft-time">11:30–12:45</div>
+                <div class="draft-sides">
+                  <div class="draft-side">Castellar</div>
+                  <div class="draft-side">Juvenil</div>
+                </div>
+                <div class="draft-venue">Castellar</div>
+              </a>
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+          </tr>
+          
+          <tr class="draft-day is-weekend">
+            <td class="draft-day-cell">
+              <strong>Dissabte</strong>
+              <span class="muted">08/08</span>
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+              <a class="draft-match status-changed" href="/season/1/matches?m=3#fitxa">
+                <div class="draft-comp">Femení</div>
+                <div class="draft-time">17:00–18:15</div>
+                <div class="draft-sides">
+                  <div class="draft-side">Sènior</div>
+                  <div class="draft-side">SHUM</div>
+                </div>
+                <div class="draft-venue">Pista 3</div>
+              </a>
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+          </tr>
+          
+          <tr class="draft-day">
+            <td class="draft-day-cell">
+              <strong>Dimecres</strong>
+              <span class="muted">12/08</span>
+            </td>
+            
+            <td class="draft-slot">
+              
+              <a class="draft-match status-hard" href="/season/1/matches?m=5#fitxa">
+                <div class="draft-comp">Senior</div>
+                <div class="draft-time">09:00–10:30</div>
+                <div class="draft-sides">
+                  <div class="draft-side">Senior A</div>
+                  <div class="draft-side">Barcelona</div>
+                </div>
+                <div class="draft-venue">Pista 1</div>
+              </a>
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+            <td class="draft-slot">
+              
+            </td>
+            
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+  </section>
+  
+
+  
+  
+  <section class="panel-sheet matches-search-panel">
+    <div class="panel-sheet-head">
+      <h2>Cercar partit</h2>
+    </div>
+    <form class="matches-search" method="get" action="/season/1/matches">
+      <div class="change-fields">
+        <label>Equips
+          <select name="team_id">
+            <option value="">—</option>
+            
+            <option value="4" >Aleví A · Aleví</option>
+            
+            <option value="3" >Juvenil · Mixte</option>
+            
+            <option value="1" >Senior A · Senior</option>
+            
+            <option value="2" >Sènior · Femení</option>
+            
+          </select>
+        </label>
+        <label>Text
+          <input type="search" name="q" value="" placeholder="Rival, club, pista…" />
+        </label>
+        <label>Data
+          <input type="date" name="day" value="" />
+        </label>
+      </div>
+      <div class="change-actions">
+        <button type="submit">Cercar</button>
+        
+      </div>
+    </form>
+  </section>
+
+  
+
+  <div class="matches-list-head">
+    <h2 class="change-alts-title">Tria un partit <span class="muted">(5)</span></h2>
+    
+    <p class="matches-list-hint">Fes clic en una fila per obrir-ne la fitxa.</p>
+    
+  </div>
+
+  
+  <div class="matches-pick-list">
+    
+    <a class="matches-pick"
+       href="/season/1/matches?m=2#fitxa">
+      <div class="matches-pick-when">
+        <strong>01/08</strong>
+        <span>18:30</span>
+      </div>
+      <div class="matches-pick-body">
+        <div class="match-comp">Aleví</div>
+        <div class="matches-pick-sides">
+          <span>Aleví A</span>
+          <span class="change-vs">–</span>
+          <span>Molins</span>
+        </div>
+        <div class="muted matches-pick-place">Pista 3</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">Obrir →</span>
+    </a>
+    
+    <a class="matches-pick"
+       href="/season/1/matches?m=1#fitxa">
+      <div class="matches-pick-when">
+        <strong>05/08</strong>
+        <span>20:00</span>
+      </div>
+      <div class="matches-pick-body">
+        <div class="match-comp">Senior</div>
+        <div class="matches-pick-sides">
+          <span>Senior A</span>
+          <span class="change-vs">–</span>
+          <span>Vic</span>
+        </div>
+        <div class="muted matches-pick-place">Pista 1</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">Obrir →</span>
+    </a>
+    
+    <a class="matches-pick"
+       href="/season/1/matches?m=4#fitxa">
+      <div class="matches-pick-when">
+        <strong>06/08</strong>
+        <span>11:30</span>
+      </div>
+      <div class="matches-pick-body">
+        <div class="match-comp">Mixte</div>
+        <div class="matches-pick-sides">
+          <span>Castellar</span>
+          <span class="change-vs">–</span>
+          <span>Juvenil</span>
+        </div>
+        <div class="muted matches-pick-place">Castellar</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">Obrir →</span>
+    </a>
+    
+    <a class="matches-pick"
+       href="/season/1/matches?m=3#fitxa">
+      <div class="matches-pick-when">
+        <strong>08/08</strong>
+        <span>17:00</span>
+      </div>
+      <div class="matches-pick-body">
+        <div class="match-comp">Femení</div>
+        <div class="matches-pick-sides">
+          <span>Sènior</span>
+          <span class="change-vs">–</span>
+          <span>SHUM</span>
+        </div>
+        <div class="muted matches-pick-place">Pista 3</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">Obrir →</span>
+    </a>
+    
+    <a class="matches-pick"
+       href="/season/1/matches?m=5#fitxa">
+      <div class="matches-pick-when">
+        <strong>12/08</strong>
+        <span>09:00</span>
+      </div>
+      <div class="matches-pick-body">
+        <div class="match-comp">Senior</div>
+        <div class="matches-pick-sides">
+          <span>Senior A</span>
+          <span class="change-vs">–</span>
+          <span>Barcelona</span>
+        </div>
+        <div class="muted matches-pick-place">Pista 1</div>
+      </div>
+      <span class="matches-pick-go" aria-hidden="true">Obrir →</span>
+    </a>
+    
+  </div>
+  
+  
+</div>
+
+  </main>
+</body>
+</html>

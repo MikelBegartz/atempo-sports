@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('nav_calendar') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('nav_calendar') }}</h1>
+    <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
+  </div>
+  {% if has_live_trainings %}
+  <div class="page-head-actions">
+    <form method="post" action="/season/{{ season.id }}/trainings/clear"
+          onsubmit='return confirm({{ (t("tr_clear_trainings") ~ "?")|tojson }}) && confirm({{ t("tr_clear_trainings_confirm")|tojson }});' style="margin:0">
+      <button type="submit" class="secondary">{{ t('tr_clear_trainings') }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="cal-legend" aria-label="{{ t('calendar_legend') }}">
+  <span class="cal-legend-item"><i class="cal-swatch hard"></i>{{ t('calendar_legend_hard') }}</span>
+  <span class="cal-legend-item"><i class="cal-swatch soft"></i>{{ t('calendar_legend_soft') }}</span>
+  <span class="cal-legend-item"><i class="cal-swatch ok"></i>{{ t('calendar_legend_ok') }}</span>
+  <span class="cal-legend-item"><i class="cal-swatch changed"></i>{{ t('calendar_legend_changed') }}</span>
+  <span class="cal-legend-item"><i class="cal-swatch training"></i>{{ t('calendar_legend_training') }}</span>
+</div>
+
+<div class="cal-toolbar" style="margin:1rem 0">
+  <a class="cal-nav-step" href="/season/{{ season.id }}/calendar?day={{ prev_day }}">
+    <span class="cal-nav-arrow" aria-hidden="true">←</span>
+    <span class="cal-nav-lines">
+      <span>{{ nav_week }}</span>
+      <span>{{ nav_prev }}</span>
+    </span>
+  </a>
+  <div class="cal-toolbar-center">
+    <form method="get" action="/season/{{ season.id }}/calendar" class="cal-goto">
+      <label class="cal-goto-label" for="cal-day">{{ t('calendar_goto') }}</label>
+      <input id="cal-day" type="date" name="day" value="{{ focus_day }}" />
+      <button type="submit" class="cal-goto-btn">{{ t('calendar_go') }}</button>
+    </form>
+    <a class="cal-today" href="/season/{{ season.id }}/calendar?day={{ today.isoformat() }}">{{ t('calendar_today') }}</a>
+  </div>
+  <a class="cal-nav-step cal-nav-step--next" href="/season/{{ season.id }}/calendar?day={{ next_day }}">
+    <span class="cal-nav-lines">
+      <span>{{ nav_week }}</span>
+      <span>{{ nav_next }}</span>
+    </span>
+    <span class="cal-nav-arrow" aria-hidden="true">→</span>
+  </a>
+</div>
+
+<section class="match-draft">
+  <h2 class="match-calendar-title">{{ t('calendar_title') }}</h2>
+  <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
+  {% if draft_days %}
+  <div class="draft-scroll">
+    <table class="draft-grid">
+      <thead>
+        <tr>
+          <th class="draft-day-head">{{ t('calendar_week') }}</th>
+          {% for h in draft_hours %}
+          <th class="draft-hour-head">{{ h|time_input }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in draft_days %}
+        <tr class="draft-day{% if d.weekday() >= 5 %} is-weekend{% endif %}">
+          <td class="draft-day-cell">
+            <strong>{{ weekday_names[d.weekday()] }}</strong>
+            <span class="muted">{{ d.strftime('%d/%m') }}</span>
+          </td>
+          {% for h in draft_hours %}
+          <td class="draft-slot">
+            {% for slot in draft_grid[d][h] %}
+            <a class="draft-match status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}">
+              {% if slot.kind == 'match' %}
+              <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
+              <div class="draft-sides">
+                <div class="draft-side">{{ slot.home }}</div>
+                <div class="draft-side">{{ slot.away }}</div>
+              </div>
+              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+              {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
+              {% else %}
+              <div class="draft-title">{{ t('tr_title') }}</div>
+              <div class="draft-team">{{ slot.team }}</div>
+              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+              {% if slot.venue %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
+              {% endif %}
+            </a>
+            {% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">{{ t('calendar_no_events') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

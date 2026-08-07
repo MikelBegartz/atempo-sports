@@ -1,0 +1,20 @@
+---
+description: Cómo trabajar en AtempoSports (si abres solo esta carpeta como workspace)
+alwaysApply: true
+---
+
+# AtempoSports — flujo
+
+- UI por defecto en **catalán**. No saltar pasos ni auto-rellenar.
+- Discutir features gordas antes de codificar. Un chat ≈ un épico.
+- Reiniciar uvicorn si no hay `--reload` tras cambios Python/i18n.
+- Ver `INSTRUCCIONES.md` y `PRODUCT.md` (inclou **Beta tancada** i prompt del pròxim xat).
+- Explicar a l’usuari en **paraules senzilles** quan parlem de deploy/SMTP/HTTPS (evitar jerga sense traduir).
+
+## Instrucciones
+
+Si el usuario pide actualizar **Instrucciones**, actualizar `.cursor/rules/*.mdc` y/o `PRODUCT.md` (norma → rule; roadmap → PRODUCT.md).
+
+## Beta
+
+Fins que digui el contrari: **beta tancada** (3 clubs, gratis aquest any). No obrir registre públic ni pagaments sense acord explícit. Checklist a `PRODUCT.md`.

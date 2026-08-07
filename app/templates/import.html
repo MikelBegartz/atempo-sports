@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('import_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('import_title') }}</h1>
+<p class="muted">
+  {{ t('import_intro') }}
+</p>
+
+<div class="grid">
+  <div>
+    <h2>{{ t('import_alias_heading') }}</h2>
+    <form class="stack" method="post" action="/season/{{ season.id }}/import/alias">
+      <label>{{ t('import_team_label') }}
+        <select name="team_id" required>
+          {% for t in teams %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>{{ t('import_source_label') }}
+        <select name="source">
+          <option value="rfep">RFEP</option>
+          <option value="fgp">FGP</option>
+          <option value="fap">FAP</option>
+          <option value="fmp">FMP</option>
+          <option value="fnp">FNP</option>
+          <option value="fecapa">FECAPA</option>
+        </select>
+      </label>
+      <label>{{ t('import_external_name_label') }}
+        <input name="external_name" required placeholder="{{ t('import_external_name_ph') }}" />
+      </label>
+      <button type="submit">{{ t('import_save_alias') }}</button>
+    </form>
+
+    <h2>{{ t('import_saved_heading') }}</h2>
+    <table>
+      <thead><tr><th>{{ t('import_th_source') }}</th><th>{{ t('import_th_team') }}</th><th>{{ t('import_th_external') }}</th></tr></thead>
+      <tbody>
+        {% for a in aliases %}
+        <tr>
+          <td>{{ a.source }}</td>
+          <td>{{ a.team.name }}</td>
+          <td>{{ a.external_name }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="muted">{{ t('import_no_aliases') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <h2>{{ t('import_comp_heading') }}</h2>
+    <form class="stack" method="post" action="/season/{{ season.id }}/import/preview">
+      <label>{{ t('import_source_label') }}
+        <select name="source" id="import-source">
+          <option value="rfep">RFEP</option>
+          <option value="fgp">FGP</option>
+          <option value="fap">FAP</option>
+          <option value="fmp">FMP</option>
+          <option value="fnp">FNP</option>
+          <option value="fecapa" selected>FECAPA</option>
+        </select>
+      </label>
+      <label>{{ t('import_idc_label') }}
+        <input name="idc" required placeholder="{{ t('import_idc_ph') }}" list="known-idcs" />
+      </label>
+      <datalist id="known-idcs">
+        {% for source, idc, label in known_comps %}
+        <option value="{{ idc }}">{{ source.upper() }} · {{ label }}</option>
+        {% endfor %}
+      </datalist>
+      <label>{{ t('import_label_optional') }}
+        <input name="label" placeholder="{{ t('import_label_ph') }}" />
+      </label>
+      <button type="submit">{{ t('import_continue_linking') }}</button>
+    </form>
+
+    {% if fecapa_error %}
+    <div class="conflict soft">{{ t('import_fecapa_error') }} {{ fecapa_error }}</div>
+    {% endif %}
+
+    <h2>{{ t('import_fecapa_heading') }}</h2>
+    <table>
+      <thead><tr><th>{{ t('import_th_idc') }}</th><th>{{ t('import_th_name') }}</th></tr></thead>
+      <tbody>
+        {% for idc, label in fecapa_comps[:25] %}
+        <tr><td>{{ idc }}</td><td>{{ label }}</td></tr>
+        {% else %}
+        <tr><td colspan="2" class="muted">{{ t('import_no_listing') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:0.85rem">{{ t('import_known_rfep') }}{% for idc, label in known_rfep %}{{ idc }} ({{ label }}){% if not loop.last %}; {% endif %}{% endfor %}</p>
+
+    <h2>{{ t('import_linked_heading') }}</h2>
+    <ul class="members">
+      {% for s in sources %}
+      <li>{{ s.source }} · idc {{ s.external_id }} {% if s.label %}— {{ s.label }}{% endif %}</li>
+      {% else %}
+      <li>{{ t('import_no_sources') }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{% if report %}
+<h2>{{ t('import_result_heading') }} {% if report.source %}({{ report.source }}{% if report.idc %} {{ report.idc }}{% endif %}){% endif %}</h2>
+{% if report.error %}
+<div class="conflict hard">{{ report.error }}</div>
+{% endif %}
+<div class="grid">
+  <div class="card"><div class="muted">{{ t('import_fetched') }}</div><div class="stat">{{ report.fetched }}</div></div>
+  <div class="card"><div class="muted">{{ t('import_matched') }}</div><div class="stat">{{ report.matched }}</div></div>
+  <div class="card"><div class="muted">{{ t('import_created') }}</div><div class="stat">{{ report.created }}</div></div>
+  <div class="card"><div class="muted">{{ t('import_updated') }}</div><div class="stat">{{ report.updated }}</div></div>
+</div>
+{% if report.rows %}
+<table style="margin-top:1rem">
+  <thead>
+    <tr><th>{{ t('import_th_action') }}</th><th>{{ t('import_th_team') }}</th><th>{{ t('import_th_opponent') }}</th><th>{{ t('import_th_lv') }}</th><th>{{ t('import_th_date') }}</th><th>{{ t('import_th_time') }}</th><th>{{ t('import_th_jornada') }}</th></tr>
+  </thead>
+  <tbody>
+    {% for r in report.rows[:80] %}
+    <tr>
+      <td><span class="badge {% if r.action == 'create' %}ok{% elif r.action == 'update' %}soft{% else %}hard{% endif %}">{{ r.action }}</span></td>
+      <td>{{ r.team_name }}</td>
+      <td>{{ r.opponent }}</td>
+      <td>{% if r.is_home %}{{ t('import_lv_home') }}{% else %}{{ t('import_lv_away') }}{% endif %}</td>
+      <td>{{ r.match_date or "—" }}</td>
+      <td>{% if r.start_time %}{{ r.start_time.strftime("%H:%M") }}{% else %}TBD{% endif %}</td>
+      <td>{{ r.jornada or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if report.rows|length > 80 %}
+<p class="muted">{{ t('import_showing_80') }} {{ report.rows|length }}</p>
+{% endif %}
+{% endif %}
+{% endif %}
+{% endblock %}
