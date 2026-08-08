@@ -1724,7 +1724,7 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 
 /* —— Pàgines públiques —— */
 .public-shell {
-  width: min(900px, 100%);
+  width: min(1040px, 100%);
   margin: 0 auto;
   border-radius: 22px;
   overflow: hidden;
@@ -1743,7 +1743,7 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 .public-hero .login-logo { font-size: clamp(2.8rem, 6vw, 4rem); margin: 0 0 0.8rem; }
 .public-hero .login-lead { max-width: none; margin: 0; }
 .public-content {
-  padding: 2.6rem 2.4rem;
+  padding: 2.6rem 1.8rem;
   font-size: 1.05rem;
   line-height: 1.6;
 }
@@ -1761,9 +1761,9 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 }
 .public-content li { margin: 0.4rem 0; }
 @media (max-width: 800px) {
-  .public-shell { border-radius: 0; }
-  .public-hero { padding: 2.4rem 1.5rem 1.8rem; }
-  .public-content { padding: 1.8rem 1.2rem; }
+  .public-shell { border-radius: 18px; }
+  .public-hero { padding: 2.2rem 1.4rem 1.6rem; }
+  .public-content { padding: 1.6rem 1rem; }
 }
 
 /* —— Modificar partido —— */
