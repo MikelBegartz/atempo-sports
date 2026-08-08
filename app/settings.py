@@ -61,3 +61,8 @@ def demo_password() -> str | None:
 
 def smtp_configured() -> bool:
     return bool((os.environ.get("ATEMPO_SMTP_HOST") or "").strip())
+
+
+def contact_email() -> str:
+    """Correu de contacte públic."""
+    return (os.environ.get("ATEMPO_CONTACT_EMAIL") or "info@atemposports.com").strip()
