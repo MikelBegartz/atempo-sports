@@ -14,6 +14,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from starlette.middleware.sessions import SessionMiddleware
 
+import base64
+
 from app.settings import (
     contact_email,
     https_cookies,
@@ -4699,7 +4701,15 @@ def export_trainings(season_id: int, db: Session = Depends(get_db)):
 
 @app.get("/privacitat", response_class=HTMLResponse)
 def privacy_page(request: Request):
-    return templates.TemplateResponse(request, "privacy.html", {"contact_email": contact_email()})
+    email = contact_email()
+    return templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {
+            "contact_email": email,
+            "contact_email_b64": base64.b64encode(email.encode("utf-8")).decode("ascii"),
+        },
+    )
 
 
 @app.get("/guia", response_class=HTMLResponse)
