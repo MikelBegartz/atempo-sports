@@ -6,8 +6,8 @@ from __future__ import annotations
 
 LANDING: dict[str, dict[str, str]] = {
     "ca": {
-        "tagline": "Organització esportiva, sense caos",
-        "hook": "El cap de setmana d'un club es decideix en hores. I sovint el que hauria de ser senzill — saber qui juga, on i a quina hora — es converteix en un puzle de missatges, Excels i papers. AtempoSports neix perquè el coordinador, l'entrenador i el club tornin a tenir el control.",
+        "tagline": "Organitza't sense embolics",
+        "hook": "El cap de setmana d'un club és el resultat d'innumerables hores intentant quadrar el cercle amb missatges, Excels i papers. I sovint el que hauria de ser senzill — saber qui juga, on i a quina hora — es converteix en un caos. AtempoSports neix perquè el coordinador, l'entrenador i el club tornin a tenir el control.",
         "promise": "Un únic calendari. Tot sota control.",
         "promise_text": "Centralitza entrenaments, partits, pistes i equips en un sol lloc. Tu decideixes; l'app t'organitza.",
         "features_title": "Com t'ajuda, pas a pas?",
@@ -28,15 +28,15 @@ LANDING: dict[str, dict[str, str]] = {
         "human_title": "Fet per coordinadors, no per robots",
         "human_text": "Cada decisió passa per tu. AtempoSports només et treu la feina bruta: recopilar dades, trobar errors, proposar opcions i redactar el que cal compartir. Tu confirmes, tu aproves.",
         "beta_title": "Beta exclusiva per a clubs fundadors",
-        "beta_text": "Uneix-te ara i gaudeix de 12 setmanes d'accés total gratuït, sense compromís ni targeta. El teu club podrà provar AtempoSports abans que obrim els plans de pagament.",
+        "beta_text": "De moment, l'accés és per invitació. Aviat obrim el registre: 12 setmanes d'accés total gratuït, sense compromís ni targeta. El teu club podrà provar AtempoSports abans que obrim els plans de pagament.",
         "multi_title": "Multiesport",
         "multi_text": "Ara l'sync federativa és automàtica per a hoquei patins. Pots gestionar manualment futbol, futbol sala, bàsquet, handbol i altres esports al mateix espai; la connexió automàtica amb les seves federacions arribarà properament.",
         "login_btn": "Entrar",
         "signup_btn": "Crear compte — Pròximament",
     },
     "es": {
-        "tagline": "Organización deportiva, sin caos",
-        "hook": "El fin de semana de un club se decide en horas. Y a menudo lo que debería ser sencillo — saber quién juega, dónde y a qué hora — se convierte en un puzle de mensajes, Excels y papeles. AtempoSports nace para que el coordinador, el entrenador y el club vuelvan a tener el control.",
+        "tagline": "Organízate sin líos",
+        "hook": "El fin de semana de un club es el resultado de innumerables horas intentando cuadrar el círculo con mensajes, Excels y papeles. Y a menudo lo que debería ser sencillo — saber quién juega, dónde y a qué hora — se convierte en un caos. AtempoSports nace para que el coordinador, el entrenador y el club vuelvan a tener el control.",
         "promise": "Un único calendario. Todo bajo control.",
         "promise_text": "Centraliza entrenamientos, partidos, pistas y equipos en un solo lugar. Tú decides; la app te organiza.",
         "features_title": "¿Cómo te ayuda, paso a paso?",
@@ -57,7 +57,7 @@ LANDING: dict[str, dict[str, str]] = {
         "human_title": "Hecho para coordinadores, no para robots",
         "human_text": "Cada decisión pasa por ti. AtempoSports solo te quita el trabajo bruto: recopilar datos, encontrar errores, proponer opciones y redactar lo que hay que compartir. Tú confirmas, tú apruebas.",
         "beta_title": "Beta exclusiva para clubs fundadores",
-        "beta_text": "Únete ahora y disfruta de 12 semanas de acceso total gratuito, sin compromiso ni tarjeta. Tu club podrá probar AtempoSports antes de que abramos los planes de pago.",
+        "beta_text": "De momento, el acceso es por invitación. Pronto abrimos el registro: 12 semanas de acceso total gratuito, sin compromiso ni tarjeta. Tu club podrá probar AtempoSports antes de que abramos los planes de pago.",
         "multi_title": "Multideporte",
         "multi_text": "Ahora la sincronización federativa es automática para hockey patines. Puedes gestionar manualmente fútbol, fútbol sala, baloncesto, balonmano y otros deportes en el mismo espacio; la conexión automática con sus federaciones llegará próximamente.",
         "login_btn": "Entrar",
