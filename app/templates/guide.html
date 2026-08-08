@@ -28,6 +28,14 @@
       </ol>
       <p class="muted" style="margin-top:1.25rem">{{ g.note }}</p>
       <p class="muted">{{ g.footer }}</p>
+      <p class="login-extra"><a id="guide-contact" class="text-action" href="#">Contacta</a></p>
+      <script>
+        (function () {
+          var email = atob("{{ contact_email_b64 }}");
+          var el = document.getElementById("guide-contact");
+          if (el) el.href = 'mailto:' + email;
+        })();
+      </script>
       <p class="login-extra">
         <a class="text-action" href="/login">{{ t('register_go_login') }}</a>
         ·

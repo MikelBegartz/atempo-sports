@@ -22,12 +22,12 @@
         <p class="muted" style="margin:0">{{ t('privacy_p1') }}</p>
         <p class="muted" style="margin:0">{{ t('privacy_p2') }}</p>
         <p class="muted" style="margin:0">{{ t('privacy_p3') }}</p>
-        <p class="muted" style="margin:0">{{ t('privacy_p4') }}<br><span id="contact-email"></span></p>
+        <p class="muted" style="margin:0">{{ t('privacy_p4') }}<br><a id="contact-email" class="text-action" href="#">Contacta</a></p>
         <script>
           (function () {
             var email = atob("{{ contact_email_b64 }}");
             var el = document.getElementById("contact-email");
-            if (el) el.innerHTML = '<a href="mailto:' + email + '">' + email + '</a>';
+            if (el) el.href = 'mailto:' + email;
           })();
         </script>
       </div>

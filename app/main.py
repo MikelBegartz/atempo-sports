@@ -4715,7 +4715,16 @@ def privacy_page(request: Request):
 @app.get("/guia", response_class=HTMLResponse)
 def guide_page(request: Request):
     g = get_guide(get_lang(request))
-    return templates.TemplateResponse(request, "guide.html", {"g": g})
+    email = contact_email()
+    return templates.TemplateResponse(
+        request,
+        "guide.html",
+        {
+            "g": g,
+            "contact_email": email,
+            "contact_email_b64": base64.b64encode(email.encode("utf-8")).decode("ascii"),
+        },
+    )
 
 
 @app.get("/ajuda", response_class=HTMLResponse)
