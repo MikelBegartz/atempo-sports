@@ -12,8 +12,9 @@
 <body class="login-page">
   <div class="login-shell" style="max-width:780px">
     <section class="login-brand">
+      <p class="login-kicker">{{ t('login_kicker') }}</p>
       <h1 class="login-logo">AtempoSports</h1>
-      <p class="login-lead">{{ landing.tagline }}</p>
+      <p class="login-lead">{{ t('login_lead') }}</p>
     </section>
     <section class="login-panel">
       <p class="muted">{{ landing.hook }}</p>
@@ -45,7 +46,7 @@
 
       <p style="margin-top:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
         <a class="button-like" href="/login">{{ landing.login_btn }}</a>
-        <span class="button-like secondary" style="opacity:0.7">{{ landing.signup_btn }}</span>
+        <a class="button-like secondary" href="/register">{{ landing.signup_btn }}</a>
       </p>
 
       <nav class="lang-switch" aria-label="{{ t('lang_label') }}">
