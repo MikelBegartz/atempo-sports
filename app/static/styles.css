@@ -1730,20 +1730,22 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(8, 30, 22, 0.35);
   background: #f7fcf9;
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr;
+  gap: 0;
 }
 .public-hero {
-  padding: 3rem 2.5rem 2.4rem;
+  padding: 2.6rem 2.2rem;
   color: #eef7f2;
-  text-align: center;
   background:
     linear-gradient(160deg, rgba(15, 107, 76, 0.35), transparent 55%),
     linear-gradient(200deg, #0b2f24, #134536 70%);
 }
-.public-hero .login-kicker { margin-bottom: 0.6rem; }
-.public-hero .login-logo { font-size: clamp(2.8rem, 6vw, 4rem); margin: 0 0 0.8rem; }
+.public-hero .login-kicker { margin-bottom: 0.8rem; }
+.public-hero .login-logo { font-size: clamp(2.8rem, 5vw, 3.8rem); margin: 0 0 0.8rem; }
 .public-hero .login-lead { max-width: none; margin: 0; }
 .public-content {
-  padding: 2.6rem 1.8rem;
+  padding: 2.6rem 2.2rem;
   font-size: 1.05rem;
   line-height: 1.6;
 }
@@ -1761,9 +1763,9 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 }
 .public-content li { margin: 0.4rem 0; }
 @media (max-width: 800px) {
-  .public-shell { border-radius: 18px; }
-  .public-hero { padding: 2.2rem 1.4rem 1.6rem; }
-  .public-content { padding: 1.6rem 1rem; }
+  .public-shell { border-radius: 18px; grid-template-columns: 1fr; }
+  .public-hero { padding: 2.2rem 1.5rem 1.6rem; }
+  .public-content { padding: 1.8rem 1.2rem; }
 }
 
 /* —— Modificar partido —— */
