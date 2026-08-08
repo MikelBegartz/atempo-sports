@@ -65,4 +65,4 @@ def smtp_configured() -> bool:
 
 def contact_email() -> str:
     """Correu de contacte públic."""
-    return (os.environ.get("ATEMPO_CONTACT_EMAIL") or "info@atemposports.com").strip()
+    return (os.environ.get("ATEMPO_CONTACT_EMAIL") or "mikel.becerro@gmail.com").strip()
