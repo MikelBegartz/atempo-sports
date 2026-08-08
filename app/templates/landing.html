@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AtempoSports · {{ landing.tagline }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=land1" />
+</head>
+<body class="login-page">
+  <div class="login-shell" style="max-width:780px">
+    <section class="login-brand">
+      <h1 class="login-logo">AtempoSports</h1>
+      <p class="login-lead">{{ landing.tagline }}</p>
+    </section>
+    <section class="login-panel">
+      <p class="muted">{{ landing.hook }}</p>
+
+      <h2 style="margin-top:1.5rem;font-size:1.15rem">{{ landing.promise }}</h2>
+      <p class="muted">{{ landing.promise_text }}</p>
+
+      <h2 style="margin-top:1.5rem;font-size:1rem">{{ landing.features_title }}</h2>
+      <ol class="stack" style="padding-left:1.2rem;margin:0;gap:0.75rem">
+        <li><strong>{{ landing.feature_1 }}</strong>. {{ landing.feature_1_text }}</li>
+        <li><strong>{{ landing.feature_2 }}</strong>. {{ landing.feature_2_text }}</li>
+        <li><strong>{{ landing.feature_3 }}</strong>. {{ landing.feature_3_text }}</li>
+        <li><strong>{{ landing.feature_4 }}</strong>. {{ landing.feature_4_text }}</li>
+        <li><strong>{{ landing.feature_5 }}</strong>. {{ landing.feature_5_text }}</li>
+        <li><strong>{{ landing.feature_6 }}</strong>. {{ landing.feature_6_text }}</li>
+      </ol>
+
+      <h2 style="margin-top:1.5rem;font-size:1rem">{{ landing.communicate_title }}</h2>
+      <p class="muted">{{ landing.communicate_text }}</p>
+
+      <h2 style="margin-top:1.5rem;font-size:1rem">{{ landing.human_title }}</h2>
+      <p class="muted">{{ landing.human_text }}</p>
+
+      <h2 style="margin-top:1.5rem;font-size:1rem">{{ landing.beta_title }}</h2>
+      <p class="muted">{{ landing.beta_text }}</p>
+
+      <h2 style="margin-top:1.5rem;font-size:1rem">{{ landing.multi_title }}</h2>
+      <p class="muted">{{ landing.multi_text }}</p>
+
+      <p style="margin-top:1.5rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <a class="button-like" href="/login">{{ landing.login_btn }}</a>
+        <span class="button-like secondary" style="opacity:0.7">{{ landing.signup_btn }}</span>
+      </p>
+
+      <nav class="lang-switch" aria-label="{{ t('lang_label') }}">
+        {% for code, meta in langs.items() %}
+          {% set label = meta[0] %}
+          {% set mark = meta[1] %}
+          <a href="/lang/{{ code }}?next=/" class="lang-mark{% if code == lang %} is-active{% endif %}" title="{{ label }}">{{ mark }}</a>
+        {% endfor %}
+      </nav>
+    </section>
+  </div>
+</body>
+</html>

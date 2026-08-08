@@ -120,6 +120,7 @@ from app.import_lists import (
 from app.guide_content import get_guide
 from app.help_content import get_help
 from app.i18n import get_lang, i18n_context, set_lang, translate, weekdays, weekdays_short
+from app.landing_content import get_landing
 from app.overlaps import (
     HORIZON_ORDER,
     find_team_overlaps,
@@ -448,8 +449,10 @@ def _login_ctx(
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
     logout_club(request)
+    lang = get_lang(request)
+    landing = get_landing(lang)
     response = templates.TemplateResponse(
-        request, "login.html", _login_ctx(request)
+        request, "landing.html", {"landing": landing}
     )
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
