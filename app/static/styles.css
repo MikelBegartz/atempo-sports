@@ -1724,14 +1724,14 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 
 /* —— Pàgines públiques —— */
 .public-shell {
-  width: min(1040px, 100%);
+  width: min(1240px, 100%);
   margin: 0 auto;
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(8, 30, 22, 0.35);
   background: #f7fcf9;
   display: grid;
-  grid-template-columns: 0.65fr 1.35fr;
+  grid-template-columns: 0.5fr 1.5fr;
   gap: 0;
 }
 .public-hero {
