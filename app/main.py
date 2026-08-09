@@ -1100,7 +1100,7 @@ def fed_chooser(
             **ctx,
             "ask_more": ask_more in {"1", "true", "yes"},
             "fed_flash": request.session.pop("fed_flash", None),
-            "federations": ["global", *FED_SOURCES],
+            "federations": [*FED_SOURCES],
         },
     )
 

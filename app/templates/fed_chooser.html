@@ -52,6 +52,13 @@
   </p>
 </section>
 {% else %}
+<form method="get" action="/season/{{ season.id }}/fed/global" class="cal-goto" style="margin:1.25rem 0" autocomplete="off">
+  <label class="cal-goto-label" for="q">{{ t('rfep_search_label') }}</label>
+  <input id="q" type="search" name="q" value="" placeholder="{{ t('rfep_search_ph') }}" style="min-width:16rem" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" />
+  <button type="submit" class="cal-goto-btn">{{ t('rfep_search') }}</button>
+</form>
+
+<p class="muted" style="margin-top:1.5rem">{{ t('fed_chooser_concrete') }}</p>
 <nav class="club-hub" aria-label="{{ t('teams_import_fed') }}">
   {% for source in federations %}
   <a class="club-link" href="/season/{{ season.id }}/fed/{{ source }}">
