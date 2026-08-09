@@ -80,3 +80,25 @@ Guarda les còpies també fora del servidor (núvol o disc).
 ## Què no cal encara
 
 Pagaments, plans Free/Pro, Docker perfecte, rols entrenador vs coordinador.
+
+## Actualització ràpida a Render (en paraules senzilles)
+
+Ara que l'app està a Render, els canvis d'aquest ordinador arriben a Internet així:
+
+1. Fas els canvis aquí.
+2. `git add .`
+3. `git commit -m "què canvies i per què"`
+4. `git push origin main`
+5. Render veu el nou `commit` de la branca `main`.
+
+### Desplegament automàtic
+
+Al panell de Render, dins del teu servei, hi ha un interruptor anomenat **Auto-Deploy**.
+- Si està **ON**: cada `git push` a `main` s'actualitza sol en uns segons.
+- Si està **OFF**: has d'entrar i prémer **Manual Deploy** → **Deploy latest commit**.
+
+Per posar-lo automàtic: `dashboard.render.com` → el teu servei → pestanya `Settings`/`Deploy` → activa **Auto-Deploy** → guarda.
+
+### Si vols fer-ho manual
+
+Al mateix panell, botó **Manual Deploy** i tria l'últim `commit`. Això tira de GitHub i reengega l'app, però només quan tu ho premis.
