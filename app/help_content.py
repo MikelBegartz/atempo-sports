@@ -35,7 +35,7 @@ HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Com busco els partits federatius?",
-                    "a": "Ves a Importar, escriu el nom del teu club i tria la federació (RFEP o FECAPA) i la comunitat autònoma. AtempoSports buscarà les convocatòries disponibles.",
+                    "a": "Ves a Importar, escriu el nom del teu club i tria la teva federació i la comunitat autònoma. AtempoSports buscarà les convocatòries disponibles.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -246,7 +246,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "¿Cómo busco los partidos federativos?",
-                    "a": "Ve a Importar, escribe el nombre de tu club y elige la federación (RFEP o FECAPA) y la comunidad autónoma. AtempoSports buscará las convocatorias disponibles.",
+                    "a": "Ve a Importar, escribe el nombre de tu club y elige tu federación y la comunidad autónoma. AtempoSports buscará las convocatorias disponibles.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -453,7 +453,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "How do I find federation matches?",
-                    "a": "Go to Import, type your club name and choose the federation (RFEP or FECAPA) and the autonomous community. AtempoSports will search for available fixtures.",
+                    "a": "Go to Import, type your club name and choose the federation and the autonomous community. AtempoSports will search for available fixtures.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -660,7 +660,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Nola bilatu ditzakedan partidu federatiboak?",
-                    "a": "Zoaz Inportatzera, idatzi zure klubaren izena eta aukeratu federazioa (RFEP edo FECAPA) eta autonomia erkidegoa. AtempoSports-k eskuragarri dauden deialdiak bilatuko ditu.",
+                    "a": "Zoaz Inportatzera, idatzi zure klubaren izena eta aukeratu federazioa eta autonomia erkidegoa. AtempoSports-k eskuragarri dauden deialdiak bilatuko ditu.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -867,7 +867,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Como busco os partidos federativos?",
-                    "a": "Vai a Importar, escribe o nome do teu club e escolle a federación (RFEP ou FECAPA) e a comunidade autónoma. AtempoSports buscará as convocatorias dispoñibles.",
+                    "a": "Vai a Importar, escribe o nome do teu club e escolle a federación e a comunidade autónoma. AtempoSports buscará as convocatorias dispoñibles.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -1074,7 +1074,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Como procuro os jogos federativos?",
-                    "a": "Vai a Importar, escreve o nome do teu clube e escolhe a federação (RFEP ou FECAPA) e a comunidade autónoma. O AtempoSports procurará as convocatórias disponíveis.",
+                    "a": "Vai a Importar, escreve o nome do teu clube e escolhe a federação e a comunidade autónoma. O AtempoSports procurará as convocatórias disponíveis.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -1281,7 +1281,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Comment rechercher les matchs fédéraux ?",
-                    "a": "Allez dans Importer, saisissez le nom de votre club et choisissez la fédération (RFEP ou FECAPA) et la communauté autonome. AtempoSports recherchera les convocations disponibles.",
+                    "a": "Allez dans Importer, saisissez le nom de votre club et choisissez la fédération et la communauté autonome. AtempoSports recherchera les convocations disponibles.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -1488,7 +1488,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Come cerco le partite federali?",
-                    "a": "Vai a Importa, scrivi il nome del tuo club e scegli la federazione (RFEP o FECAPA) e la comunità autonoma. AtempoSports cercherà le convocazioni disponibili.",
+                    "a": "Vai a Importa, scrivi il nome del tuo club e scegli la federazione e la comunità autonoma. AtempoSports cercherà le convocazioni disponibili.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
@@ -1695,7 +1695,7 @@ EXTRA_HELP: dict[str, list[dict]] = {
             "questions": [
                 {
                     "q": "Wie finde ich Verbandsspiele?",
-                    "a": "Gehe zu Importieren, gib den Namen deines Clubs ein und wähle den Verband (RFEP oder FECAPA) sowie die autonome Gemeinschaft. AtempoSports sucht nach verfügbaren Ansetzungen.",
+                    "a": "Gehe zu Importieren, gib den Namen deines Clubs ein und wähle den Verband sowie die autonome Gemeinschaft. AtempoSports sucht nach verfügbaren Ansetzungen.",
                     "link": "/season/{season_id}/fed",
                 },
                 {
