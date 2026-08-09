@@ -81,6 +81,25 @@ Guarda les còpies també fora del servidor (núvol o disc).
 
 Pagaments, plans Free/Pro, Docker perfecte, rols entrenador vs coordinador.
 
+## Persistència: no perdis els clubs
+
+**Això és el més important.** L'app guarda totes les dades (clubs, temporades, equips, partits...) en un únic fitxer: `atempo.db`.
+
+El problema: al servei web normal de Render, el disc és temporal. Cada cop que es desplega una nova versió o el servei es reengega, el `atempo.db` es crea de nou i els clubs desapareixen. **L'app no esborra res; el servidor perd el fitxer.**
+
+### Solució a Render
+
+1. Crea un **Disk** persistent al panell de Render i munta'l a la carpeta `data` del projecte.
+   - Ruta típica on muntar-ho: `/opt/render/project/src/atempo-sports/data`
+   - Mida: 1 GB és més que suficient per començar.
+2. A les variables d'entorn del servei, afegeix:
+   - `ATEMPO_DATA_DIR=/opt/render/project/src/atempo-sports/data`
+3. Amb aquesta configuració, `atempo.db` es guarda fora del contenidor i sobreviu als desplegaments.
+
+### Còpia de seguretat diària
+
+A més del Disc, fes còpies de `atempo.db` fora de Render (núvol o disc local), per si de cas. Això ja està a la checklist d'abaix.
+
 ## Actualització ràpida a Render (en paraules senzilles)
 
 Ara que l'app està a Render, els canvis d'aquest ordinador arriben a Internet així:
