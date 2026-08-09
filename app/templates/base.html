@@ -80,7 +80,18 @@
   </header>
   <main>
     {% if season and club and setup_status and not setup_status.complete %}
-    <p class="setup-banner">{{ t('setup_banner') }}</p>
+      {% if setup_status.has_teams and setup_status.teams_missing %}
+        {% set missing_count = setup_status.teams_missing|length %}
+        <p class="setup-banner">
+          {% if missing_count == 1 %}
+            {{ t('setup_banner_people_one') }}
+          {% else %}
+            {{ t('setup_banner_people_many').format(count=missing_count) }}
+          {% endif %}
+        </p>
+      {% else %}
+        <p class="setup-banner">{{ t('setup_banner') }}</p>
+      {% endif %}
     {% endif %}
     {% block content %}{% endblock %}
   </main>

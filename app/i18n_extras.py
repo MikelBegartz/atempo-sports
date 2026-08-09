@@ -4559,6 +4559,55 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
 }
 
 
+BANNER_PACKS: dict[str, dict[str, str]] = {
+    "ca": {
+        "setup_banner": "Configuració incompleta: falten pistes o equips (pots seguir treballant amb el calendari).",
+        "setup_banner_people_one": "Compte: hi ha 1 equip amb 0 jugadors.",
+        "setup_banner_people_many": "Compte: hi ha {count} equips amb 0 jugadors.",
+    },
+    "es": {
+        "setup_banner": "Configuración incompleta: faltan pistas o equipos (puedes seguir con el calendario).",
+        "setup_banner_people_one": "Cuidado: hay 1 equipo con 0 jugadores.",
+        "setup_banner_people_many": "Cuidado: hay {count} equipos con 0 jugadores.",
+    },
+    "eu": {
+        "setup_banner": "Konfigurazio osatugabea: pista edo taldeak falta dira (egutegiarekin lan egin dezakezu oraindik).",
+        "setup_banner_people_one": "Kontuz: jokalaririk gabeko talde 1 dago.",
+        "setup_banner_people_many": "Kontuz: {count} taldek ez dute jokalaririk.",
+    },
+    "gl": {
+        "setup_banner": "Configuración incompleta: faltan pistas ou equipos (podes continuar co calendario).",
+        "setup_banner_people_one": "Coidado: hai 1 equipo con 0 xogadores.",
+        "setup_banner_people_many": "Coidado: hai {count} equipos con 0 xogadores.",
+    },
+    "pt": {
+        "setup_banner": "Configuração incompleta: faltam pistas ou equipas (podes continuar com o calendário).",
+        "setup_banner_people_one": "Cuidado: há 1 equipa com 0 jogadores.",
+        "setup_banner_people_many": "Cuidado: há {count} equipas com 0 jogadores.",
+    },
+    "fr": {
+        "setup_banner": "Configuration incomplète : il manque des pistes ou des équipes (vous pouvez continuer avec le calendrier).",
+        "setup_banner_people_one": "Attention : 1 équipe n'a aucun joueur.",
+        "setup_banner_people_many": "Attention : {count} équipes n'ont aucun joueur.",
+    },
+    "it": {
+        "setup_banner": "Configurazione incompleta: mancano piste o squadre (puoi continuare con il calendario).",
+        "setup_banner_people_one": "Attenzione: 1 squadra ha 0 giocatori.",
+        "setup_banner_people_many": "Attenzione: {count} squadre hanno 0 giocatori.",
+    },
+    "en": {
+        "setup_banner": "Setup incomplete: venues or teams are missing (you can keep using the calendar).",
+        "setup_banner_people_one": "Caution: 1 team has 0 players.",
+        "setup_banner_people_many": "Caution: {count} teams have 0 players.",
+    },
+    "de": {
+        "setup_banner": "Einrichtung unvollständig: Plätze oder Mannschaften fehlen (Kalender ist nutzbar).",
+        "setup_banner_people_one": "Achtung: 1 Team hat 0 Spieler.",
+        "setup_banner_people_many": "Achtung: {count} Teams haben 0 Spieler.",
+    },
+}
+
+
 def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
     for lang, pack in AUTH_PACKS.items():
         if lang in strings:
@@ -4567,6 +4616,9 @@ def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
         if lang in strings:
             strings[lang].update(pack)
     for lang, pack in TEAMS_BULK_PACKS.items():
+        if lang in strings:
+            strings[lang].update(pack)
+    for lang, pack in BANNER_PACKS.items():
         if lang in strings:
             strings[lang].update(pack)
     # Cualquier clave que aún falte en pt/fr/it/de/en: inglés, luego catalán
