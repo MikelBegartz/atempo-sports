@@ -9,13 +9,12 @@ import re
 import secrets
 import unicodedata
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import (
+    DATA_DIR,
     Club,
     CompetitionSource,
     Match,
@@ -36,7 +35,6 @@ from app.db import (
 from app.mail import deliver_email
 from app.settings import demo_password, is_production
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SECRET_FILE = DATA_DIR / ".session_secret"
 ADMIN_PASSWORD_FILE = DATA_DIR / ".admin_password"
 
