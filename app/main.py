@@ -1117,6 +1117,24 @@ def rfep_link_page(
     )
 
 
+@app.get("/season/{season_id}/fed/search")
+def fed_search_redirect(
+    season_id: int,
+    request: Request,
+    source: str = "",
+    q: str = "",
+):
+    """Redirigeix la cerca del formulari cap a la federació triada."""
+    source = (source or "global").strip().lower()
+    if source not in FED_SOURCES and source != "global":
+        source = "global"
+    query = (q or "").strip()
+    qs = f"?q={quote(query)}" if query else ""
+    return RedirectResponse(
+        f"/season/{season_id}/fed/{source}{qs}", status_code=303
+    )
+
+
 @app.get("/season/{season_id}/fed/{source}", response_class=HTMLResponse)
 def fed_link_page(
     season_id: int,

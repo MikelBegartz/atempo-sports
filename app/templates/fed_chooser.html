@@ -52,21 +52,22 @@
   </p>
 </section>
 {% else %}
-<form method="get" action="/season/{{ season.id }}/fed/global" class="cal-goto" style="margin:1.25rem 0" autocomplete="off">
-  <label class="cal-goto-label" for="q">{{ t('rfep_search_label') }}</label>
-  <input id="q" type="search" name="q" value="" placeholder="{{ t('rfep_search_ph') }}" style="min-width:16rem" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" />
+<form method="get" action="/season/{{ season.id }}/fed/search" class="cal-goto" style="margin:1.25rem 0;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end" autocomplete="off">
+  <div style="display:flex;flex-direction:column;gap:0.25rem">
+    <label class="cal-goto-label" for="fed_source">{{ t('fed_select_label') }}</label>
+    <select id="fed_source" name="source" style="min-width:14rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid #ccc;background:#fff">
+      <option value="global" selected>{{ fed_descs.get('global', 'Global') }}</option>
+      {% for source in federations %}
+      <option value="{{ source }}">{{ source|upper }} — {{ fed_descs.get(source, source|upper) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:0.25rem">
+    <label class="cal-goto-label" for="q">{{ t('rfep_search_label') }}</label>
+    <input id="q" type="search" name="q" value="" placeholder="{{ t('rfep_search_ph') }}" style="min-width:16rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid #ccc" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" />
+  </div>
   <button type="submit" class="cal-goto-btn">{{ t('rfep_search') }}</button>
 </form>
-
-<p class="muted" style="margin-top:1.5rem">{{ t('fed_chooser_concrete') }}</p>
-<nav class="club-hub" aria-label="{{ t('teams_import_fed') }}">
-  {% for source in federations %}
-  <a class="club-link" href="/season/{{ season.id }}/fed/{{ source }}">
-    <strong>{{ source|upper }}</strong>
-    <span>{{ fed_descs.get(source, source|upper) }}</span>
-  </a>
-  {% endfor %}
-</nav>
 
 <section class="panel-sheet" style="margin-top:1.5rem;text-align:center">
   <h2 style="margin-top:0">{{ t('fed_manual_option') }}</h2>
