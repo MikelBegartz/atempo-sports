@@ -49,7 +49,8 @@
 </div>
 
 <style>
-.draft-scroll { max-height: 70vh; overflow: auto; }
+.draft-scroll { max-height: 90vh; overflow: auto; scrollbar-width: none; }
+.draft-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .cal-timeline { position: relative; display: flex; flex-direction: column; min-width: 800px; border-bottom: 1px solid var(--line); }
 .cal-timeline-header, .cal-timeline-row { display: flex; align-items: stretch; }
 .cal-timeline-header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -64,9 +65,9 @@
 .cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.75rem; line-height: 1.05; height: 84px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.15); z-index: 2; }
 .cal-event.status-training { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
 .cal-event.status-ok { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
-.cal-event.status-soft { background: #b56a3e !important; border-color: #8f4f2d !important; color: #fff; }
+.cal-event.status-soft { background: #c9832f !important; border-color: #9a5e1d !important; color: #fff; }
 .cal-swatch.ok, .cal-swatch.training { background: #c8e6c9; border-color: #a5d6a7; }
-.cal-swatch.soft { background: #b56a3e; border-color: #8f4f2d; }
+.cal-swatch.soft { background: #c9832f; border-color: #9a5e1d; }
 .cal-swatch.changed, .cal-swatch.changed + span { display: none; }
 .cal-event .draft-team { font-weight: 600; }
 .cal-event .draft-time, .cal-event .draft-venue { font-size: 0.68rem; opacity: 0.9; }
@@ -100,10 +101,10 @@
             <strong>{{ weekday_names[d.weekday()] }}</strong>
             <span class="muted">{{ d.strftime('%d/%m') }}</span>
           </div>
-          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 84 + 16) }}px">
+          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 84 + 40) }}px">
             {% for slot in draft_grid.get(d, []) %}
             <a class="cal-event status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}"
-               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 84 + 8 }}px">
+               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 84 + 20 }}px">
               {% if slot.kind == 'match' %}
               <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
               <div class="draft-sides">
