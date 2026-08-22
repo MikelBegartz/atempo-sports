@@ -400,6 +400,15 @@ def find_conflicts(
                 and a.training_group_id == b.training_group_id
             ):
                 continue
+            if (
+                a.etype == "training"
+                and b.etype == "training"
+                and a.d == b.d
+                and a.start == b.start
+                and a.end == b.end
+                and a.venue_id == b.venue_id
+            ):
+                continue
             share_ok = a.share and b.share
             venue = venues_by_id.get(a.venue_id)
             venue_name = venue.name if venue else f"pista #{a.venue_id}"

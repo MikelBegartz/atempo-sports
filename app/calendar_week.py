@@ -385,10 +385,13 @@ def build_global_draft(
         if not t.session_date or not t.start_time:
             continue
         monday = t.session_date - timedelta(days=t.session_date.weekday())
-        if t.training_group_id:
-            key = (t.session_date, t.start_time, t.venue_id, t.training_group_id)
-        else:
-            key = (t.session_date, t.start_time, t.id)
+        key = (
+            t.session_date,
+            t.start_time,
+            t.end_time,
+            t.venue_id,
+            t.training_group_id or 0,
+        )
         if key not in group_slots:
             group_slots[key] = {
                 "id": t.id,
