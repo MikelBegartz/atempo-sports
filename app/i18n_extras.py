@@ -4566,6 +4566,10 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
         "tr_draft_import_clear": "Undo draft import",
         "tr_draft_import_done": "{created} groups created and {linked} sessions linked.",
         "tr_draft_import_cleared": "{deleted} groups deleted and {unlinked} sessions unlinked.",
+        "tr_remove_team": "Remove team",
+        "tr_break_group": "Break group",
+        "tr_group_team_removed": "Team removed from the group.",
+        "tr_group_broken": "Group broken: sessions are now individual.",
     },
     "ca": {
         "tr_groups_draft_btn": "Generar borrador",
@@ -4575,6 +4579,10 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
         "tr_draft_import_clear": "Desfer importació del borrador",
         "tr_draft_import_done": "{created} grups creats i {linked} sessions vinculades.",
         "tr_draft_import_cleared": "{deleted} grups esborrats i {unlinked} sessions desvinculades.",
+        "tr_remove_team": "Treure equip",
+        "tr_break_group": "Trencar grup",
+        "tr_group_team_removed": "Equip tret del grup.",
+        "tr_group_broken": "Grup trencat: les sessions passen a ser individuals.",
     },
     "es": {
         "tr_groups_draft_btn": "Generar borrador",
@@ -4584,6 +4592,10 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
         "tr_draft_import_clear": "Deshacer importación del borrador",
         "tr_draft_import_done": "{created} grupos creados y {linked} sesiones vinculadas.",
         "tr_draft_import_cleared": "{deleted} grupos borrados y {unlinked} sesiones desvinculadas.",
+        "tr_remove_team": "Quitar equipo",
+        "tr_break_group": "Romper grupo",
+        "tr_group_team_removed": "Equipo quitado del grupo.",
+        "tr_group_broken": "Grupo roto: las sesiones pasan a ser individuales.",
     },
 }
 

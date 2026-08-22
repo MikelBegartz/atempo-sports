@@ -3326,6 +3326,8 @@ def trainings_groups_page(
             team_display_label(m.team, season.club.name if season.club else None)
             for m in g.members
         ]
+        g.member_team_ids = [m.team_id for m in g.members]
+        g.member_entries = list(zip(g.member_labels, g.member_team_ids))
         g.venue_name = g.venue.name if g.venue else "—"
         g.time_label = (
             f"{g.start_time.strftime('%H:%M')}–{g.end_time.strftime('%H:%M')}"
@@ -3736,6 +3738,111 @@ def trainings_groups_delete(
         return RedirectResponse(
             f"/season/{season_id}/trainings#draft", status_code=303
         )
+    return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/{group_id}/remove-team/{team_id}")
+def trainings_groups_remove_team(
+    season_id: int,
+    group_id: int,
+    team_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    g = db.get(TrainingGroup, group_id)
+    if not g or g.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    remaining_ids = [m.team_id for m in g.members if m.team_id != team_id]
+    # Convertir les sessions de l'equip eliminat a manuals individuals
+    db.query(Training).filter(
+        Training.season_id == season_id,
+        Training.training_group_id == group_id,
+        Training.team_id == team_id,
+        Training.is_draft.is_(True),
+    ).update(
+        {
+            Training.training_group_id: None,
+            Training.is_manual: True,
+            Training.allows_share: False,
+        },
+        synchronize_session=False,
+    )
+    if len(remaining_ids) < 2:
+        # Es desfà el grup perquè queda un sol equip
+        db.query(Training).filter(
+            Training.season_id == season_id,
+            Training.training_group_id == group_id,
+            Training.is_draft.is_(True),
+        ).update(
+            {
+                Training.training_group_id: None,
+                Training.is_manual: True,
+                Training.allows_share: False,
+            },
+            synchronize_session=False,
+        )
+        db.delete(g)
+        db.commit()
+        _refresh_training_draft(db, season)
+        request.session["groups_flash"] = translate(lang, "tr_group_broken")
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    g = update_group(
+        db,
+        season_id=season_id,
+        group_id=group_id,
+        team_ids=remaining_ids,
+        weekdays=parse_weekdays(g.weekdays),
+        start_date=g.start_date,
+        end_date=g.end_date,
+        start_time=g.start_time,
+        end_time=g.end_time,
+        venue_id=g.venue_id,
+    )
+    if g:
+        db.query(Training).filter(Training.training_group_id == group_id).delete(synchronize_session=False)
+        db.commit()
+        _generate_group_draft(db, season, g, remaining_ids)
+        _refresh_training_draft(db, season)
+        request.session["groups_flash"] = translate(lang, "tr_group_team_removed")
+    return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/{group_id}/break")
+def trainings_groups_break(
+    season_id: int,
+    group_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    g = db.get(TrainingGroup, group_id)
+    if not g or g.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    db.query(Training).filter(
+        Training.season_id == season_id,
+        Training.training_group_id == group_id,
+        Training.is_draft.is_(True),
+    ).update(
+        {
+            Training.training_group_id: None,
+            Training.is_manual: True,
+            Training.allows_share: False,
+        },
+        synchronize_session=False,
+    )
+    db.delete(g)
+    db.commit()
+    _refresh_training_draft(db, season)
+    request.session["groups_flash"] = translate(lang, "tr_group_broken")
     return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
 
 

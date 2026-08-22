@@ -695,6 +695,7 @@ def import_draft_groups(db: Session, season) -> dict:
             Training.is_draft.is_(True),
             Training.training_group_id.is_(None),
             Training.training_solape_id.is_(None),
+            Training.is_manual.is_(False),
         )
         .all()
     )

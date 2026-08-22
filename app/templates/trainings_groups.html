@@ -34,12 +34,21 @@
       <span style="font-size:0.8rem">{{ g.date_label }}</span>
     </p>
     <ul class="group-members">
-      {% for label in g.member_labels %}
-      <li><span class="plan-team">{{ label }}</span></li>
+      {% for label, team_id in g.member_entries %}
+      <li style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+        <span class="plan-team">{{ label }}</span>
+        <form method="post" action="/season/{{ season.id }}/trainings/groups/{{ g.id }}/remove-team/{{ team_id }}" style="margin:0">
+          <button type="submit" class="secondary" style="padding:0.1rem 0.4rem;font-size:0.7rem" title="{{ t('tr_remove_team') }}" onclick="return confirm('{{ t('tr_remove_team') }}?')">x</button>
+        </form>
+      </li>
       {% endfor %}
     </ul>
     <div class="row" style="gap:0.45rem;flex-wrap:wrap">
       <a class="text-action" href="/season/{{ season.id }}/trainings/groups?edit={{ g.id }}#group-form">{{ t('tr_groups_edit') }}</a>
+      <form method="post" action="/season/{{ season.id }}/trainings/groups/{{ g.id }}/break" style="margin:0"
+            onsubmit="return confirm('{{ t('tr_break_group') }}?');">
+        <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('tr_break_group') }}</button>
+      </form>
       <form method="post" action="/season/{{ season.id }}/trainings/groups/{{ g.id }}/delete" style="margin:0"
             onsubmit="return confirm('{{ t('tr_groups_delete_confirm') }}');">
         <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('tr_groups_delete') }}</button>
