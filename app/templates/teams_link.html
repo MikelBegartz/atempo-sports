@@ -19,7 +19,6 @@
         <tr>
           <th>{{ t('teams_link_internal') }}</th>
           <th>{{ t('teams_link_official') }}</th>
-          <th>{{ t('teams_link_alias') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -34,21 +33,10 @@
               {% endfor %}
             </select>
           </td>
-          <td>
-            {% if club.external_names %}
-              {% for ext in club.external_names %}
-              <span class="badge" style="font-size:0.8rem">{{ ext.source }}: {{ ext.external_name }}</span>
-              {% endfor %}
-            {% elif club.official_name %}
-              {{ club.official_name }}
-            {% else %}
-              —
-            {% endif %}
-          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="3" class="muted">{{ t('teams_empty') }}</td>
+          <td colspan="2" class="muted">{{ t('teams_empty') }}</td>
         </tr>
         {% endfor %}
       </tbody>

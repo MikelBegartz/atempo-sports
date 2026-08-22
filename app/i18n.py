@@ -851,7 +851,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "teams_paste_skipped": "S'han omès {n} duplicats.",
         "teams_save": "Desar equip",
         "teams_link": "Vinculació federativa",
-        "teams_link_intro": "Aquesta pàgina permet editar els noms interns i oficials i veure els alias de federació sense perdre la vinculació.",
+        "teams_link_intro": "Vincula cada equip del club amb el nom oficial de la federació.",
         "teams_link_list": "Vinculacions",
         "teams_link_internal": "Nom intern (coordinador)",
         "teams_link_official": "Nom oficial",
