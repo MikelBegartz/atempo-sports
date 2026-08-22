@@ -83,6 +83,7 @@ from app.conflicts import (
 )
 from app.db import (
     Club,
+    CompetitionSource,
     Conflict,
     FedMatchChange,
     Match,
@@ -4801,6 +4802,23 @@ async def import_run(
             ],
         },
     )
+
+
+@app.post("/season/{season_id}/import/sources/{source_id}/delete")
+def import_source_delete(
+    season_id: int,
+    source_id: int,
+    db: Session = Depends(get_db),
+):
+    s = db.get(CompetitionSource, source_id)
+    if not s:
+        return RedirectResponse(f"/season/{season_id}/import", status_code=303)
+    season = db.get(Season, season_id)
+    if not season or s.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/import", status_code=303)
+    db.delete(s)
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/import", status_code=303)
 
 
 @app.get("/season/{season_id}/calendar", response_class=HTMLResponse)

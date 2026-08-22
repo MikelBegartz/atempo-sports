@@ -97,7 +97,12 @@
     <h2>{{ t('import_linked_heading') }}</h2>
     <ul class="members">
       {% for s in sources %}
-      <li>{{ s.source }} · idc {{ s.external_id }} {% if s.label %}— {{ s.label }}{% endif %}</li>
+      <li style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+        <span>{{ s.source }} · idc {{ s.external_id }} {% if s.label %}— {{ s.label }}{% endif %}</span>
+        <form method="post" action="/season/{{ season.id }}/import/sources/{{ s.id }}/delete" style="margin:0" onsubmit="return confirm('{{ t('tr_delete') }}?')">
+          <button type="submit" class="text-action-btn danger" style="font-size:0.8rem">{{ t('tr_delete') }}</button>
+        </form>
+      </li>
       {% else %}
       <li>{{ t('import_no_sources') }}</li>
       {% endfor %}
