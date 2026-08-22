@@ -136,14 +136,14 @@
       </div>
       <div class="plan-chart-lanes">
         {% for lane in day.lanes %}
-        <div class="plan-chart-lane">
+        <div class="plan-chart-lane" style="min-height: calc(var(--lane-h) * {{ lane.max_lanes }})">
           <span class="plan-chart-rink-label" title="{{ lane.venue }}">{{ lane.venue }}</span>
-          <div class="plan-chart-track">
+          <div class="plan-chart-track" style="height: calc(var(--lane-h) * {{ lane.max_lanes }})">
             {% for a in lane.avail %}
             <div class="plan-chart-avail" style="left: {{ a.left }}%; width: {{ a.width }}%" title="{{ t('tr_chart_avail_title') }}"></div>
             {% endfor %}
             {% for bar in lane.bars %}
-            <div class="plan-chart-bar{% if bar.is_group %} is-group{% endif %}{% if bar.is_solape %} is-solape{% endif %}{% if bar.stack and bar.stack != 'full' %} stack-{{ bar.stack }}{% endif %}" style="left: {{ bar.left }}%; width: {{ bar.width }}%; background: {{ bar.color }}; --bar-color: {{ bar.color }}">
+            <div class="plan-chart-bar{% if bar.is_group %} is-group{% endif %}{% if bar.is_solape %} is-solape{% endif %}" style="left: {{ bar.left }}%; width: {{ bar.width }}%; background: {{ bar.color }}; --bar-color: {{ bar.color }}; top: calc(var(--lane-h) * {{ bar.lane }} + 0.45rem); margin-top: 0;">
               <span class="plan-chart-bar-text">{{ bar.team }}</span>
               <span class="plan-chart-tip" role="tooltip">{{ bar.title }}</span>
             </div>

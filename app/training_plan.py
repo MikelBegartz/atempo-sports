@@ -1497,9 +1497,9 @@ def _bars_with_solape_stack(
     window_start: int,
     span: int,
 ) -> list[dict]:
-    """Solape: barra sencera d’A a dalt i de B a baix (es solapen al tram comú)."""
+    """Apila les barres en lanes quan es solapen en el temps."""
 
-    def _plain(u: dict, *, stack: str = "full") -> dict | None:
+    def _plain(u: dict, *, lane: int, max_lanes: int) -> dict | None:
         pct = _pct_span(u["start_m"], u["end_m"], window_start, span)
         if not pct:
             return None
@@ -1513,37 +1513,35 @@ def _bars_with_solape_stack(
             "venue": u["venue"],
             "is_group": u["is_group"],
             "is_solape": u["is_solape"],
-            "stack": stack,
+            "lane": lane,
+            "max_lanes": max_lanes,
             "title": u["title"],
         }
 
-    # Parelles amb el mateix solape_id que es solapen en el temps
-    stack_of: dict[int, str] = {}
-    used: set[int] = set()
-    for i, a in enumerate(units):
-        if i in used or not a.get("solape_id"):
-            continue
-        for j in range(i + 1, len(units)):
-            if j in used:
-                continue
-            b = units[j]
-            if b.get("solape_id") != a["solape_id"]:
-                continue
-            if not (a["start_m"] < b["end_m"] and b["start_m"] < a["end_m"]):
-                continue
-            first_i, second_i = (i, j) if a["start_m"] <= b["start_m"] else (j, i)
-            stack_of[first_i] = "top"
-            stack_of[second_i] = "bottom"
-            used.add(i)
-            used.add(j)
-            break
+    units.sort(key=lambda u: (u["start_m"], u["end_m"]))
+    lanes: list[int] = []
+    unit_lanes: list[int] = []
+    for u in units:
+        s = u["start_m"]
+        e = u["end_m"]
+        lane = -1
+        for i, last_end in enumerate(lanes):
+            if last_end <= s:
+                lane = i
+                lanes[i] = e
+                break
+        if lane == -1:
+            lanes.append(e)
+            lane = len(lanes) - 1
+        unit_lanes.append(lane)
+    max_lanes = max(unit_lanes, default=-1) + 1
 
     bars: list[dict] = []
     for i, u in enumerate(units):
-        bar = _plain(u, stack=stack_of.get(i, "full"))
+        bar = _plain(u, lane=unit_lanes[i], max_lanes=max_lanes)
         if bar:
             bars.append(bar)
-    bars.sort(key=lambda b: (b["left"], 0 if b.get("stack") == "top" else 1))
+    bars.sort(key=lambda b: (b["left"], b["lane"]))
     return bars
 
 
@@ -1634,37 +1632,43 @@ def build_draft_week_chart(
         if venue_list:
             for v in venue_list:
                 v_rows = [t for t in day_rows if t.venue_id == v.id]
+                bars = _session_bars_for_rows(
+                    v_rows,
+                    colors=colors,
+                    window_start=window_start,
+                    span=span,
+                    unit_labels=unit_labels,
+                    weekday_names=day_names,
+                    tip_solape=solape_word,
+                )
+                max_lanes = max((b["max_lanes"] for b in bars), default=1)
                 lanes.append(
                     {
                         "venue_id": v.id,
                         "venue": v.name,
+                        "max_lanes": max_lanes,
                         "avail": _venue_avail_segments(v, i, window_start, span),
-                        "bars": _session_bars_for_rows(
-                            v_rows,
-                            colors=colors,
-                            window_start=window_start,
-                            span=span,
-                            unit_labels=unit_labels,
-                            weekday_names=day_names,
-                            tip_solape=solape_word,
-                        ),
+                        "bars": bars,
                     }
                 )
         else:
+            bars = _session_bars_for_rows(
+                day_rows,
+                colors=colors,
+                window_start=window_start,
+                span=span,
+                unit_labels=unit_labels,
+                weekday_names=day_names,
+                tip_solape=solape_word,
+            )
+            max_lanes = max((b["max_lanes"] for b in bars), default=1)
             lanes.append(
                 {
                     "venue_id": 0,
                     "venue": "—",
+                    "max_lanes": max_lanes,
                     "avail": _venue_avail_segments(None, i, window_start, span),
-                    "bars": _session_bars_for_rows(
-                        day_rows,
-                        colors=colors,
-                        window_start=window_start,
-                        span=span,
-                        unit_labels=unit_labels,
-                        weekday_names=day_names,
-                        tip_solape=solape_word,
-                    ),
+                    "bars": bars,
                 }
             )
         days_out.append({"date": d, "weekday": i, "lanes": lanes})
