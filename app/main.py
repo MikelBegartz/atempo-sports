@@ -159,6 +159,7 @@ from app.training_groups import (
     parse_weekdays,
     preferred_weekdays_from_drafts,
     propose_groups,
+    generate_draft_from_groups,
     refresh_group_labels,
     team_display_label,
     teams_in_groups,
@@ -3628,6 +3629,22 @@ def trainings_groups_propose(
         n=0
     )
     return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/generate-draft")
+def trainings_groups_generate_draft(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    n = generate_draft_from_groups(db, season)
+    request.session["plan_flash"] = translate(lang, "tr_groups_draft_generated").format(n=n)
+    return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
 
 @app.post("/season/{season_id}/trainings/groups/{group_id}/delete")

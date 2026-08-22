@@ -48,6 +48,9 @@
   </article>
   {% endfor %}
 </div>
+<form method="post" action="/season/{{ season.id }}/trainings/groups/generate-draft" style="margin-bottom:1.25rem">
+  <button type="submit" class="primary">{{ t('tr_groups_draft_btn') }}</button>
+</form>
 {% endif %}
 
 <section class="panel-sheet" id="group-form" style="margin-bottom:1.25rem">
@@ -116,7 +119,7 @@
       {% if edit_group %}
       <a class="text-action" href="/season/{{ season.id }}/trainings/groups">{{ t('tr_groups_cancel_edit') }}</a>
       {% else %}
-      <button type="submit" class="secondary" formaction="/season/{{ season.id }}/trainings/groups/propose" formmethod="post">{{ t('tr_groups_propose_btn') }}</button>
+      <button type="submit" class="secondary" formaction="/season/{{ season.id }}/trainings/groups/propose" formmethod="post" onsubmit="return confirm('{{ t('tr_groups_propose_confirm') }}');">{{ t('tr_groups_propose_btn') }}</button>
       {% endif %}
     </div>
   </form>

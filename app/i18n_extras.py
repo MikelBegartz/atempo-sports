@@ -4559,6 +4559,19 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
     "en": {
         "teams_delete_action": "Delete teams",
         "teams_bulk_delete_confirm": "Delete the selected teams? Only those with no matches or trainings will be deleted.",
+        "tr_groups_draft_btn": "Generate draft",
+        "tr_groups_draft_generated": "{n} draft sessions generated from groups.",
+        "tr_groups_propose_confirm": "This will delete current groups and create new ones. Continue?",
+    },
+    "ca": {
+        "tr_groups_draft_btn": "Generar borrador",
+        "tr_groups_draft_generated": "{n} sessions de borrador generades des dels grups.",
+        "tr_groups_propose_confirm": "Això esborrarà els grups actuals i en crearà de nous. Continuar?",
+    },
+    "es": {
+        "tr_groups_draft_btn": "Generar borrador",
+        "tr_groups_draft_generated": "{n} sesiones de borrador generadas desde los grupos.",
+        "tr_groups_propose_confirm": "Esto borrará los grupos actuales y creará otros nuevos. ¿Continuar?",
     },
 }
 

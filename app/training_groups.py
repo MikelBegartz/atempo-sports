@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import math
 import re
+import uuid
 from dataclasses import dataclass
+from datetime import date, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -598,3 +600,55 @@ def delete_group(db: Session, season_id: int, group_id: int) -> bool:
     db.delete(g)
     db.commit()
     return True
+
+
+def generate_draft_from_groups(db: Session, season) -> int:
+    """Crea sessions de borrador a partir de les plantilles de grup."""
+    groups = load_groups(db, season.id)
+    season_start = season.start_date or date.today()
+    season_end = season.end_date or (season_start + timedelta(days=365))
+    created = 0
+    for g in groups:
+        if not g.start_time or not g.end_time or not g.venue_id:
+            continue
+        weekdays = set(parse_weekdays(g.weekdays))
+        start = g.start_date or season_start
+        end = g.end_date or season_end
+        team_ids = [m.team_id for m in g.members]
+        current = start
+        while current <= end:
+            if current.weekday() in weekdays:
+                for tid in team_ids:
+                    exists = (
+                        db.query(Training.id)
+                        .filter(
+                            Training.season_id == season.id,
+                            Training.team_id == tid,
+                            Training.session_date == current,
+                            Training.start_time == g.start_time,
+                            Training.end_time == g.end_time,
+                            Training.venue_id == g.venue_id,
+                        )
+                        .first()
+                    )
+                    if not exists:
+                        series = f"tg{g.id}-{tid}-{uuid.uuid4().hex[:6]}"
+                        db.add(
+                            Training(
+                                season_id=season.id,
+                                team_id=tid,
+                                session_date=current,
+                                start_time=g.start_time,
+                                end_time=g.end_time,
+                                venue_id=g.venue_id,
+                                is_draft=True,
+                                is_manual=True,
+                                series_id=series,
+                                training_group_id=g.id,
+                                allows_share=True,
+                            )
+                        )
+                        created += 1
+            current += timedelta(days=1)
+    db.commit()
+    return created
