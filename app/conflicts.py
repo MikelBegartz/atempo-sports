@@ -393,6 +393,13 @@ def find_conflicts(
                 continue
             if a.d != b.d or not _overlaps(a.start, a.end, b.start, b.end):
                 continue
+            if (
+                a.etype == "training"
+                and b.etype == "training"
+                and a.training_group_id
+                and a.training_group_id == b.training_group_id
+            ):
+                continue
             share_ok = a.share and b.share
             venue = venues_by_id.get(a.venue_id)
             venue_name = venue.name if venue else f"pista #{a.venue_id}"
