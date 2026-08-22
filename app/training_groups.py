@@ -719,7 +719,7 @@ def import_draft_groups(db: Session, season) -> dict:
         if g is None:
             wd, st, et, vid = key
             teams = sorted(
-                [r.team for r in rows if r.team],
+                {r.team.id: r.team for r in rows if r.team}.values(),
                 key=lambda tm: (tm.name or "").casefold(),
             )
             label = f"Borrador: {group_label_for_teams(teams)}"[:120]
