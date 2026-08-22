@@ -441,12 +441,22 @@ def build_global_draft(
     day_max_lanes: dict[date, int] = {}
     for d, slots in day_slots.items():
         slots.sort(key=lambda s: (_minutes(s["start"]), _minutes(s["end"])))
-        for i, slot in enumerate(slots):
+        lanes: list[int] = []
+        for slot in slots:
             s = _minutes(slot["start"])
             e = _minutes(slot["end"])
-            slot["lane"] = i
+            lane = -1
+            for i, last_end in enumerate(lanes):
+                if last_end <= s:
+                    lane = i
+                    lanes[i] = e
+                    break
+            if lane == -1:
+                lanes.append(e)
+                lane = len(lanes) - 1
+            slot["lane"] = lane
             slot["left_pct"] = round((s - day_start_min) / day_range * 100, 2)
             slot["width_pct"] = round((e - s) / day_range * 100, 2)
-        day_max_lanes[d] = len(slots)
+        day_max_lanes[d] = len(lanes)
 
     return sorted_days, sorted_hours, day_slots, start, end, day_start_min, day_range, day_max_lanes
