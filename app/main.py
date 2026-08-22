@@ -3042,6 +3042,7 @@ async def trainings_by_team_add(
                     )
                     created += 1
     db.commit()
+    import_draft_groups(db, season)
     request.session["by_team_flash"] = translate(lang, "tr_by_team_added")
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
 
@@ -3055,6 +3056,7 @@ async def trainings_by_team_batch_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
     lang = get_lang(request)
     form = await request.form()
     ids = [int(x) for x in form.getlist("training_ids") if str(x).isdigit()]
@@ -3066,6 +3068,7 @@ async def trainings_by_team_batch_delete(
             count += 1
     if count:
         db.commit()
+        import_draft_groups(db, season)
     request.session["by_team_flash"] = translate(lang, "tr_by_team_deleted_n").format(n=count)
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
 
@@ -3079,6 +3082,7 @@ async def trainings_batch_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
     lang = get_lang(request)
     form = await request.form()
     ids = [int(x) for x in form.getlist("training_ids") if str(x).isdigit()]
@@ -3104,6 +3108,7 @@ async def trainings_batch_delete(
             db.delete(t)
     if to_delete:
         db.commit()
+        import_draft_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_bulk_deleted")
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
@@ -3117,6 +3122,7 @@ async def trainings_batch_edit(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
     lang = get_lang(request)
     form = await request.form()
     ids = [int(x) for x in form.getlist("training_ids") if str(x).isdigit()]
@@ -3139,6 +3145,7 @@ async def trainings_batch_edit(
             t.venue_id = new_venue
     if rows:
         db.commit()
+        import_draft_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_bulk_edited")
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
@@ -4096,6 +4103,8 @@ def trainings_create(
     notes: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    ctx = _active_context(request, db, season_id)
+    season = ctx.get("season") if ctx else None
     lang = get_lang(request)
     session_d = date.fromisoformat(session_date)
     st = time_from_input(start_time)
@@ -4130,6 +4139,8 @@ def trainings_create(
             )
         )
         db.commit()
+    if season:
+        import_draft_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_manual_added_draft")
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
@@ -4149,6 +4160,7 @@ def trainings_create_recurring(
     notes: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    season = db.get(Season, season_id)
     lang = get_lang(request)
     series_id, n = create_weekly_series(
         db,
@@ -4165,6 +4177,8 @@ def trainings_create_recurring(
         is_draft=True,
         is_manual=True,
     )
+    if n and season:
+        import_draft_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_manual_series_draft").format(
         n=n
     )
@@ -4182,6 +4196,9 @@ def trainings_delete(
     if t and t.season_id == season_id:
         db.delete(t)
         db.commit()
+        season = db.get(Season, season_id)
+        if season:
+            import_draft_groups(db, season)
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
@@ -4196,7 +4213,11 @@ def trainings_delete_series(
     )
     for t in rows:
         db.delete(t)
-    db.commit()
+    if rows:
+        db.commit()
+        season = db.get(Season, season_id)
+        if season:
+            import_draft_groups(db, season)
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
