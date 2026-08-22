@@ -2023,6 +2023,25 @@ def team_remove_member(
     return RedirectResponse(f"/season/{season_id}/teams?t={tid}", status_code=303)
 
 
+@app.post("/season/{season_id}/teams/memberships/{membership_id}/role")
+def team_update_member_role(
+    season_id: int,
+    membership_id: int,
+    role: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    m = db.get(TeamMembership, membership_id)
+    if not m:
+        return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+    team = db.get(Team, m.team_id)
+    if not team or team.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+    if role in ("player", "coach", "reinforce"):
+        m.role = role
+        db.commit()
+    return RedirectResponse(f"/season/{season_id}/teams?t={team.id}", status_code=303)
+
+
 def _minutes(t: time) -> int:
     return t.hour * 60 + t.minute
 
@@ -2556,6 +2575,93 @@ def matches_list(
     )
 
 
+@app.get("/season/{season_id}/matches/create", response_class=HTMLResponse)
+def match_create_page(
+    season_id: int,
+    request: Request,
+    type: str = "official",
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    teams = (
+        db.query(Team)
+        .filter(Team.season_id == season.id)
+        .order_by(Team.name)
+        .all()
+    )
+    venues = (
+        db.query(Venue)
+        .filter(Venue.club_id == season.club_id)
+        .order_by(Venue.name)
+        .all()
+    )
+    create_type = type if type in {"official", "friendly"} else "official"
+    return templates.TemplateResponse(
+        request,
+        "match_create.html",
+        {
+            **ctx,
+            "teams": teams,
+            "venues": venues,
+            "create_type": create_type,
+        },
+    )
+
+
+@app.post("/season/{season_id}/matches/create")
+def match_create(
+    season_id: int,
+    request: Request,
+    type: str = "official",
+    team_id: int = Form(...),
+    opponent: str = Form(...),
+    match_date: str = Form(...),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+    is_home: str = Form("1"),
+    venue_id: str = Form(""),
+    place_name: str = Form(""),
+    jornada: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    create_type = type if type in {"official", "friendly"} else "official"
+    md = date.fromisoformat(match_date)
+    st = time_from_input(start_time)
+    et = time_from_input(end_time)
+    home = is_home in ("1", "true", "on", "True")
+    vid = int(venue_id) if venue_id else None
+    place = place_name.strip() or None
+    j = int(jornada) if jornada.strip() else None
+    source = "manual" if create_type == "official" else "amistoso"
+    db.add(
+        Match(
+            season_id=season_id,
+            team_id=team_id,
+            opponent=opponent.strip(),
+            is_home=home,
+            match_date=md,
+            start_time=st,
+            end_time=et,
+            venue_id=vid if home else None,
+            place_name=place,
+            jornada=j,
+            source=source,
+            official_date=md if create_type == "official" else None,
+            official_start_time=st if create_type == "official" else None,
+            official_end_time=et if create_type == "official" else None,
+            official_venue_id=vid if (create_type == "official" and home) else None,
+        )
+    )
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
+
+
 @app.get("/season/{season_id}/trainings", response_class=HTMLResponse)
 def trainings_list(
     season_id: int,
@@ -2751,7 +2857,8 @@ def trainings_by_team_page(
         .all()
     )
     venues = db.query(Venue).filter(Venue.club_id == season.club_id).all()
-    start, end = default_plan_range()
+    start, _ = default_plan_range()
+    end = start + timedelta(days=4)
     rows = (
         db.query(Training)
         .options(joinedload(Training.team), joinedload(Training.venue))
@@ -2809,55 +2916,98 @@ async def trainings_by_team_add(
     season = ctx["season"]
     lang = get_lang(request)
     form = await request.form()
-    team_id = int(form.get("team_id") or 0)
-    wds = [int(x) for x in form.getlist("weekdays") if str(x).isdigit()]
-    start_t = form.get("start_time") or "09:00"
-    end_t = form.get("end_time") or "10:30"
-    venue_id = int(form.get("venue_id") or 0) or None
+    team_ids = [int(x) for x in form.getlist("team_ids") if str(x).isdigit()]
+    active_days = [int(x) for x in form.getlist("active_days") if str(x).isdigit()]
+    group_teams = form.get("group_teams") in ("1", "on")
     from_d = form.get("start_date") or None
     to_d = form.get("end_date") or None
-    if not team_id:
+    if not team_ids:
         request.session["by_team_flash"] = translate(lang, "tr_by_team_error")
         return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
-    team = db.get(Team, team_id)
-    if not team or team.season_id != season_id:
+    valid_teams = (
+        db.query(Team.id)
+        .filter(Team.season_id == season_id, Team.id.in_(team_ids))
+        .count()
+    )
+    if valid_teams != len(team_ids):
+        request.session["by_team_flash"] = translate(lang, "tr_by_team_error")
+        return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
+    if not active_days:
         request.session["by_team_flash"] = translate(lang, "tr_by_team_error")
         return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
     start = date.fromisoformat(from_d) if from_d else default_plan_range()[0]
     end = date.fromisoformat(to_d) if to_d else default_plan_range()[1]
-    st = time_from_input(start_t)
-    et = time_from_input(end_t)
-    series = f"bt{team_id}-{uuid.uuid4().hex[:6]}"
-    current = start
-    while current <= end:
-        if current.weekday() in wds:
-            exists = (
-                db.query(Training.id)
-                .filter(
-                    Training.season_id == season_id,
-                    Training.team_id == team_id,
-                    Training.session_date == current,
-                    Training.start_time == st,
-                    Training.end_time == et,
-                    Training.venue_id == venue_id,
-                )
-                .first()
+
+    created = 0
+    for d in sorted(active_days):
+        start_t = form.get(f"start_{d}") or "19:00"
+        end_t = form.get(f"end_{d}") or "20:30"
+        venue_id = int(form.get(f"venue_{d}") or 0) or None
+        st = time_from_input(start_t)
+        et = time_from_input(end_t)
+        if not st or not et or not venue_id:
+            continue
+
+        dates: list[date] = []
+        current = start
+        while current <= end:
+            if current.weekday() == d:
+                dates.append(current)
+            current += timedelta(days=1)
+        if not dates:
+            continue
+
+        group_id: int | None = None
+        if group_teams and len(team_ids) > 1:
+            g = create_group(
+                db,
+                season_id=season_id,
+                team_ids=team_ids,
+                mode="shared",
+                overlap_minutes=0,
+                weekdays=format_weekdays([d]),
+                start_date=dates[0],
+                end_date=dates[-1],
+                start_time=st,
+                end_time=et,
+                venue_id=venue_id,
+                is_draft=True,
             )
-            if not exists:
-                db.add(
-                    Training(
-                        season_id=season_id,
-                        team_id=team_id,
-                        session_date=current,
-                        start_time=st,
-                        end_time=et,
-                        venue_id=venue_id,
-                        is_draft=True,
-                        is_manual=True,
-                        series_id=series,
+            if g:
+                group_id = g.id
+
+        for tid in team_ids:
+            series = f"bt{tid}-{uuid.uuid4().hex[:6]}"
+            for cur in dates:
+                exists = (
+                    db.query(Training.id)
+                    .filter(
+                        Training.season_id == season_id,
+                        Training.team_id == tid,
+                        Training.session_date == cur,
+                        Training.start_time == st,
+                        Training.end_time == et,
+                        Training.venue_id == venue_id,
                     )
+                    .first()
                 )
-        current += timedelta(days=1)
+                if not exists:
+                    db.add(
+                        Training(
+                            season_id=season_id,
+                            team_id=tid,
+                            session_date=cur,
+                            start_time=st,
+                            end_time=et,
+                            venue_id=venue_id,
+                            is_draft=True,
+                            is_manual=True,
+                            series_id=series,
+                            training_group_id=group_id,
+                            allows_share=bool(group_id),
+                        )
+                    )
+                    created += 1
     db.commit()
     request.session["by_team_flash"] = translate(lang, "tr_by_team_added")
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
@@ -2885,6 +3035,79 @@ async def trainings_by_team_batch_delete(
         db.commit()
     request.session["by_team_flash"] = translate(lang, "tr_by_team_deleted_n").format(n=count)
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/batch/delete")
+async def trainings_batch_delete(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    form = await request.form()
+    ids = [int(x) for x in form.getlist("training_ids") if str(x).isdigit()]
+    if not ids:
+        request.session["plan_flash"] = translate(lang, "tr_bulk_no_selection")
+        return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
+    delete_series = form.get("delete_series") in ("1", "on", "true", "True")
+    selected = db.query(Training).filter(Training.id.in_(ids), Training.season_id == season_id).all()
+    to_delete = {t.id for t in selected}
+    if delete_series and selected:
+        series_ids = {t.series_id for t in selected if t.series_id}
+        is_draft = selected[0].is_draft
+        if series_ids:
+            extra = db.query(Training).filter(
+                Training.season_id == season_id,
+                Training.series_id.in_(series_ids),
+                Training.is_draft.is_(is_draft),
+            ).all()
+            to_delete.update(t.id for t in extra)
+    for tid in to_delete:
+        t = db.get(Training, tid)
+        if t:
+            db.delete(t)
+    if to_delete:
+        db.commit()
+    request.session["plan_flash"] = translate(lang, "tr_bulk_deleted")
+    return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/batch/edit")
+async def trainings_batch_edit(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    form = await request.form()
+    ids = [int(x) for x in form.getlist("training_ids") if str(x).isdigit()]
+    if not ids:
+        request.session["plan_flash"] = translate(lang, "tr_bulk_no_selection")
+        return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
+    start = form.get("start_time", "").strip()
+    end = form.get("end_time", "").strip()
+    venue_raw = form.get("venue_id", "").strip()
+    new_start = time_from_input(start) if start else None
+    new_end = time_from_input(end) if end else None
+    new_venue = int(venue_raw) if venue_raw else None
+    rows = db.query(Training).filter(Training.id.in_(ids), Training.season_id == season_id).all()
+    for t in rows:
+        if start and new_start is not None:
+            t.start_time = new_start
+        if end and new_end is not None:
+            t.end_time = new_end
+        if venue_raw:
+            t.venue_id = new_venue
+    if rows:
+        db.commit()
+    request.session["plan_flash"] = translate(lang, "tr_bulk_edited")
+    return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
 def _translate_plan_warnings(lang: str, warnings) -> list[str]:

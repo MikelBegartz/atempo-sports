@@ -161,12 +161,13 @@
     {% for m in selected.memberships %}
     <li>
       <a href="/season/{{ season.id }}/people#person-{{ m.person.id }}">{{ m.person.full_name }}</a>
-      <span class="badge ok">
-        {% if m.role == 'player' %}{{ t('role_player') }}
-        {% elif m.role == 'coach' %}{{ t('role_coach') }}
-        {% elif m.role == 'reinforce' %}{{ t('role_reinforce') }}
-        {% else %}{{ m.role }}{% endif %}
-      </span>
+      <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/role" style="display:inline;margin:0">
+        <select name="role" class="badge ok" style="border:none;background:transparent;cursor:pointer" onchange="this.form.submit()">
+          <option value="player" {% if m.role == 'player' %}selected{% endif %}>{{ t('role_player') }}</option>
+          <option value="coach" {% if m.role == 'coach' %}selected{% endif %}>{{ t('role_coach') }}</option>
+          <option value="reinforce" {% if m.role == 'reinforce' %}selected{% endif %}>{{ t('role_reinforce') }}</option>
+        </select>
+      </form>
       <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/delete" style="display:inline;margin:0">
         <button type="submit" class="text-action-btn danger" style="font-size:0.8rem">{{ t('teams_unlink') }}</button>
       </form>

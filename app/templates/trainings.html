@@ -258,28 +258,55 @@
 </details>
 
 {% if drafts %}
-<details class="plan-details">
-  <summary>{{ t('tr_plan_sessions_list') }} ({{ drafts|length }})</summary>
-  <table>
-    <thead>
-      <tr>
-        <th>{{ t('col_date') }}</th>
-        <th>{{ t('col_time') }}</th>
-        <th>{{ t('col_team') }}</th>
-        <th>{{ t('col_venue') }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for tr in drafts %}
-      <tr>
-        <td>{{ tr.session_date }}</td>
-        <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
-        <td><span class="plan-team" style="color: {{ draft_colors.get(tr.team_id, 'inherit') }}">{{ tr.team.name }}{% if tr.team.category and tr.team.category != tr.team.name %} · {{ tr.team.category }}{% endif %}</span>{% if tr.is_manual %} <span class="muted" style="font-size:0.8rem">({{ t('tr_manual_tag') }})</span>{% endif %}</td>
-        <td>{{ tr.venue.name if tr.venue else "—" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<details class="plan-details" id="draft-list">
+  <summary style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+    <span>{{ t('tr_plan_sessions_list') }} ({{ drafts|length }})</span>
+    <span class="bulk-toolbar" id="draft-toolbar" style="display:none;gap:0.5rem;align-items:center;">
+      <label class="check" style="margin:0;font-size:0.8rem" onclick="event.stopPropagation()"><input type="checkbox" name="delete_series" form="draft-bulk-form" value="1" /> {{ t('tr_bulk_delete_series') }}</label>
+      <button type="button" class="secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem" onclick="event.stopPropagation(); openBulkEdit('draft')">{{ t('tr_bulk_edit') }}</button>
+      <button type="submit" class="secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem" form="draft-bulk-form" formaction="/season/{{ season.id }}/trainings/batch/delete" onclick="event.stopPropagation(); return confirmBulkDelete('draft-bulk-form')">{{ t('tr_bulk_delete') }}</button>
+    </span>
+  </summary>
+  <form method="post" id="draft-bulk-form" action="/season/{{ season.id }}/trainings/batch/edit">
+    <div class="bulk-edit-panel" id="draft-bulk-edit" style="display:none;margin:0.5rem 0;padding:0.75rem;border:1px solid #ddd;border-radius:0.5rem;">
+      <h4 style="margin:0 0 0.5rem">{{ t('tr_bulk_edit_title') }}</h4>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">
+        <label>{{ t('col_from') }} <input type="text" name="start_time" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" style="width:6rem" /></label>
+        <label>{{ t('col_to') }} <input type="text" name="end_time" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" style="width:6rem" /></label>
+        <label>{{ t('col_venue') }}
+          <select name="venue_id" style="min-width:8rem">
+            <option value="">{{ t('tr_bulk_unchanged') }}</option>
+            {% for v in venues %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="secondary">{{ t('tr_bulk_apply') }}</button>
+        <button type="button" class="secondary" onclick="closeBulkEdit('draft')">{{ t('tr_bulk_cancel') }}</button>
+      </div>
+      <p class="muted" style="font-size:0.75rem;margin:0.5rem 0 0">{{ t('tr_bulk_delete_series_hint') }}</p>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:2rem"><input type="checkbox" id="draft-select-all" /></th>
+          <th>{{ t('col_date') }}</th>
+          <th>{{ t('col_time') }}</th>
+          <th>{{ t('col_team') }}</th>
+          <th>{{ t('col_venue') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in drafts %}
+        <tr>
+          <td><input type="checkbox" name="training_ids" value="{{ tr.id }}" class="draft-check" data-series="{{ tr.series_id or '' }}" /></td>
+          <td>{{ tr.session_date }}</td>
+          <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
+          <td><span class="plan-team" style="color: {{ draft_colors.get(tr.team_id, 'inherit') }}">{{ tr.team.name }}{% if tr.team.category and tr.team.category != tr.team.name %} · {{ tr.team.category }}{% endif %}</span>{% if tr.is_manual %} <span class="muted" style="font-size:0.8rem">({{ t('tr_manual_tag') }})</span>{% endif %}</td>
+          <td>{{ tr.venue.name if tr.venue else "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
 </details>
 {% endif %}
 
@@ -359,38 +386,105 @@
 </details>
 
 {% if trainings %}
-<details class="plan-details">
-  <summary>{{ t('tr_sessions_heading') }} ({{ trainings|length }})</summary>
-  <table>
-    <thead>
-      <tr>
-        <th>{{ t('col_date') }}</th>
-        <th>{{ t('col_time') }}</th>
-        <th>{{ t('col_team') }}</th>
-        <th>{{ t('col_venue') }}</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for tr in trainings %}
-      <tr>
-        <td>{{ tr.session_date }}</td>
-        <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
-        <td>{{ tr.team.name }}</td>
-        <td>{{ tr.venue.name if tr.venue else "—" }}</td>
-        <td>
-          <form method="post" action="/season/{{ season.id }}/trainings/{{ tr.id }}/delete" style="display:inline">
-            <button type="submit" class="secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem">{{ t('tr_delete') }}</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<details class="plan-details" id="live-list">
+  <summary style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+    <span>{{ t('tr_sessions_heading') }} ({{ trainings|length }})</span>
+    <span class="bulk-toolbar" id="live-toolbar" style="display:none;gap:0.5rem;align-items:center;">
+      <label class="check" style="margin:0;font-size:0.8rem" onclick="event.stopPropagation()"><input type="checkbox" name="delete_series" form="live-bulk-form" value="1" /> {{ t('tr_bulk_delete_series') }}</label>
+      <button type="button" class="secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem" onclick="event.stopPropagation(); openBulkEdit('live')">{{ t('tr_bulk_edit') }}</button>
+      <button type="submit" class="secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem" form="live-bulk-form" formaction="/season/{{ season.id }}/trainings/batch/delete" onclick="event.stopPropagation(); return confirmBulkDelete('live-bulk-form')">{{ t('tr_bulk_delete') }}</button>
+    </span>
+  </summary>
+  <form method="post" id="live-bulk-form" action="/season/{{ season.id }}/trainings/batch/edit">
+    <div class="bulk-edit-panel" id="live-bulk-edit" style="display:none;margin:0.5rem 0;padding:0.75rem;border:1px solid #ddd;border-radius:0.5rem;">
+      <h4 style="margin:0 0 0.5rem">{{ t('tr_bulk_edit_title') }}</h4>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">
+        <label>{{ t('col_from') }} <input type="text" name="start_time" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" style="width:6rem" /></label>
+        <label>{{ t('col_to') }} <input type="text" name="end_time" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" style="width:6rem" /></label>
+        <label>{{ t('col_venue') }}
+          <select name="venue_id" style="min-width:8rem">
+            <option value="">{{ t('tr_bulk_unchanged') }}</option>
+            {% for v in venues %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="secondary">{{ t('tr_bulk_apply') }}</button>
+        <button type="button" class="secondary" onclick="closeBulkEdit('live')">{{ t('tr_bulk_cancel') }}</button>
+      </div>
+      <p class="muted" style="font-size:0.75rem;margin:0.5rem 0 0">{{ t('tr_bulk_delete_series_hint') }}</p>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:2rem"><input type="checkbox" id="live-select-all" /></th>
+          <th>{{ t('col_date') }}</th>
+          <th>{{ t('col_time') }}</th>
+          <th>{{ t('col_team') }}</th>
+          <th>{{ t('col_venue') }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in trainings %}
+        <tr>
+          <td><input type="checkbox" name="training_ids" value="{{ tr.id }}" class="live-check" data-series="{{ tr.series_id or '' }}" /></td>
+          <td>{{ tr.session_date }}</td>
+          <td>{{ tr.start_time.strftime("%H:%M") }}–{{ tr.end_time.strftime("%H:%M") }}</td>
+          <td>{{ tr.team.name }}</td>
+          <td>{{ tr.venue.name if tr.venue else "—" }}</td>
+          <td>
+            <form method="post" action="/season/{{ season.id }}/trainings/{{ tr.id }}/delete" style="display:inline" onsubmit="return confirm('{{ t('tr_delete') }}?')">
+              <button type="submit" class="secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem">{{ t('tr_delete') }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
 </details>
 {% endif %}
 
 {% else %}
 <p class="muted">{{ t('tr_hours_setup_intro').format(n=teams|length) }}</p>
 {% endif %}
+
+<script>
+(function() {
+  function initScope(scope) {
+    const form = document.getElementById(scope + '-bulk-form');
+    const selectAll = document.getElementById(scope + '-select-all');
+    const checks = document.querySelectorAll('.' + scope + '-check');
+    const toolbar = document.getElementById(scope + '-toolbar');
+    function update() {
+      const any = form.querySelectorAll('input[name="training_ids"]:checked').length > 0;
+      toolbar.style.display = any ? 'flex' : 'none';
+    }
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        checks.forEach(c => c.checked = selectAll.checked);
+        update();
+      });
+    }
+    checks.forEach(c => c.addEventListener('change', update));
+    update();
+  }
+  window.openBulkEdit = function(scope) {
+    document.getElementById(scope + '-bulk-edit').style.display = 'block';
+  };
+  window.closeBulkEdit = function(scope) {
+    document.getElementById(scope + '-bulk-edit').style.display = 'none';
+  };
+  window.confirmBulkDelete = function(formId) {
+    const form = document.getElementById(formId);
+    const checked = form.querySelectorAll('input[name="training_ids"]:checked');
+    if (checked.length === 0) {
+      alert("{{ t('tr_bulk_no_selection') }}");
+      return false;
+    }
+    const msg = "{{ t('tr_bulk_delete_confirm') }}".replace('{count}', String(checked.length));
+    return confirm(msg);
+  };
+  ['draft', 'live'].forEach(initScope);
+})();
+</script>
 {% endblock %}

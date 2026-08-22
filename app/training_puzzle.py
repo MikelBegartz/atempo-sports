@@ -116,8 +116,6 @@ def preferred_day_patterns() -> list[tuple[int, int, int]]:
 def _venue_windows(venue: Venue, weekday: int) -> list[tuple[time, time]]:
     avails = [a for a in (venue.availabilities or []) if a.weekday == weekday]
     if not avails:
-        if 0 <= weekday <= 4:
-            return [(DEFAULT_WINDOW_START, DEFAULT_WINDOW_END)]
         return []
     out: list[tuple[time, time]] = []
     for a in avails:

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('tr_by_team_overlap_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('tr_by_team_overlap_title') }}</h1>
+    <p class="muted">{{ t('tr_by_team_overlap_intro') }}</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/trainings/by-team">{{ t('tr_back') }}</a>
+  </div>
+</div>
+
+<section class="panel-sheet" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">{{ t('tr_by_team_proposed') }}</h2>
+  <ul style="margin:0;padding-left:0;list-style:none">
+    {% for d in proposed %}
+    <li>{{ weekday_short[d.weekday()] }} {{ d.strftime('%d/%m/%Y') }} · {{ start_time }}–{{ end_time }}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel-sheet" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">{{ t('tr_by_team_existing') }}</h2>
+  <ul style="margin:0;padding-left:0;list-style:none">
+    {% for tr in existing %}
+    <li>
+      <span class="plan-team" style="color: {{ draft_colors.get(tr.team_id, 'inherit') }}">{{ tr.team.name }}</span>
+      · {{ weekday_short[tr.session_date.weekday()] }} {{ tr.session_date.strftime('%d/%m/%Y') }}
+      · {{ tr.start_time.strftime('%H:%M') }}–{{ tr.end_time.strftime('%H:%M') }}
+      {% if tr.venue %}· {{ tr.venue.name }}{% endif %}
+      {% if tr.training_group %}· {{ tr.training_group.label }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel-sheet" style="margin-bottom:1.25rem">
+  <h2 style="margin-top:0">{{ t('tr_by_team_title') }}</h2>
+  <form method="post" action="/season/{{ season.id }}/trainings/by-team">
+    <input type="hidden" name="team_id" value="{{ new_team.id }}" />
+    {% for d in weekdays %}
+    <input type="hidden" name="weekdays" value="{{ d }}" />
+    {% endfor %}
+    <input type="hidden" name="start_time" value="{{ start_time }}" />
+    <input type="hidden" name="end_time" value="{{ end_time }}" />
+    <input type="hidden" name="venue_id" value="{{ venue_id }}" />
+    <input type="hidden" name="start_date" value="{{ start_date }}" />
+    <input type="hidden" name="end_date" value="{{ end_date }}" />
+
+    <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1rem">
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="radio" name="group_action" value="create" checked />
+        {{ t('tr_by_team_create_group') }}
+      </label>
+      {% if groups %}
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="radio" name="group_action" value="join" />
+        {{ t('tr_by_team_join_group') }}
+      </label>
+      <select name="group_id" style="margin-left:1.5rem;max-width:20rem">
+        {% for g in groups %}
+        <option value="{{ g.id }}">{{ g.label }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="radio" name="group_action" value="individual" />
+        {{ t('tr_by_team_individual') }}
+      </label>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">
+      <strong>{{ t('tr_by_team_scope') }}</strong>
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="radio" name="group_scope" value="ocasional" checked />
+        {{ t('tr_by_team_scope_occasional') }}
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="radio" name="group_scope" value="temporada" />
+        {{ t('tr_by_team_scope_season') }}
+      </label>
+    </div>
+
+    <button type="submit" class="primary">{{ t('tr_by_team_confirm') }}</button>
+  </form>
+</section>
+{% endblock %}

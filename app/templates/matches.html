@@ -22,6 +22,15 @@
   {% if matches_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ matches_flash }}</div>{% endif %}
 
   {% if not selected %}
+  <section class="match-create" style="margin-bottom:1.5rem">
+    <h2 class="match-create-title">{{ t('matches_create_title') }}</h2>
+    <p class="muted">{{ t('matches_create_intro') }}</p>
+    <div class="draft-horizon" style="margin-top:0.75rem">
+      <a class="draft-horizon-link" href="/season/{{ season.id }}/import">{{ t('matches_import_link') }}</a>
+      <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/create?type=official">{{ t('matches_create_official') }}</a>
+      <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/create?type=friendly">{{ t('matches_create_friendly') }}</a>
+    </div>
+  </section>
   <section class="match-draft">
     <h2 class="match-calendar-title">{{ t('matches_calendar_title') }}</h2>
     <div class="draft-horizon">

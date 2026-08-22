@@ -7,7 +7,7 @@ from datetime import date, datetime, time, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.conflicts import find_conflicts
+from app.conflicts import find_conflicts, persist_conflicts
 from app.db import (
     CompetitionSource,
     FedMatchChange,
@@ -15,6 +15,7 @@ from app.db import (
     Season,
     Team,
     TeamExternalName,
+    Training,
     Venue,
 )
 from app.sidgad import FEDERATIONS, SidgadClient, parse_calendar, parse_competition_list
@@ -445,8 +446,8 @@ def import_competition(
         else:
             src.label = pretty
         db.flush()
+        conflicts = find_conflicts(db, season_id)
         if new_changes:
-            conflicts = find_conflicts(db, season_id)
             match_ids = set()
             for c in conflicts:
                 match_ids.update(c.match_ids or [])
@@ -454,7 +455,18 @@ def import_competition(
                 count = sum(1 for mid in match_ids if mid == fc.match_id)
                 fc.has_conflict = count > 0
                 fc.conflict_count = count
-        db.commit()
+        matches = db.query(Match).filter(Match.season_id == season_id).all()
+        trainings = (
+            db.query(Training)
+            .filter(
+                Training.season_id == season_id,
+                Training.is_draft.is_(False),
+            )
+            .all()
+        )
+        match_team = {m.id: m.team_id for m in matches}
+        training_team = {t.id: t.team_id for t in trainings}
+        persist_conflicts(db, season_id, conflicts, match_team, training_team)
 
     if report.matched == 0 and not report.error:
         report.error = (

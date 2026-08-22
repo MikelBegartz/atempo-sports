@@ -15,50 +15,63 @@
 
 <section class="panel-sheet" style="margin-bottom:1.25rem">
   <h2 style="margin-top:0">{{ t('tr_by_team_add') }}</h2>
-  <form method="post" action="/season/{{ season.id }}/trainings/by-team" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end">
+  <form method="post" action="/season/{{ season.id }}/trainings/by-team" style="display:flex;flex-direction:column;gap:1rem">
     <div>
-      <label>{{ t('tr_by_team_team') }}</label>
-      <select name="team_id">
+      <label style="font-weight:600">{{ t('tr_by_team_select_teams') }}</label>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem">
         {% for tm in teams %}
-        <option value="{{ tm.id }}">{{ tm.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:0.25rem">
-      <label>{{ t('tr_by_team_day') }}</label>
-      <div style="display:flex;flex-wrap:wrap;gap:0.6rem">
-        {% for name in weekdays %}
         <label class="check" style="display:flex;align-items:center;gap:0.25rem">
-          <input type="checkbox" name="weekdays" value="{{ loop.index0 }}">
-          <span>{{ name }}</span>
+          <input type="checkbox" name="team_ids" value="{{ tm.id }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ tm.name }}</span>
         </label>
         {% endfor %}
       </div>
     </div>
+
     <div>
-      <label>{{ t('tr_by_team_start') }}</label>
-      <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" value="{{ last_end_time }}">
+      <label style="font-weight:600">{{ t('tr_by_team_select_days') }}</label>
+      <table style="width:100%;margin-top:0.5rem;border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left">
+            <th style="padding:0.35rem 0.5rem">{{ t('tr_by_team_day') }}</th>
+            <th style="padding:0.35rem 0.5rem">{{ t('tr_by_team_include') }}</th>
+            <th style="padding:0.35rem 0.5rem">{{ t('tr_by_team_start') }}</th>
+            <th style="padding:0.35rem 0.5rem">{{ t('tr_by_team_end') }}</th>
+            <th style="padding:0.35rem 0.5rem">{{ t('tr_by_team_venue') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in range(7) %}
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:0.35rem 0.5rem">{{ weekday_short[d] }}</td>
+            <td style="padding:0.35rem 0.5rem"><input type="checkbox" name="active_days" value="{{ d }}" {% if d < 5 %}checked{% endif %}></td>
+            <td style="padding:0.35rem 0.5rem"><input type="text" name="start_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="19:00" style="width:5rem"></td>
+            <td style="padding:0.35rem 0.5rem"><input type="text" name="end_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="{{ last_end_time }}" style="width:5rem"></td>
+            <td style="padding:0.35rem 0.5rem">
+              <select name="venue_{{ d }}">
+                {% for v in venues %}
+                <option value="{{ v.id }}" {% if loop.first %}selected{% endif %}>{{ v.name }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+
+    <input type="hidden" name="start_date" value="{{ start }}">
+    <input type="hidden" name="end_date" value="{{ end }}">
+
     <div>
-      <label>{{ t('tr_by_team_end') }}</label>
-      <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" value="20:30">
+      <label class="check" style="display:flex;align-items:center;gap:0.5rem">
+        <input type="checkbox" name="group_teams" value="1" checked>
+        <span>{{ t('tr_by_team_group_teams') }}</span>
+      </label>
     </div>
-    <div>
-      <label>{{ t('tr_by_team_venue') }}</label>
-      <select name="venue_id">
-        {% for v in venues %}
-        <option value="{{ v.id }}">{{ v.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>{{ t('tr_by_team_from') }}</label>
-      <input type="date" name="start_date" value="{{ start }}">
-    </div>
-    <div>
-      <label>{{ t('tr_by_team_to') }}</label>
-      <input type="date" name="end_date" value="{{ end }}">
-    </div>
+
+    <p class="muted" style="font-size:0.85rem">{{ t('tr_by_team_apply_hint') }}</p>
+
     <div>
       <button type="submit" class="primary">{{ t('tr_by_team_add') }}</button>
     </div>
@@ -75,8 +88,8 @@
   </h3>
   {% if tm.not_before or tm.not_after or tm.only_venue_id %}
   <p class="muted" style="font-size:0.85rem;margin:0.25rem 0">
-    {% if tm.not_before %}No abans de {{ tm.not_before|time_input }}{% endif %}
-    {% if tm.not_after %} · No després de {{ tm.not_after|time_input }}{% endif %}
+    {% if tm.not_before %}No abans de {{ tm.not_before.strftime('%H:%M') }}{% endif %}
+    {% if tm.not_after %} · No després de {{ tm.not_after.strftime('%H:%M') }}{% endif %}
     {% if tm.venue %} · Pista fixa: {{ tm.venue.name }}{% endif %}
   </p>
   {% endif %}
@@ -88,7 +101,7 @@
         <input type="checkbox" name="training_ids" value="{{ s.id }}" class="team-check team-{{ tm.id }}">
         <span>
           {{ weekday_short[s.session_date.weekday()] }} {{ s.session_date.strftime('%d/%m') }}
-          · {{ s.start_time|time_input }}–{{ s.end_time|time_input }}
+          · {{ s.start_time.strftime('%H:%M') }}–{{ s.end_time.strftime('%H:%M') }}
           {% if s.venue %}· {{ s.venue.name }}{% endif %}
         </span>
       </label>

@@ -112,10 +112,10 @@ def _team_window(team: Team) -> tuple[time, time]:
 def _venue_windows(
     venue: Venue, weekday: int, team_start: time, team_end: time
 ) -> list[tuple[time, time]]:
-    """Intersecció disponibilitat pista ∩ franja equip. Sense franges → franja equip."""
+    """Intersecció disponibilitat pista ∩ franja equip. Sense franges → cap opció."""
     avails = [a for a in venue.availabilities if a.weekday == weekday]
     if not avails:
-        return [(team_start, team_end)]
+        return []
     out: list[tuple[time, time]] = []
     for a in avails:
         s = _time_from_minutes(max(_minutes(a.start_time), _minutes(team_start)))
@@ -833,8 +833,6 @@ def _venue_day_windows(venue: Venue, weekday: int) -> list[tuple[time, time]]:
     """Franges d’hockey disponibles aquell dia."""
     avails = [a for a in venue.availabilities if a.weekday == weekday]
     if not avails:
-        if 0 <= weekday <= 4:
-            return [(DEFAULT_WINDOW_START, DEFAULT_WINDOW_END)]
         return []
     out: list[tuple[time, time]] = []
     for a in avails:
@@ -1148,25 +1146,10 @@ def _venue_avail_segments(
 ) -> list[dict]:
     """Franges d’hockey disponibles aquell dia (no hores «civils»)."""
     if venue is None:
-        # Sense fitxa: franja per defecte laborable
-        if 0 <= weekday <= 4:
-            pct = _pct_span(
-                _minutes(DEFAULT_WINDOW_START),
-                _minutes(DEFAULT_WINDOW_END),
-                window_start,
-                span,
-            )
-            return [{"left": pct[0], "width": pct[1]}] if pct else []
         return []
     avails = [a for a in (venue.availabilities or []) if a.weekday == weekday]
-    if not avails and 0 <= weekday <= 4:
-        pct = _pct_span(
-            _minutes(DEFAULT_WINDOW_START),
-            _minutes(DEFAULT_WINDOW_END),
-            window_start,
-            span,
-        )
-        return [{"left": pct[0], "width": pct[1]}] if pct else []
+    if not avails:
+        return []
     out: list[dict] = []
     for a in sorted(avails, key=lambda x: _minutes(x.start_time)):
         pct = _pct_span(

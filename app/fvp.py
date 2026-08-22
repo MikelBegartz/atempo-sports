@@ -9,8 +9,9 @@ from typing import Any
 import requests
 from sqlalchemy.orm import Session
 
-from app.db import CompetitionSource, Match
-from app.import_fed import ImportReport, ImportRow
+from app.conflicts import find_conflicts, persist_conflicts
+from app.db import CompetitionSource, Match, Season, Training
+from app.import_fed import ImportReport, ImportRow, _match_home_venue_id
 from app.link_rfep import ClubTeamHit, FedTeam, ensure_team_for_fed
 
 FVP_BASE = "https://fvpatinaje.eus"
@@ -214,6 +215,9 @@ def import_fvp_competition(
     if not team_names_set:
         return report
 
+    season = db.get(Season, season_id)
+    club_id = season.club_id if season else None
+
     comp_label = label or f"FVP idc={idcompeticion}"
     team_map: dict[str, Any] = {}
     for name in team_names_set:
@@ -256,6 +260,9 @@ def import_fvp_competition(
         end_time: time | None = None
         jornada = _parse_fvp_jornada(p.get("NombreJornada", ""))
         place = (p.get("Instalacion") or "").strip()
+        venue_id = None
+        if is_home and club_id is not None:
+            venue_id = _match_home_venue_id(db, club_id, place)
         id_partido = p.get("IdPartido")
         ext_id = f"{source}:{idcompeticion}:{id_partido}"
 
@@ -279,12 +286,15 @@ def import_fvp_competition(
                 or existing.end_time != end_time
                 or existing.jornada != jornada
                 or existing.place_name != place
+                or existing.venue_id != venue_id
             ):
                 existing.match_date = match_date
                 existing.start_time = start_time
                 existing.end_time = end_time
                 existing.jornada = jornada
                 existing.place_name = place
+                if venue_id is not None:
+                    existing.venue_id = venue_id
                 existing.official_date = match_date
                 existing.official_start_time = start_time
                 existing.official_end_time = end_time
@@ -342,6 +352,7 @@ def import_fvp_competition(
                         start_time=start_time,
                         end_time=end_time,
                         jornada=jornada,
+                        venue_id=venue_id,
                         place_name=place,
                         source=source,
                         external_id=ext_id,
@@ -384,6 +395,19 @@ def import_fvp_competition(
                 )
             )
         db.commit()
+        matches = db.query(Match).filter(Match.season_id == season_id).all()
+        trainings = (
+            db.query(Training)
+            .filter(
+                Training.season_id == season_id,
+                Training.is_draft.is_(False),
+            )
+            .all()
+        )
+        match_team = {m.id: m.team_id for m in matches}
+        training_team = {t.id: t.team_id for t in trainings}
+        conflicts = find_conflicts(db, season_id)
+        persist_conflicts(db, season_id, conflicts, match_team, training_team)
     return report
 
 

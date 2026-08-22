@@ -529,8 +529,6 @@ def find_conflicts(
         if o.venue_id is None:
             continue
         avails = avails_by_venue.get(o.venue_id) or []
-        if not avails:
-            continue
         day_avails = [a for a in avails if a.weekday == o.d.weekday()]
         if not day_avails:
             venue = venues_by_id.get(o.venue_id)
