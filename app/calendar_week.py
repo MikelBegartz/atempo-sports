@@ -358,7 +358,6 @@ def build_global_draft(
     )
 
     day_slots: dict[date, list[dict]] = {}
-    all_hours: set[time] = set()
     all_minutes: list[int] = []
 
     for m in matches:
@@ -382,7 +381,6 @@ def build_global_draft(
             "is_home": bool(m.is_home),
         }
         day_slots.setdefault(m.match_date, []).append(slot)
-        all_hours.add(m.start_time)
         all_minutes.extend([_minutes(m.start_time), _minutes(end_t)])
 
     group_slots: dict[tuple, dict] = {}
@@ -418,7 +416,6 @@ def build_global_draft(
             group_slots[key]["status"] = STATUS_HARD
         elif t.id in soft_ids and group_slots[key]["status"] != STATUS_HARD:
             group_slots[key]["status"] = STATUS_SOFT
-        all_hours.add(t.start_time)
         all_minutes.extend([_minutes(t.start_time), _minutes(t.end_time)])
 
     for slot in group_slots.values():
@@ -427,9 +424,6 @@ def build_global_draft(
     sorted_days = sorted(day_slots.keys())
     if not sorted_days:
         sorted_days = days
-    sorted_hours = sorted(all_hours)
-    if not sorted_hours:
-        sorted_hours = [time(9, 0), time(17, 0)]
 
     if all_minutes:
         min_min = min(all_minutes)
@@ -440,6 +434,9 @@ def build_global_draft(
     day_start_min = (min_min // 15) * 15 - 15
     day_end_min = ((max_min + 14) // 15) * 15 + 15
     day_range = max(day_end_min - day_start_min, 1)
+    start_hour = max(0, day_start_min // 60)
+    end_hour = day_end_min // 60
+    sorted_hours = [time(h, 0) for h in range(start_hour, end_hour + 1)]
 
     day_max_lanes: dict[date, int] = {}
     for d, slots in day_slots.items():

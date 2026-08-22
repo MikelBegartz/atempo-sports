@@ -83,10 +83,10 @@
           <strong>{{ weekday_names[d.weekday()] }}</strong>
           <span class="muted">{{ d.strftime('%d/%m') }}</span>
         </div>
-        <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 38 + 10) }}px">
+        <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 58 + 10) }}px">
           {% for slot in draft_grid.get(d, []) %}
           <a class="cal-event status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}"
-             style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 38 + 5 }}px">
+             style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 58 + 5 }}px">
             {% if slot.kind == 'match' %}
             <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
             <div class="draft-sides">
