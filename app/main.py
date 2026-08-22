@@ -85,6 +85,7 @@ from app.db import (
     Club,
     CompetitionSource,
     Conflict,
+    VenueAvailability,
     FedMatchChange,
     Match,
     Person,
@@ -2887,6 +2888,19 @@ def trainings_by_team_page(
         if last_training and last_training.end_time
         else "19:00"
     )
+    avail = (
+        db.query(VenueAvailability)
+        .filter(VenueAvailability.venue_id.in_([v.id for v in venues]))
+        .all()
+    )
+    venue_day_ids: dict[int, set[int]] = {v.id: set() for v in venues}
+    day_venue_ids: dict[int, set[int]] = {d: set() for d in range(7)}
+    for a in avail:
+        venue_day_ids.setdefault(a.venue_id, set()).add(a.weekday)
+        day_venue_ids.setdefault(a.weekday, set()).add(a.venue_id)
+    venues_for_day: dict[int, list[Venue]] = {
+        d: [v for v in venues if v.id in day_venue_ids.get(d, set())] for d in range(7)
+    }
     by_team: dict[int, list[Training]] = {}
     for t in rows:
         by_team.setdefault(t.team_id, []).append(t)
@@ -2901,6 +2915,7 @@ def trainings_by_team_page(
             "weekdays": weekdays(lang),
             "weekday_short": weekdays_short(lang),
             "last_end_time": last_end_time,
+            "venues_for_day": venues_for_day,
             "start": start.isoformat(),
             "end": end.isoformat(),
             "flash": request.session.pop("by_team_flash", None),

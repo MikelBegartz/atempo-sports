@@ -42,14 +42,15 @@
         </thead>
         <tbody>
           {% for d in range(7) %}
-          <tr style="border-bottom:1px solid var(--line)">
+          {% set day_venues = venues_for_day.get(d, []) %}
+          <tr style="border-bottom:1px solid var(--line){% if not day_venues %} opacity:0.5{% endif %}">
             <td style="padding:0.35rem 0.5rem">{{ weekday_short[d] }}</td>
-            <td style="padding:0.35rem 0.5rem"><input type="checkbox" name="active_days" value="{{ d }}" {% if d < 5 %}checked{% endif %}></td>
-            <td style="padding:0.35rem 0.5rem"><input type="text" name="start_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="19:00" style="width:5rem"></td>
-            <td style="padding:0.35rem 0.5rem"><input type="text" name="end_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="{{ last_end_time }}" style="width:5rem"></td>
+            <td style="padding:0.35rem 0.5rem"><input type="checkbox" name="active_days" value="{{ d }}" {% if d < 5 and day_venues %}checked{% endif %} {% if not day_venues %}disabled{% endif %}></td>
+            <td style="padding:0.35rem 0.5rem"><input type="text" name="start_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="19:00" style="width:5rem" {% if not day_venues %}disabled{% endif %}></td>
+            <td style="padding:0.35rem 0.5rem"><input type="text" name="end_{{ d }}" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" value="{{ last_end_time }}" style="width:5rem" {% if not day_venues %}disabled{% endif %}></td>
             <td style="padding:0.35rem 0.5rem">
-              <select name="venue_{{ d }}">
-                {% for v in venues %}
+              <select name="venue_{{ d }}" {% if not day_venues %}disabled{% endif %}>
+                {% for v in day_venues %}
                 <option value="{{ v.id }}" {% if loop.first %}selected{% endif %}>{{ v.name }}</option>
                 {% endfor %}
               </select>
