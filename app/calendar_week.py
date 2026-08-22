@@ -380,27 +380,41 @@ def build_global_draft(
         all_hours.add(m.start_time)
         event_days.add(m.match_date)
 
+    group_slots: dict[tuple, dict] = {}
     for t in trainings:
         if not t.session_date or not t.start_time:
             continue
-        status = STATUS_HARD if t.id in hard_ids else (STATUS_SOFT if t.id in soft_ids else STATUS_TRAINING)
         monday = t.session_date - timedelta(days=t.session_date.weekday())
-        slot = {
-            "id": t.id,
-            "kind": "training",
-            "home": None,
-            "away": None,
-            "team": t.team.name if t.team else "",
-            "competition": t.team.category or "" if t.team else "",
-            "venue": t.venue.name if t.venue else "",
-            "start": t.start_time,
-            "end": t.end_time,
-            "status": status,
-            "href": f"/season/{season_id}/trainings?draft_week={monday.isoformat()}#draft",
-        }
-        by_day_hour.setdefault((t.session_date, t.start_time), []).append(slot)
+        if t.training_group_id:
+            key = (t.session_date, t.start_time, t.venue_id, t.training_group_id)
+        else:
+            key = (t.session_date, t.start_time, t.id)
+        if key not in group_slots:
+            group_slots[key] = {
+                "id": t.id,
+                "kind": "training",
+                "home": None,
+                "away": None,
+                "teams": [],
+                "competition": t.team.category or "" if t.team else "",
+                "venue": t.venue.name if t.venue else "",
+                "date": t.session_date,
+                "start": t.start_time,
+                "end": t.end_time,
+                "status": STATUS_TRAINING,
+                "href": f"/season/{season_id}/trainings?draft_week={monday.isoformat()}#draft",
+            }
+        if t.team:
+            group_slots[key]["teams"].append(t.team.name)
+        if t.id in hard_ids:
+            group_slots[key]["status"] = STATUS_HARD
+        elif t.id in soft_ids and group_slots[key]["status"] != STATUS_HARD:
+            group_slots[key]["status"] = STATUS_SOFT
         all_hours.add(t.start_time)
         event_days.add(t.session_date)
+
+    for slot in group_slots.values():
+        by_day_hour.setdefault((slot["date"], slot["start"]), []).append(slot)
 
     sorted_days = sorted(event_days)
     if not sorted_days:

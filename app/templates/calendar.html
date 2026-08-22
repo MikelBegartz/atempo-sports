@@ -84,7 +84,9 @@
               {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
               {% else %}
               <div class="draft-title">{{ t('tr_title') }}</div>
-              <div class="draft-team">{{ slot.team }}</div>
+              {% for team in slot.teams %}
+              <div class="draft-team">{{ team }}</div>
+              {% endfor %}
               <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
               {% if slot.venue %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
               {% endif %}
