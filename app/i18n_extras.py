@@ -4562,16 +4562,28 @@ TEAMS_BULK_PACKS: dict[str, dict[str, str]] = {
         "tr_groups_draft_btn": "Generate draft",
         "tr_groups_draft_generated": "{n} draft sessions generated from groups.",
         "tr_groups_propose_confirm": "This will delete current groups and create new ones. Continue?",
+        "tr_draft_import": "Import draft combinations as groups",
+        "tr_draft_import_clear": "Undo draft import",
+        "tr_draft_import_done": "{created} groups created and {linked} sessions linked.",
+        "tr_draft_import_cleared": "{deleted} groups deleted and {unlinked} sessions unlinked.",
     },
     "ca": {
         "tr_groups_draft_btn": "Generar borrador",
         "tr_groups_draft_generated": "{n} sessions de borrador generades des dels grups.",
         "tr_groups_propose_confirm": "Això esborrarà els grups actuals i en crearà de nous. Continuar?",
+        "tr_draft_import": "Importar combinacions del borrador com a grups",
+        "tr_draft_import_clear": "Desfer importació del borrador",
+        "tr_draft_import_done": "{created} grups creats i {linked} sessions vinculades.",
+        "tr_draft_import_cleared": "{deleted} grups esborrats i {unlinked} sessions desvinculades.",
     },
     "es": {
         "tr_groups_draft_btn": "Generar borrador",
         "tr_groups_draft_generated": "{n} sesiones de borrador generadas desde los grupos.",
         "tr_groups_propose_confirm": "Esto borrará los grupos actuales y creará otros nuevos. ¿Continuar?",
+        "tr_draft_import": "Importar combinaciones del borrador como grupos",
+        "tr_draft_import_clear": "Deshacer importación del borrador",
+        "tr_draft_import_done": "{created} grupos creados y {linked} sesiones vinculadas.",
+        "tr_draft_import_cleared": "{deleted} grupos borrados y {unlinked} sesiones desvinculadas.",
     },
 }
 

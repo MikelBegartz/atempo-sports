@@ -6,7 +6,7 @@ import math
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -652,3 +652,128 @@ def generate_draft_from_groups(db: Session, season) -> int:
             current += timedelta(days=1)
     db.commit()
     return created
+
+
+def _matching_group_for_key(
+    db: Session,
+    season_id: int,
+    key: tuple[int, time, time, int | None],
+    team_ids: set[int],
+) -> TrainingGroup | None:
+    wd, st, et, vid = key
+    wd_s = format_weekdays([wd])
+    candidates = (
+        db.query(TrainingGroup)
+        .options(joinedload(TrainingGroup.members))
+        .filter(
+            TrainingGroup.season_id == season_id,
+            TrainingGroup.venue_id == vid,
+            TrainingGroup.start_time == st,
+            TrainingGroup.end_time == et,
+            TrainingGroup.weekdays == wd_s,
+        )
+        .all()
+    )
+    for g in candidates:
+        if set(m.team_id for m in g.members) == team_ids:
+            return g
+    return None
+
+
+def import_draft_groups(db: Session, season) -> dict:
+    """Crea grups de temporada a partir de les combinacions del borrador.
+
+    Només afecta entrenos en estat borrador que encara no tenen un grup assignat.
+    """
+    from sqlalchemy.orm import joinedload
+
+    trainings = (
+        db.query(Training)
+        .options(joinedload(Training.team))
+        .filter(
+            Training.season_id == season.id,
+            Training.is_draft.is_(True),
+            Training.training_group_id.is_(None),
+            Training.training_solape_id.is_(None),
+        )
+        .all()
+    )
+
+    by_key: dict[tuple, list[Training]] = {}
+    for t in trainings:
+        if t.team_id is None:
+            continue
+        key = (t.session_date.weekday(), t.start_time, t.end_time, t.venue_id)
+        by_key.setdefault(key, []).append(t)
+
+    season_start = season.start_date
+    season_end = season.end_date
+    linked = 0
+    created = 0
+
+    for key, rows in by_key.items():
+        if len(rows) < 2:
+            continue
+        team_ids = {r.team_id for r in rows}
+        g = _matching_group_for_key(db, season.id, key, team_ids)
+        if g is None:
+            wd, st, et, vid = key
+            teams = sorted(
+                [r.team for r in rows if r.team],
+                key=lambda tm: (tm.name or "").casefold(),
+            )
+            label = f"Borrador: {group_label_for_teams(teams)}"[:120]
+            g = TrainingGroup(
+                season_id=season.id,
+                mode="shared",
+                weekdays=format_weekdays([wd]),
+                start_date=season_start,
+                end_date=season_end,
+                start_time=st,
+                end_time=et,
+                venue_id=vid,
+                is_draft=True,
+                label=label,
+            )
+            for i, tm in enumerate(teams):
+                g.members.append(TrainingGroupMember(team=tm, sort_order=i))
+            db.add(g)
+            db.flush()
+            created += 1
+        for r in rows:
+            r.training_group_id = g.id
+            linked += 1
+
+    db.commit()
+    return {"created": created, "linked": linked}
+
+
+def clear_draft_group_import(db: Session, season) -> dict:
+    """Desfà l'assignació automàtica: desvincula i esborra els grups 'Borrador: ...' en estat esborrador."""
+    groups = (
+        db.query(TrainingGroup)
+        .filter(
+            TrainingGroup.season_id == season.id,
+            TrainingGroup.is_draft.is_(True),
+            TrainingGroup.label.like("Borrador:%"),
+        )
+        .all()
+    )
+    unlinked = 0
+    for g in groups:
+        group_id = g.id
+        rows = (
+            db.query(Training)
+            .filter(
+                Training.season_id == season.id,
+                Training.is_draft.is_(True),
+                Training.training_group_id == group_id,
+            )
+            .all()
+        )
+        for r in rows:
+            r.training_group_id = None
+            unlinked += 1
+        db.delete(g)
+    db.commit()
+    return {"deleted": len(groups), "unlinked": unlinked}

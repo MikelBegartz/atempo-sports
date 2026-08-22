@@ -151,11 +151,13 @@ from app.teams_meta import (
 )
 from app.training_groups import (
     DEFAULT_GROUP_WEEKDAYS,
+    clear_draft_group_import,
     create_group,
     delete_group,
     estimate_capacity,
     format_weekdays,
     group_label_for_teams,
+    import_draft_groups,
     load_groups,
     parse_weekdays,
     preferred_weekdays_from_drafts,
@@ -3659,6 +3661,42 @@ def trainings_groups_generate_draft(
     lang = get_lang(request)
     n = generate_draft_from_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_groups_draft_generated").format(n=n)
+    return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/import-draft")
+def trainings_groups_import_draft(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    result = import_draft_groups(db, season)
+    request.session["plan_flash"] = translate(lang, "tr_draft_import_done").format(
+        created=result["created"], linked=result["linked"]
+    )
+    return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/clear-import")
+def trainings_groups_clear_import(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    result = clear_draft_group_import(db, season)
+    request.session["plan_flash"] = translate(lang, "tr_draft_import_cleared").format(
+        deleted=result["deleted"], unlinked=result["unlinked"]
+    )
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
 

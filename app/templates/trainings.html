@@ -164,6 +164,14 @@
 {# Accions: aplicar / modificar / descartar #}
 <div class="plan-actions">
   {% if drafts %}
+  <form method="post" action="/season/{{ season.id }}/trainings/groups/import-draft" style="display:inline">
+    <button type="submit" class="secondary">{{ t('tr_draft_import') }}</button>
+  </form>
+  <form method="post" action="/season/{{ season.id }}/trainings/groups/clear-import" style="display:inline">
+    <button type="submit" class="secondary">{{ t('tr_draft_import_clear') }}</button>
+  </form>
+  {% endif %}
+  {% if drafts %}
   <form method="post" action="/season/{{ season.id }}/trainings/plan/apply"
         onsubmit="return confirm('{{ t('tr_plan_apply_confirm').format(n=drafts|length) }}');"
         class="plan-apply-form">
