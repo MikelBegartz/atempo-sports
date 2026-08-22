@@ -182,6 +182,7 @@ class Conflict:
     match_ids: list[int] = field(default_factory=list)
     training_ids: list[int] = field(default_factory=list)
     person_id: int | None = None
+    d: date | None = None
     ignored: bool = False
     id: int | None = None
 
@@ -273,7 +274,7 @@ def _training_to_occ(t: Training, lang: str) -> _Occ:
     )
 
 
-def _ids(a: _Occ, b: _Occ | None = None) -> tuple[list[int], list[int]]:
+def _ids(a: _Occ, b: _Occ | None = None) -> tuple[list[int], list[int], date]:
     mids: list[int] = []
     tids: list[int] = []
     for x in ([a, b] if b else [a]):
@@ -281,7 +282,7 @@ def _ids(a: _Occ, b: _Occ | None = None) -> tuple[list[int], list[int]]:
             mids.append(x.eid)
         else:
             tids.append(x.eid)
-    return mids, tids
+    return mids, tids, a.d
 
 
 def find_conflicts(
@@ -371,7 +372,7 @@ def find_conflicts(
             )
             for pid in shared:
                 p = people_a[pid]
-                mids, tids = _ids(a, b)
+                mids, tids, d = _ids(a, b)
                 conflicts.append(
                     Conflict(
                         kind="person",
@@ -388,7 +389,7 @@ def find_conflicts(
                             time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
                             time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
                         ),
-                        match_ids=mids,
+                        match_ids=mids, d=d,
                         training_ids=tids,
                         person_id=pid,
                     )
@@ -421,7 +422,7 @@ def find_conflicts(
             share_ok = a.share and b.share
             venue = venues_by_id.get(a.venue_id)
             venue_name = venue.name if venue else f"pista #{a.venue_id}"
-            mids, tids = _ids(a, b)
+            mids, tids, d = _ids(a, b)
             conflicts.append(
                 Conflict(
                     kind="venue",
@@ -439,7 +440,7 @@ def find_conflicts(
                         time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
                     )
                     + (_t(lang, "venue_share") if share_ok else ""),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
@@ -448,7 +449,7 @@ def find_conflicts(
     for o in occs:
         t = o.team
         if t.not_before and o.start < t.not_before:
-            mids, tids = _ids(o)
+            mids, tids, d = _ids(o)
             conflicts.append(
                 Conflict(
                     kind="category",
@@ -461,12 +462,12 @@ def find_conflicts(
                         start=o.start.strftime("%H:%M"),
                         not_before=t.not_before.strftime("%H:%M"),
                     ),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
         if t.not_after and o.end > t.not_after:
-            mids, tids = _ids(o)
+            mids, tids, d = _ids(o)
             conflicts.append(
                 Conflict(
                     kind="category",
@@ -479,12 +480,12 @@ def find_conflicts(
                         end=o.end.strftime("%H:%M"),
                         not_after=t.not_after.strftime("%H:%M"),
                     ),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
         if t.only_venue_id and o.venue_id and o.venue_id != t.only_venue_id:
-            mids, tids = _ids(o)
+            mids, tids, d = _ids(o)
             conflicts.append(
                 Conflict(
                     kind="category",
@@ -495,7 +496,7 @@ def find_conflicts(
                         team=o.team_name,
                         title=o.title,
                     ),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
@@ -519,7 +520,7 @@ def find_conflicts(
                 if not _unavailability_hits(u, o.d, o.start, o.end):
                     continue
                 why = u.reason or _unavailability_label(u, lang)
-                mids, tids = _ids(o)
+                mids, tids, d = _ids(o)
                 conflicts.append(
                     Conflict(
                         kind="person",
@@ -534,7 +535,7 @@ def find_conflicts(
                             date=o.d.isoformat(),
                             time=f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}",
                         ),
-                        match_ids=mids,
+                        match_ids=mids, d=d,
                         training_ids=tids,
                         person_id=p.id,
                     )
@@ -557,7 +558,7 @@ def find_conflicts(
         day_avails = [a for a in avails if a.weekday == o.d.weekday()]
         if not day_avails:
             venue = venues_by_id.get(o.venue_id)
-            mids, tids = _ids(o)
+            mids, tids, d = _ids(o)
             conflicts.append(
                 Conflict(
                     kind="venue",
@@ -570,7 +571,7 @@ def find_conflicts(
                         team=o.team_name,
                         title=o.title,
                     ),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
@@ -580,7 +581,7 @@ def find_conflicts(
         )
         if not covered:
             venue = venues_by_id.get(o.venue_id)
-            mids, tids = _ids(o)
+            mids, tids, d = _ids(o)
             conflicts.append(
                 Conflict(
                     kind="venue",
@@ -593,7 +594,7 @@ def find_conflicts(
                         title=o.title,
                         time=f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}",
                     ),
-                    match_ids=mids,
+                    match_ids=mids, d=d,
                     training_ids=tids,
                 )
             )
@@ -635,7 +636,7 @@ def find_conflicts(
                 if not _needs_travel(a, b):
                     continue
                 # hueco > 30 min entre sesiones del mismo entrenador con desplaçament
-                mids, tids = _ids(a, b)
+                mids, tids, d = _ids(a, b)
                 conflicts.append(
                     Conflict(
                         kind="person",
@@ -651,7 +652,7 @@ def find_conflicts(
                             title_b=b.title,
                             date=day.isoformat(),
                         ),
-                        match_ids=mids,
+                        match_ids=mids, d=d,
                         training_ids=tids,
                         person_id=p.id,
                     )
@@ -710,6 +711,14 @@ def conflict_key(c: Conflict, match_team: dict, training_team: dict) -> str:
     return f"{c.kind}-{c.person_id or 'x'}-{c.severity}-{'-'.join(str(t) for t in sorted(teams) if t is not None)}"
 
 
+def _is_ignored_on(row: ConflictDB, d: date | None) -> bool:
+    if row.ignored:
+        return True
+    if not d:
+        return False
+    return any(i.ignored_date == d for i in row.ignored_dates)
+
+
 def persist_conflicts(
     db: Session,
     season_id: int,
@@ -725,19 +734,20 @@ def persist_conflicts(
             ConflictDB.season_id == season_id,
         ).all()
     }
-    seen = set()
+    seen: set[str] = set()
+    seen_rows: dict[str, ConflictDB] = {}
     for c in conflicts:
         key = conflict_key(c, match_team, training_team)
         if key in seen:
-            if key in existing:
-                c.id = existing[key].id
-                c.ignored = existing[key].ignored
+            c.id = seen_rows[key].id
+            c.ignored = _is_ignored_on(seen_rows[key], c.d)
             continue
         seen.add(key)
         if key in existing:
             row = existing[key]
+            seen_rows[key] = row
             c.id = row.id
-            c.ignored = row.ignored
+            c.ignored = _is_ignored_on(row, c.d)
             if row.resolved_at:
                 row.resolved_at = None
             continue
@@ -752,6 +762,7 @@ def persist_conflicts(
         db.add(row)
         db.flush()
         c.id = row.id
+        seen_rows[key] = row
     for key, row in existing.items():
         if key not in seen and not row.ignored:
             row.resolved_at = datetime.utcnow()

@@ -85,6 +85,7 @@ from app.db import (
     Club,
     CompetitionSource,
     Conflict,
+    ConflictIgnored,
     VenueAvailability,
     FedMatchChange,
     Match,
@@ -4453,21 +4454,27 @@ def conflict_detail(
     if not selected:
         request.session["conflict_flash"] = translate(lang, "conflict_already_resolved")
         return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    row = db.get(Conflict, selected.id) if selected.id else None
+    ignored_dates = {i.ignored_date for i in (row.ignored_dates if row else [])}
+    is_ignored_day = selected.d in ignored_dates if selected.d else False
     return templates.TemplateResponse(
         request,
         "conflict_detail.html",
         {
             **ctx,
             "conflict": selected,
+            "conflict_day": selected.d,
             "related": related,
             "matches": {m.id: m for m in matches},
             "trainings": {t.id: t for t in trainings},
+            "ignored_series": row.ignored if row else False,
+            "is_ignored_day": is_ignored_day,
         },
     )
 
 
 @app.post("/season/{season_id}/conflict/{conflict_key}/ignore")
-def conflict_ignore(
+async def conflict_ignore(
     season_id: int,
     conflict_key: str,
     request: Request,
@@ -4476,20 +4483,42 @@ def conflict_ignore(
     season = db.get(Season, season_id)
     if not season:
         return RedirectResponse("/app", status_code=303)
+    form = await request.form()
+    scope = str(form.get("scope") or "").strip()
     row = (
         db.query(Conflict)
         .filter(Conflict.season_id == season_id, Conflict.conflict_key == conflict_key)
         .first()
     )
-    if row:
+    if not row:
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    if scope == "series":
         row.ignored = True
         row.ignored_at = datetime.utcnow()
-        db.commit()
-    return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    elif scope == "day":
+        day_str = str(form.get("day") or "").strip()
+        if day_str:
+            try:
+                day = date.fromisoformat(day_str)
+            except ValueError:
+                day = None
+            if day:
+                exists = (
+                    db.query(ConflictIgnored)
+                    .filter(
+                        ConflictIgnored.conflict_id == row.id,
+                        ConflictIgnored.ignored_date == day,
+                    )
+                    .first()
+                )
+                if not exists:
+                    db.add(ConflictIgnored(conflict_id=row.id, ignored_date=day))
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 
 @app.post("/season/{season_id}/conflict/{conflict_key}/unignore")
-def conflict_unignore(
+async def conflict_unignore(
     season_id: int,
     conflict_key: str,
     request: Request,
@@ -4498,16 +4527,32 @@ def conflict_unignore(
     season = db.get(Season, season_id)
     if not season:
         return RedirectResponse("/app", status_code=303)
+    form = await request.form()
+    scope = str(form.get("scope") or "").strip()
     row = (
         db.query(Conflict)
         .filter(Conflict.season_id == season_id, Conflict.conflict_key == conflict_key)
         .first()
     )
-    if row:
+    if not row:
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    if scope == "series":
         row.ignored = False
         row.ignored_at = None
-        db.commit()
-    return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    elif scope == "day":
+        day_str = str(form.get("day") or "").strip()
+        if day_str:
+            try:
+                day = date.fromisoformat(day_str)
+            except ValueError:
+                day = None
+            if day:
+                db.query(ConflictIgnored).filter(
+                    ConflictIgnored.conflict_id == row.id,
+                    ConflictIgnored.ignored_date == day,
+                ).delete()
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 
 @app.get("/season/{season_id}/trainings/group-propose")

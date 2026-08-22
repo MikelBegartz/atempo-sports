@@ -496,6 +496,22 @@ class Conflict(Base):
     ignored_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     season: Mapped[Season] = relationship()
+    ignored_dates: Mapped[list["ConflictIgnored"]] = relationship(
+        back_populates="conflict", cascade="all, delete-orphan"
+    )
+
+
+class ConflictIgnored(Base):
+    """Dia concret d'un conflicte que s'ha ignorat."""
+
+    __tablename__ = "conflict_ignored_dates"
+    __table_args__ = (UniqueConstraint("conflict_id", "ignored_date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conflict_id: Mapped[int] = mapped_column(ForeignKey("conflicts.id"), nullable=False)
+    ignored_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    conflict: Mapped[Conflict] = relationship(back_populates="ignored_dates")
 
 
 def init_db() -> None:

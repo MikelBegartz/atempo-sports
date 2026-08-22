@@ -10,14 +10,42 @@
 
 <div class="conflict {{ conflict.severity }}" style="margin:1rem 0;padding:1rem;border-radius:10px">
   <div style="font-size:1.05rem;font-weight:600">{{ conflict.message }}</div>
+  {% if conflict_day %}
+  <div class="muted" style="font-size:0.9rem;margin-top:0.25rem">{{ conflict_day }}</div>
+  {% endif %}
 </div>
 
 <div class="setup-banner" style="margin:0.75rem 0">
   <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem">
     <p style="margin:0;font-weight:600">{{ t('conflict_detail_question') }}</p>
-    <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" onsubmit="return confirm('{{ t('conflict_action_ignore') }}?')" style="margin:0">
-      <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_action_ignore') }}</button>
-    </form>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+      {% if conflict_day %}
+        {% if is_ignored_day %}
+        <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/unignore" style="margin:0">
+          <input type="hidden" name="scope" value="day" />
+          <input type="hidden" name="day" value="{{ conflict_day }}" />
+          <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_unignore') }} · {{ conflict_day }}</button>
+        </form>
+        {% else %}
+        <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" style="margin:0">
+          <input type="hidden" name="scope" value="day" />
+          <input type="hidden" name="day" value="{{ conflict_day }}" />
+          <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_action_ignore') }} · {{ conflict_day }}</button>
+        </form>
+        {% endif %}
+      {% endif %}
+      {% if ignored_series %}
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/unignore" style="margin:0">
+        <input type="hidden" name="scope" value="series" />
+        <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_unignore') }} · sèrie</button>
+      </form>
+      {% else %}
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" style="margin:0" onsubmit="return confirm('{{ t('conflict_action_ignore') }}?')">
+        <input type="hidden" name="scope" value="series" />
+        <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_action_ignore') }} · tota la sèrie</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   <div class="conflict-actions" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:baseline">
     {% if conflict.match_ids %}
