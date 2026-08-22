@@ -106,13 +106,7 @@ from app.db import (
 )
 from app.export_csv import export_filename, export_matches_csv, export_trainings_csv
 from app.fed_sync import sync_club_federation_matches
-from app.import_fed import (
-    import_competition,
-    list_aliases,
-    list_all_federation_competitions,
-    list_fecapa_competitions,
-    list_sources,
-)
+
 from app.import_lists import (
     PEOPLE_TEMPLATE,
     ROSTER_TEMPLATE,
@@ -135,6 +129,7 @@ from app.overlaps import (
 from app.fvp import import_fvp_matches, search_fvp_club_hits
 from app.link_rfep import (
     FED_SOURCES,
+    ensure_team_for_fed,
     group_hits_by_team,
     has_rfep_link,
     import_selected_fed_teams,
@@ -4793,39 +4788,36 @@ def conflicts_auto_all(season_id: int, db: Session = Depends(get_db)):
     )
 
 @app.get("/season/{season_id}/import", response_class=HTMLResponse)
-def import_page(season_id: int, request: Request, db: Session = Depends(get_db)):
+def import_page(
+    season_id: int,
+    request: Request,
+    q: str = "",
+    db: Session = Depends(get_db),
+):
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
-    season = ctx["season"]
-    teams = (
-        db.query(Team).filter(Team.season_id == season_id).order_by(Team.name).all()
-    )
-    known_comps: list[tuple[str, int, str]] = []
-    fecapa_error = None
-    try:
-        known_comps = list_all_federation_competitions()
-    except Exception as exc:  # noqa: BLE001
-        fecapa_error = str(exc)
-    fecapa_comps = [(idc, name) for src, idc, name in known_comps if src == "fecapa"]
+    q = (q or request.query_params.get("q") or "").strip()
+    hits = []
+    error = None
+    if q:
+        try:
+            hits = search_all_federations(q)
+        except Exception as exc:  # noqa: BLE001
+            error = str(exc)
+    hit_groups = group_hits_by_team(hits)
     return templates.TemplateResponse(
         request,
         "import.html",
         {
             **ctx,
-            "teams": teams,
-            "sources": list_sources(db, season_id),
-            "aliases": list_aliases(db, season_id),
-            "report": None,
-            "known_comps": known_comps,
-            "fecapa_comps": fecapa_comps[:80],
-            "fecapa_error": fecapa_error,
-            "known_rfep": [
-                (3150, "OK Liga masc 2025-26"),
-                (3151, "OK Liga Iberdrola 2025-26"),
-                (3568, "OK Liga masc 2026-27"),
-                (3569, "OK Liga Iberdrola 2026-27"),
-            ],
+            "source": "global",
+            "q": q,
+            "hits": hits,
+            "hit_groups": hit_groups,
+            "error": error,
+            "import_flash": request.session.pop("import_flash", None),
+            "import_error": request.session.pop("import_error", None),
         },
     )
 
@@ -4914,117 +4906,43 @@ async def import_run(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
-    season = ctx["season"]
     form = await request.form()
-    source = str(form.get("source") or "")
-    idc = str(form.get("idc") or "")
-    label = str(form.get("label") or "")
-    apply = str(form.get("apply") or "")
-
-    try:
-        idc_int = int(idc.strip())
-    except ValueError:
-        idc_int = 0
-
-    if not idc_int or source not in FED_SOURCES:
-        return RedirectResponse(f"/season/{season_id}/import", status_code=303)
-
-    # Procesar mapeos i equips nous del formulari de vinculació
-    # map_{team_id} conté el nom oficial vinculat
-    # new_{nom_oficial} conté el nom intern per a un equip nou
-    for key, value in form.multi_items():
-        if key.startswith("map_"):
-            team_id_str = key.split("_", 1)[1]
-            ext = str(value).strip()
-            if not ext:
-                continue
-            try:
-                team_id = int(team_id_str)
-            except ValueError:
-                continue
-            existing = (
-                db.query(TeamExternalName)
-                .filter(
-                    TeamExternalName.team_id == team_id,
-                    TeamExternalName.source == source,
-                    TeamExternalName.external_name == ext,
-                )
-                .first()
-            )
-            if not existing:
-                db.add(
-                    TeamExternalName(
-                        team_id=team_id,
-                        source=source,
-                        external_name=ext,
-                    )
-                )
-                db.commit()
-        elif key.startswith("new_"):
-            ext = key.split("_", 1)[1]
-            new_name = str(value).strip()
-            if not new_name:
-                continue
-            team = Team(
-                season_id=season_id,
-                name=new_name,
-                official_name=ext,
-                source=source,
-                category=label.strip() or None,
-            )
-            db.add(team)
-            db.commit()
-            db.refresh(team)
-            db.add(
-                TeamExternalName(
-                    team_id=team.id,
-                    source=source,
-                    external_name=ext,
-                )
-            )
-            db.commit()
-
-    report = None
-    if apply:
-        report = import_competition(
-            db,
-            season_id,
-            source,
-            idc_int,
-            apply=True,
-            label=label.strip() or None,
+    q = str(form.get("q") or "").strip()
+    picks = form.getlist("pick")
+    if not picks:
+        request.session["import_error"] = translate(
+            get_lang(request), "rfep_need_pick"
         )
+        return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
-    teams = (
-        db.query(Team).filter(Team.season_id == season_id).order_by(Team.name).all()
-    )
-    fecapa_comps: list[tuple[int, str]] = []
-    fecapa_error = None
-    try:
-        fecapa_comps = list_fecapa_competitions()
-    except Exception as exc:  # noqa: BLE001
-        fecapa_error = str(exc)
+    for raw in picks:
+        parts = str(raw).split("||", 3)
+        if len(parts) != 4:
+            continue
+        src, idc_s, ext_name, comp = [p.strip() for p in parts]
+        if src not in FED_SOURCES:
+            continue
+        try:
+            idc = int(idc_s)
+        except ValueError:
+            continue
+        try:
+            ensure_team_for_fed(
+                db,
+                season_id,
+                external_name=ext_name,
+                competition=comp,
+                source=src,
+            )
+        except Exception as exc:  # noqa: BLE001
+            request.session["import_error"] = str(exc)
+            return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
-    return templates.TemplateResponse(
-        request,
-        "import.html",
-        {
-            **ctx,
-            "teams": teams,
-            "sources": list_sources(db, season_id),
-            "aliases": list_aliases(db, season_id),
-            "report": report,
-            "known_comps": [],
-            "fecapa_comps": fecapa_comps[:80],
-            "fecapa_error": fecapa_error,
-            "known_rfep": [
-                (3150, "OK Liga masc 2025-26"),
-                (3151, "OK Liga Iberdrola 2025-26"),
-                (3568, "OK Liga masc 2026-27"),
-                (3569, "OK Liga Iberdrola 2026-27"),
-            ],
-        },
-    )
+    db.commit()
+    lang = get_lang(request)
+    n = len(picks)
+    request.session["import_flash"] = translate(lang, "fed_import_ok").format(n=n)
+    return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
 
 @app.post("/season/{season_id}/import/sources/{source_id}/delete")
