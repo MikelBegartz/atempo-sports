@@ -2977,6 +2977,20 @@ async def trainings_by_team_add(
             if g:
                 group_id = g.id
 
+        if group_id:
+            db.query(Training).filter(
+                Training.season_id == season_id,
+                Training.team_id.in_(team_ids),
+                Training.session_date.in_(dates),
+                Training.start_time == st,
+                Training.end_time == et,
+                Training.venue_id == venue_id,
+                Training.is_draft.is_(True),
+            ).update(
+                {Training.training_group_id: group_id, Training.allows_share: True},
+                synchronize_session=False,
+            )
+
         for tid in team_ids:
             series = f"bt{tid}-{uuid.uuid4().hex[:6]}"
             for cur in dates:
