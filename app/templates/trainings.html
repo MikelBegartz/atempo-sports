@@ -143,7 +143,7 @@
             <div class="plan-chart-avail" style="left: {{ a.left }}%; width: {{ a.width }}%" title="{{ t('tr_chart_avail_title') }}"></div>
             {% endfor %}
             {% for bar in lane.bars %}
-            <div class="plan-chart-bar{% if bar.is_group %} is-group{% endif %}{% if bar.is_solape %} is-solape{% endif %}" style="left: {{ bar.left }}%; width: {{ bar.width }}%; background: {{ bar.color }}; --bar-color: {{ bar.color }}; top: calc(var(--lane-h) * {{ bar.lane }} + 0.45rem); margin-top: 0;">
+            <div class="plan-chart-bar{% if bar.is_group %} is-group{% endif %}{% if bar.is_solape %} is-solape{% endif %}" style="left: {{ bar.left }}%; width: {{ bar.width }}%; background: {{ bar.color }}; --bar-color: {{ bar.color }}; top: calc(var(--lane-h) * {{ bar.lane }}); height: var(--lane-h); margin-top: 0;">
               <span class="plan-chart-bar-text">{{ bar.team }}</span>
               <span class="plan-chart-tip" role="tooltip">{{ bar.title }}</span>
             </div>
