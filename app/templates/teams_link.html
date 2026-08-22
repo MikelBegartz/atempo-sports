@@ -7,7 +7,7 @@
     <p class="muted">{{ t('teams_link_intro') }}</p>
   </div>
   <div class="page-head-actions">
-    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
+    <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('nav_teams') }}</a>
   </div>
 </div>
 
@@ -19,37 +19,36 @@
         <tr>
           <th>{{ t('teams_link_internal') }}</th>
           <th>{{ t('teams_link_official') }}</th>
-          <th>{{ t('teams_link_external_id') }}</th>
-          <th>{{ t('teams_link_source') }}</th>
+          <th>{{ t('teams_link_alias') }}</th>
         </tr>
       </thead>
       <tbody>
-        {% for tm in teams %}
+        {% for club in club_teams %}
         <tr>
+          <td>{{ club.name }}</td>
           <td>
-            <input type="text" name="name_{{ tm.id }}" value="{{ tm.name }}" style="min-width:10rem" />
+            <select name="link_{{ club.id }}">
+              <option value="">{{ t('import_link_choose') }}</option>
+              {% for fed in fed_teams %}
+              <option value="{{ fed.id }}">{{ fed.name }} ({{ fed.source }}{% if fed.category %} · {{ fed.category }}{% endif %})</option>
+              {% endfor %}
+            </select>
           </td>
           <td>
-            <input type="text" name="official_{{ tm.id }}" value="{{ tm.official_name or '' }}" style="min-width:12rem" />
-          </td>
-          <td>
-            <input type="text" name="external_{{ tm.id }}" value="{{ tm.external_id or '' }}" style="min-width:8rem" />
-          </td>
-          <td>
-            <input type="text" name="source_{{ tm.id }}" value="{{ tm.source or '' }}" style="min-width:5rem" />
+            {% if club.external_names %}
+              {% for ext in club.external_names %}
+              <span class="badge" style="font-size:0.8rem">{{ ext.source }}: {{ ext.external_name }}</span>
+              {% endfor %}
+            {% elif club.official_name %}
+              {{ club.official_name }}
+            {% else %}
+              —
+            {% endif %}
           </td>
         </tr>
-        {% for ext in tm.external_names %}
-        <tr>
-          <td class="muted" style="padding-left:1.5rem">↳ {{ t('teams_link_alias') }}</td>
-          <td>{{ ext.external_name }}</td>
-          <td class="muted">{{ ext.source }}</td>
-          <td></td>
-        </tr>
-        {% endfor %}
         {% else %}
         <tr>
-          <td colspan="4" class="muted">{{ t('teams_empty') }}</td>
+          <td colspan="3" class="muted">{{ t('teams_empty') }}</td>
         </tr>
         {% endfor %}
       </tbody>

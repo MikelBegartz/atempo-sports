@@ -1829,10 +1829,14 @@ def teams_link(
         .order_by(Team.name)
         .all()
     )
+    club_teams = [
+        t for t in teams if not t.source or t.source not in FED_SOURCES
+    ]
+    fed_teams = [t for t in teams if t.source and t.source in FED_SOURCES]
     return templates.TemplateResponse(
         request,
         "teams_link.html",
-        {**ctx, "teams": teams},
+        {**ctx, "club_teams": club_teams, "fed_teams": fed_teams},
     )
 
 
@@ -1846,17 +1850,49 @@ async def teams_link_update(
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
     form = await request.form()
-    teams = db.query(Team).filter(Team.season_id == season_id).all()
-    for tm in teams:
-        name = str(form.get(f"name_{tm.id}") or "").strip()
-        official = str(form.get(f"official_{tm.id}") or "").strip() or None
-        external_id = str(form.get(f"external_{tm.id}") or "").strip() or None
-        source = str(form.get(f"source_{tm.id}") or "").strip() or None
-        if name:
-            tm.name = name
-        tm.official_name = official
-        tm.external_id = external_id
-        tm.source = source
+    club_teams = (
+        db.query(Team)
+        .filter(Team.season_id == season_id, Team.source.notin_(FED_SOURCES))
+        .all()
+    )
+    for club in club_teams:
+        raw = form.get(f"link_{club.id}")
+        if not raw:
+            continue
+        try:
+            fed_id = int(str(raw).strip())
+        except ValueError:
+            continue
+        if fed_id == club.id:
+            continue
+        fed = db.get(Team, fed_id)
+        if not fed or fed.season_id != season_id:
+            continue
+
+        # Copiar dades federatives al club
+        if not club.official_name:
+            club.official_name = fed.name
+        if not club.category:
+            club.category = fed.category
+        if not club.branch:
+            club.branch = fed.branch
+        if not club.external_id:
+            club.external_id = fed.external_id
+
+        # Moure els noms externs de la federació cap a l'equip del club
+        for ext in list(fed.external_names):
+            ext.team_id = club.id
+
+        # Reassignar partits i entrenaments de l'equip importat
+        db.query(Match).filter(Match.team_id == fed.id).update(
+            {"team_id": club.id}, synchronize_session=False
+        )
+        db.query(Training).filter(Training.team_id == fed.id).update(
+            {"team_id": club.id}, synchronize_session=False
+        )
+
+        db.delete(fed)
+
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams/link", status_code=303)
 
