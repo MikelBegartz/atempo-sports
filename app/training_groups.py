@@ -605,7 +605,7 @@ def delete_group(db: Session, season_id: int, group_id: int) -> bool:
 def generate_draft_from_groups(db: Session, season) -> int:
     """Crea sessions de borrador a partir de les plantilles de grup."""
     groups = load_groups(db, season.id)
-    season_start = season.start_date or date.today()
+    season_start = getattr(season, "start_date", None) or date.today()
     season_end = season.end_date or (season_start + timedelta(days=365))
     created = 0
     for g in groups:
@@ -706,7 +706,7 @@ def import_draft_groups(db: Session, season) -> dict:
         key = (t.session_date.weekday(), t.start_time, t.end_time, t.venue_id)
         by_key.setdefault(key, []).append(t)
 
-    season_start = season.start_date
+    season_start = None
     season_end = season.end_date
     linked = 0
     created = 0

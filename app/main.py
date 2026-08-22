@@ -3676,9 +3676,13 @@ def trainings_groups_import_draft(
     season = ctx["season"]
     lang = get_lang(request)
     result = import_draft_groups(db, season)
-    request.session["plan_flash"] = translate(lang, "tr_draft_import_done").format(
-        created=result["created"], linked=result["linked"]
-    )
+    msg = translate(lang, "tr_draft_import_done")
+    if msg:
+        request.session["plan_flash"] = msg.format(
+            created=result["created"], linked=result["linked"]
+        )
+    else:
+        request.session["plan_flash"] = f"Creats {result['created']} grups, {result['linked']} sessions vinculades"
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
 
@@ -3694,9 +3698,13 @@ def trainings_groups_clear_import(
     season = ctx["season"]
     lang = get_lang(request)
     result = clear_draft_group_import(db, season)
-    request.session["plan_flash"] = translate(lang, "tr_draft_import_cleared").format(
-        deleted=result["deleted"], unlinked=result["unlinked"]
-    )
+    msg = translate(lang, "tr_draft_import_cleared")
+    if msg:
+        request.session["plan_flash"] = msg.format(
+            deleted=result["deleted"], unlinked=result["unlinked"]
+        )
+    else:
+        request.session["plan_flash"] = f"Esborrats {result['deleted']} grups, {result['unlinked']} sessions desvinculades"
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
 
