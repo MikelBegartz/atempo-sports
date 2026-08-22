@@ -49,55 +49,66 @@
   </a>
 </div>
 
+<style>
+.cal-timeline { display: flex; flex-direction: column; gap: 0.5rem; min-width: 800px; }
+.cal-timeline-header, .cal-timeline-row { display: flex; align-items: stretch; }
+.cal-timeline-dayhead { width: 6.5rem; flex-shrink: 0; padding: 0.5rem; display: flex; flex-direction: column; justify-content: center; }
+.cal-timeline-track { flex: 1; position: relative; background: repeating-linear-gradient(90deg, transparent, transparent 19.9%, var(--line) 20%); }
+.cal-timeline-row.is-weekend .cal-timeline-track { background-color: var(--soft-bg, #f7f7f7); }
+.cal-timeline-tick { position: absolute; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted); }
+.cal-event { position: absolute; display: block; padding: 0.35rem 0.45rem; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.78rem; line-height: 1.15; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+.cal-event .draft-team { font-weight: 600; }
+.cal-event .draft-time, .cal-event .draft-venue { font-size: 0.7rem; opacity: 0.9; }
+.cal-event .draft-sides { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.cal-event .draft-side { font-weight: 600; }
+</style>
+
 <section class="match-draft">
   <h2 class="match-calendar-title">{{ t('calendar_title') }}</h2>
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
   <div class="draft-scroll">
-    <table class="draft-grid">
-      <thead>
-        <tr>
-          <th class="draft-day-head">{{ t('calendar_week') }}</th>
+    <div class="cal-timeline">
+      <div class="cal-timeline-header">
+        <div class="cal-timeline-dayhead"></div>
+        <div class="cal-timeline-track" style="height:1.5rem">
           {% for h in draft_hours %}
-          <th class="draft-hour-head">{{ h|time_input }}</th>
+          <span class="cal-timeline-tick" style="left:{{ ((h.hour*60 + h.minute - day_start_min) / day_range * 100)|round(2) }}%">{{ h|time_input }}</span>
           {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in draft_days %}
-        <tr class="draft-day{% if d.weekday() >= 5 %} is-weekend{% endif %}">
-          <td class="draft-day-cell">
-            <strong>{{ weekday_names[d.weekday()] }}</strong>
-            <span class="muted">{{ d.strftime('%d/%m') }}</span>
-          </td>
-          {% for h in draft_hours %}
-          <td class="draft-slot">
-            {% for slot in draft_grid[d][h] %}
-            <a class="draft-match status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}">
-              {% if slot.kind == 'match' %}
-              <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
-              <div class="draft-sides">
-                <div class="draft-side">{{ slot.home }}</div>
-                <div class="draft-side">{{ slot.away }}</div>
-              </div>
-              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
-              {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
-              {% else %}
-              <div class="draft-title">{{ t('tr_title') }}</div>
-              {% for team in slot.teams %}
-              <div class="draft-team">{{ team }}</div>
-              {% endfor %}
-              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
-              {% if slot.venue %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
-              {% endif %}
-            </a>
+        </div>
+      </div>
+      {% for d in draft_days %}
+      <div class="cal-timeline-row{% if d.weekday() >= 5 %} is-weekend{% endif %}">
+        <div class="cal-timeline-dayhead">
+          <strong>{{ weekday_names[d.weekday()] }}</strong>
+          <span class="muted">{{ d.strftime('%d/%m') }}</span>
+        </div>
+        <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 38 + 10) }}px">
+          {% for slot in draft_grid.get(d, []) %}
+          <a class="cal-event status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}"
+             style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 38 + 5 }}px">
+            {% if slot.kind == 'match' %}
+            <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
+            <div class="draft-sides">
+              <div class="draft-side">{{ slot.home }}</div>
+              <div class="draft-side">{{ slot.away }}</div>
+            </div>
+            <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+            {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
+            {% else %}
+            <div class="draft-title">{{ t('tr_title') }}</div>
+            {% for team in slot.teams %}
+            <div class="draft-team">{{ team }}</div>
             {% endfor %}
-          </td>
+            <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+            {% if slot.venue %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
+            {% endif %}
+          </a>
           {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
   </div>
   {% else %}
   <p class="muted">{{ t('calendar_no_events') }}</p>

@@ -307,13 +307,17 @@ def build_match_draft(
     return sorted_days, sorted_hours, grid, start, end
 
 
+def _minutes(t: time) -> int:
+    return t.hour * 60 + t.minute
+
+
 def build_global_draft(
     db: Session,
     season_id: int,
     any_day: date,
     today: date | None = None,
-) -> tuple[list[date], list[time], dict[date, dict[time, list[dict]]], date, date]:
-    """Vista de borrador combinada: partits + entrenaments."""
+) -> tuple[list[date], list[time], dict[date, list[dict]], date, date, time, time, int, dict[date, int]]:
+    """Vista de calendario combinada: partits + entrenaments."""
     today = today or date.today()
     monday = monday_of(any_day)
     week_blocks = [build_week_block(monday + timedelta(days=7 * i), today) for i in range(4)]
@@ -353,9 +357,9 @@ def build_global_draft(
         .all()
     )
 
+    day_slots: dict[date, list[dict]] = {}
     all_hours: set[time] = set()
-    event_days: set[date] = set()
-    by_day_hour: dict[tuple[date, time], list[dict]] = {}
+    all_minutes: list[int] = []
 
     for m in matches:
         if not m.match_date or not m.start_time:
@@ -370,15 +374,16 @@ def build_global_draft(
             "team": m.team.name if m.team else "",
             "competition": m.team.category or "",
             "venue": match_place_label(m) or "",
+            "date": m.match_date,
             "start": m.start_time,
             "end": end_t,
             "status": status,
             "href": f"/season/{season_id}/matches?m={m.id}#fitxa",
             "is_home": bool(m.is_home),
         }
-        by_day_hour.setdefault((m.match_date, m.start_time), []).append(slot)
+        day_slots.setdefault(m.match_date, []).append(slot)
         all_hours.add(m.start_time)
-        event_days.add(m.match_date)
+        all_minutes.extend([_minutes(m.start_time), _minutes(end_t)])
 
     group_slots: dict[tuple, dict] = {}
     for t in trainings:
@@ -414,16 +419,47 @@ def build_global_draft(
         elif t.id in soft_ids and group_slots[key]["status"] != STATUS_HARD:
             group_slots[key]["status"] = STATUS_SOFT
         all_hours.add(t.start_time)
-        event_days.add(t.session_date)
+        all_minutes.extend([_minutes(t.start_time), _minutes(t.end_time)])
 
     for slot in group_slots.values():
-        by_day_hour.setdefault((slot["date"], slot["start"]), []).append(slot)
+        day_slots.setdefault(slot["date"], []).append(slot)
 
-    sorted_days = sorted(event_days)
+    sorted_days = sorted(day_slots.keys())
     if not sorted_days:
         sorted_days = days
     sorted_hours = sorted(all_hours)
     if not sorted_hours:
         sorted_hours = [time(9, 0), time(17, 0)]
-    grid: dict[date, dict[time, list[dict]]] = {d: {h: by_day_hour.get((d, h), []) for h in sorted_hours} for d in sorted_days}
-    return sorted_days, sorted_hours, grid, start, end
+
+    if all_minutes:
+        min_min = min(all_minutes)
+        max_min = max(all_minutes)
+    else:
+        min_min = _minutes(time(17, 0))
+        max_min = _minutes(time(22, 0))
+    day_start_min = (min_min // 15) * 15 - 15
+    day_end_min = ((max_min + 14) // 15) * 15 + 15
+    day_range = max(day_end_min - day_start_min, 1)
+
+    day_max_lanes: dict[date, int] = {}
+    for d, slots in day_slots.items():
+        slots.sort(key=lambda s: (_minutes(s["start"]), _minutes(s["end"])))
+        lanes: list[int] = []
+        for slot in slots:
+            s = _minutes(slot["start"])
+            e = _minutes(slot["end"])
+            lane = -1
+            for i, last_end in enumerate(lanes):
+                if last_end <= s:
+                    lane = i
+                    lanes[i] = e
+                    break
+            if lane == -1:
+                lanes.append(e)
+                lane = len(lanes) - 1
+            slot["lane"] = lane
+            slot["left_pct"] = round((s - day_start_min) / day_range * 100, 2)
+            slot["width_pct"] = round((e - s) / day_range * 100, 2)
+        day_max_lanes[d] = len(lanes)
+
+    return sorted_days, sorted_hours, day_slots, start, end, day_start_min, day_range, day_max_lanes

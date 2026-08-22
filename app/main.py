@@ -4882,9 +4882,16 @@ def calendar_week(
     today = date.today()
     from app.calendar_week import build_global_draft
     from app.db import Training
-    draft_days, draft_hours, draft_grid, draft_start, draft_end = build_global_draft(
-        db, season_id, focus, today=today
-    )
+    (
+        draft_days,
+        draft_hours,
+        draft_grid,
+        draft_start,
+        draft_end,
+        day_start_min,
+        day_range,
+        day_max_lanes,
+    ) = build_global_draft(db, season_id, focus, today=today)
     has_live_trainings = (
         db.query(Training)
         .filter(Training.season_id == season_id, Training.is_draft.is_(False))
@@ -4915,6 +4922,9 @@ def calendar_week(
             "draft_grid": draft_grid,
             "draft_start": draft_start,
             "draft_end": draft_end,
+            "day_start_min": day_start_min,
+            "day_range": day_range,
+            "day_max_lanes": day_max_lanes,
             "today": today,
             "weekday_names": weekdays(lang),
             "focus_day": focus.isoformat(),
