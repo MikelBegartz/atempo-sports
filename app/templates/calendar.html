@@ -20,7 +20,6 @@
   <span class="cal-legend-item"><i class="cal-swatch hard"></i>{{ t('calendar_legend_hard') }}</span>
   <span class="cal-legend-item"><i class="cal-swatch soft"></i>{{ t('calendar_legend_soft') }}</span>
   <span class="cal-legend-item"><i class="cal-swatch ok"></i>{{ t('calendar_legend_ok') }}</span>
-  <span class="cal-legend-item"><i class="cal-swatch changed"></i>{{ t('calendar_legend_changed') }}</span>
   <span class="cal-legend-item"><i class="cal-swatch training"></i>{{ t('calendar_legend_training') }}</span>
 </div>
 
@@ -50,7 +49,7 @@
 </div>
 
 <style>
-.draft-scroll { overflow-x: auto; }
+.draft-scroll { max-height: 70vh; overflow: auto; }
 .cal-timeline { position: relative; display: flex; flex-direction: column; min-width: 800px; border-bottom: 1px solid var(--line); }
 .cal-timeline-header, .cal-timeline-row { display: flex; align-items: stretch; }
 .cal-timeline-header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -64,6 +63,11 @@
 .cal-timeline-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
 .cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.75rem; line-height: 1.05; height: 84px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.15); z-index: 2; }
 .cal-event.status-training { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
+.cal-event.status-ok { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
+.cal-event.status-soft { background: #c76828 !important; border-color: #a04e1d !important; color: #fff; }
+.cal-swatch.ok, .cal-swatch.training { background: #c8e6c9; border-color: #a5d6a7; }
+.cal-swatch.soft { background: #c76828; border-color: #a04e1d; }
+.cal-swatch.changed, .cal-swatch.changed + span { display: none; }
 .cal-event .draft-team { font-weight: 600; }
 .cal-event .draft-time, .cal-event .draft-venue { font-size: 0.68rem; opacity: 0.9; }
 .cal-event .draft-sides { display: flex; gap: 0.25rem; flex-wrap: wrap; }
@@ -96,10 +100,10 @@
             <strong>{{ weekday_names[d.weekday()] }}</strong>
             <span class="muted">{{ d.strftime('%d/%m') }}</span>
           </div>
-          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 84 + 28) }}px">
+          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 84 + 16) }}px">
             {% for slot in draft_grid.get(d, []) %}
             <a class="cal-event status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}"
-               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 84 + 14 }}px">
+               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 84 + 8 }}px">
               {% if slot.kind == 'match' %}
               <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
               <div class="draft-sides">
