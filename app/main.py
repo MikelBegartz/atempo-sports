@@ -3471,7 +3471,10 @@ def _refresh_training_draft(db: Session, season):
         default_plan_range()[1],
         season.end_date or default_end_date_for_season(season.name),
     )
-    return generate_draft_plan(db, season=season, start=start, end=end)
+    gen = generate_draft_plan(db, season=season, start=start, end=end)
+    db.commit()
+    import_draft_groups(db, season)
+    return gen
 
 
 @app.api_route(
