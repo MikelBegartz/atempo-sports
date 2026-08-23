@@ -4496,10 +4496,10 @@ def conflict_detail(
         t0 = cl[0]
         team_names = [t.team.name for t in cl]
         categories = [t.team.category or "" for t in cl]
-        if t0.training_group and t0.training_group.label:
+        if t0.training_group_id:
             kind_label = "Grup"
-            label = t0.training_group.label
-            subtitle = ", ".join(team_names)
+            label = (t0.training_group.label or ", ".join(team_names)) if t0.training_group else ", ".join(team_names)
+            subtitle = ", ".join(c for c in categories if c)
         else:
             kind_label = "Entrenament"
             label = ", ".join(team_names)

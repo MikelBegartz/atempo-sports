@@ -422,8 +422,8 @@ def find_conflicts(
             share_ok = all(o.share for o in cluster)
             venue = venues_by_id.get(venue_id)
             venue_name = venue.name if venue else f"pista #{venue_id}"
-            team_names = [o.team_name for o in cluster]
-            times = [f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}" for o in cluster]
+            team_names = list(dict.fromkeys([o.team_name for o in cluster]))
+            times = list(dict.fromkeys([f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}" for o in cluster]))
             if len(cluster) == 2:
                 a, b = cluster[0], cluster[1]
                 message = _t(

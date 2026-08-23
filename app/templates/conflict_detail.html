@@ -22,6 +22,13 @@
 {% set range_max_hour = ((ends|max // 60) + 1) * 60 %}
 {% set time_span = range_max_hour - range_min_hour %}
 {% set n_events = conflict_events|length %}
+{% if conflict.severity == 'soft' %}
+{% set box_color = 'var(--warn)' %}
+{% set box_bg = 'var(--warn-bg)' %}
+{% else %}
+{% set box_color = 'var(--danger)' %}
+{% set box_bg = 'var(--danger-bg)' %}
+{% endif %}
 {% if time_span > 0 %}
 <div class="conflict-timeline" style="margin:1rem 0">
   <div style="display:flex;gap:0.6rem;align-items:stretch;margin-bottom:0.4rem">
@@ -43,11 +50,11 @@
         {% set left = ((ev.start_min - range_min_hour) / time_span * 100)|round(2) %}
         {% set width = ((ev.end_min - ev.start_min) / time_span * 100)|round(2) %}
         {% set top = (loop.index0 * 3.2) + 0.2 %}
-        <div class="conflict {{ conflict.severity }}" style="position:absolute;top:{{ top }}rem;left:{{ left }}%;width:{{ width }}%;height:2.8rem;border-radius:8px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.78rem;line-height:1.15;min-width:3rem;display:flex;flex-direction:column;justify-content:center">
+        <div style="position:absolute;top:{{ top }}rem;left:{{ left }}%;width:{{ width }}%;height:2.8rem;background:{{ box_bg }};color:{{ box_color }};border:1px solid {{ box_color }};border-left:4px solid {{ box_color }};border-radius:8px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.78rem;line-height:1.15;min-width:3rem;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:0.68rem;opacity:0.85;text-transform:uppercase;letter-spacing:0.03em">{{ ev.kind_label }}</div>
           <div style="font-weight:700">{{ ev.label }}</div>
-          {% if ev.subtitle %}<div style="font-size:0.72rem;opacity:0.9">{{ ev.subtitle }}</div>{% endif %}
-          <div style="font-size:0.72rem;opacity:0.85">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}{% if ev.venue %} · {{ ev.venue }}{% endif %}</div>
+          {% if ev.subtitle %}<div style="font-size:0.72rem;opacity:0.85">{{ ev.subtitle }}</div>{% endif %}
+          <div style="font-size:0.72rem;opacity:0.75">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}{% if ev.venue %} · {{ ev.venue }}{% endif %}</div>
         </div>
         {% endfor %}
       </div>
