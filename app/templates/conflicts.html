@@ -3,11 +3,12 @@
 {% block content %}
 {% if conflict_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ conflict_flash }}</div>{% endif %}
 
-<div class="page-head">
+<div class="page-head" style="align-items:flex-start">
   <div class="page-head-copy" style="width:100%">
     <h1>{{ t('nav_conflicts') }}</h1>
-    <p class="muted" style="margin:0">{{ t('conflicts_subtitle') }} · {{ conflicts_count }}</p>
+    <p class="muted" style="margin:0">{{ t('conflicts_subtitle') }} · {{ conflicts_count }}{% if show_unique %} (únics){% endif %}</p>
   </div>
+  <a class="text-action" href="?unique={{ '0' if show_unique else '1' }}" style="white-space:nowrap">{{ 'Veure tots' if show_unique else 'Veure únics' }}</a>
 </div>
 
 <details class="conflicts-help setup-banner" style="margin:0 0 1rem">

@@ -4373,6 +4373,7 @@ def conflicts_page(
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
     lang = get_lang(request)
+    show_unique = request.query_params.get("unique") == "1"
     conflicts = find_conflicts(db, season_id, lang=lang)
     matches = (
         db.query(Match)
@@ -4392,6 +4393,16 @@ def conflicts_page(
     for bucket in HORIZON_ORDER:
         for c in by_h.get(bucket, []):
             c.key = conflict_key(c, match_team, training_team)
+    if show_unique:
+        seen_keys: set[str] = set()
+        for bucket in HORIZON_ORDER:
+            unique_bucket: list = []
+            for c in by_h.get(bucket, []):
+                if c.key not in seen_keys:
+                    seen_keys.add(c.key)
+                    unique_bucket.append(c)
+            by_h[bucket] = unique_bucket
+    conflicts_count = sum(len(by_h.get(b, [])) for b in HORIZON_ORDER)
     auto_report = None
     if auto_ok is not None:
         auto_report = translate(lang, "conflicts_auto_report").format(
@@ -4411,6 +4422,8 @@ def conflicts_page(
             **ctx,
             "conflicts": conflicts,
             "conflicts_by_horizon": by_h,
+            "conflicts_count": conflicts_count,
+            "show_unique": show_unique,
             "ignored_conflicts": ignored_conflicts,
             "conflict_flash": conflict_flash,
             "horizon_order": HORIZON_ORDER,
