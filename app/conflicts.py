@@ -23,6 +23,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "entreno",
         "person": "{name} està a {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada per {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
+        "venue_multi": "{venue} ocupada per {teams} el {date} ({times})",
         "venue_share": " — compartir permès",
         "not_before": "{team} ({title}): comença a les {start} però no pot abans de {not_before}",
         "not_after": "{team} ({title}): acaba a les {end} però ha d'acabar abans de {not_after}",
@@ -166,7 +167,7 @@ _MSGS: dict[str, dict[str, str]] = {
 
 
 def _t(lang: str, key: str, **kwargs) -> str:
-    return _MSGS.get(lang, _MSGS["ca"])[key].format(**kwargs)
+    return (_MSGS.get(lang, _MSGS["ca"]).get(key) or _MSGS["ca"][key]).format(**kwargs)
 
 
 def _weekday_short(lang: str, weekday: int) -> str:
@@ -394,50 +395,69 @@ def find_conflicts(
 
     # Venue overlaps
     with_venue = [o for o in occs if o.venue_id is not None]
-    for i, a in enumerate(with_venue):
-        for b in with_venue[i + 1 :]:
-            if a.venue_id != b.venue_id:
+    by_venue_day: dict[tuple[int, date], list[_Occ]] = {}
+    for o in with_venue:
+        by_venue_day.setdefault((o.venue_id, o.d), []).append(o)
+    for (venue_id, day), v_occs in by_venue_day.items():
+        v_occs.sort(key=lambda o: (o.start, o.end))
+        clusters: list[list[_Occ]] = []
+        for o in v_occs:
+            if not clusters or o.start >= clusters[-1][-1].end:
+                clusters.append([o])
+            else:
+                clusters[-1].append(o)
+        for cluster in clusters:
+            if len(cluster) < 2:
                 continue
-            if a.d != b.d or not _overlaps(a.start, a.end, b.start, b.end):
+            all_training = all(o.etype == "training" for o in cluster)
+            group_ids = {o.training_group_id for o in cluster if o.training_group_id}
+            if all_training and len(group_ids) == 1:
                 continue
-            if (
-                a.etype == "training"
-                and b.etype == "training"
-                and a.training_group_id
-                and a.training_group_id == b.training_group_id
-            ):
+            if all_training and len({(o.start, o.end) for o in cluster}) == 1:
                 continue
-            if (
-                a.etype == "training"
-                and b.etype == "training"
-                and a.d == b.d
-                and a.start == b.start
-                and a.end == b.end
-                and a.venue_id == b.venue_id
-            ):
-                continue
-            share_ok = a.share and b.share
-            venue = venues_by_id.get(a.venue_id)
-            venue_name = venue.name if venue else f"pista #{a.venue_id}"
-            mids, tids, d = _ids(a, b)
+            share_ok = all(o.share for o in cluster)
+            venue = venues_by_id.get(venue_id)
+            venue_name = venue.name if venue else f"pista #{venue_id}"
+            team_names = [o.team_name for o in cluster]
+            times = [f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}" for o in cluster]
+            if len(cluster) == 2:
+                a, b = cluster[0], cluster[1]
+                message = _t(
+                    lang,
+                    "venue",
+                    venue=venue_name,
+                    team_a=a.team_name,
+                    title_a=a.title,
+                    team_b=b.team_name,
+                    title_b=b.title,
+                    date=day.isoformat(),
+                    time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
+                    time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
+                )
+            else:
+                message = _t(
+                    lang,
+                    "venue_multi",
+                    venue=venue_name,
+                    teams=", ".join(team_names),
+                    date=day.isoformat(),
+                    times=", ".join(times),
+                )
+            if share_ok:
+                message += _t(lang, "venue_share")
+            mids: list[int] = []
+            tids: list[int] = []
+            for o in cluster:
+                if o.etype == "match":
+                    mids.append(o.eid)
+                else:
+                    tids.append(o.eid)
             conflicts.append(
                 Conflict(
                     kind="venue",
                     severity="soft" if share_ok else "hard",
-                    message=_t(
-                        lang,
-                        "venue",
-                        venue=venue_name,
-                        team_a=a.team_name,
-                        title_a=a.title,
-                        team_b=b.team_name,
-                        title_b=b.title,
-                        date=a.d.isoformat(),
-                        time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
-                        time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
-                    )
-                    + (_t(lang, "venue_share") if share_ok else ""),
-                    match_ids=mids, d=d,
+                    message=message,
+                    match_ids=mids, d=day,
                     training_ids=tids,
                 )
             )
