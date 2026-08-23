@@ -4463,14 +4463,16 @@ def conflict_detail(
         m = next((x for x in matches if x.id == mid), None)
         if not m or not m.start_time or not m.end_time:
             continue
-        home_label = " (local)" if m.is_home else " (fora)"
         conflict_events.append(
             {
                 "start_min": m.start_time.hour * 60 + m.start_time.minute,
                 "end_min": m.end_time.hour * 60 + m.end_time.minute,
                 "start": m.start_time,
                 "end": m.end_time,
-                "label": f"{m.team.name} vs {m.opponent or '?'}{home_label}",
+                "kind_label": "Partit",
+                "label": m.team.name,
+                "subtitle": f"vs {m.opponent or '?'} {'(local)' if m.is_home else '(fora)'}",
+                "venue": m.venue.name if m.venue else "",
                 "kind": "match",
             }
         )
@@ -4484,10 +4486,14 @@ def conflict_detail(
                 "end_min": t.end_time.hour * 60 + t.end_time.minute,
                 "start": t.start_time,
                 "end": t.end_time,
-                "label": f"{t.team.name} (entreno)",
+                "kind_label": "Entrenament",
+                "label": t.team.name,
+                "subtitle": t.team.category or "",
+                "venue": t.venue.name if t.venue else "",
                 "kind": "training",
             }
         )
+    conflict_events.sort(key=lambda x: x["start_min"])
 
     return templates.TemplateResponse(
         request,

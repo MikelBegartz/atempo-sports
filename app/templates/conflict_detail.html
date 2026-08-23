@@ -18,24 +18,40 @@
 {% if conflict_events %}
 {% set starts = conflict_events|map(attribute='start_min')|list %}
 {% set ends = conflict_events|map(attribute='end_min')|list %}
-{% set range_min = (starts|min - 15) %}
-{% set range_max = (ends|max + 15) %}
-{% set range = range_max - range_min %}
+{% set range_min_hour = (starts|min // 60) * 60 %}
+{% set range_max_hour = ((ends|max // 60) + 1) * 60 %}
+{% set range = range_max_hour - range_min_hour %}
+{% set n_events = conflict_events|length %}
 {% if range > 0 %}
 <div class="conflict-timeline" style="margin:1rem 0">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
-    <span class="muted">{{ conflict_day }}</span>
-    <span class="muted" style="font-size:0.85rem">{{ (range_min // 60) }}:{{ '%02d' % (range_min % 60) }} – {{ (range_max // 60) }}:{{ '%02d' % (range_max % 60) }}</span>
-  </div>
-  <div style="position:relative;height:4.5rem;background:#f5f5f5;border-radius:8px;overflow:hidden;border:1px solid var(--line)">
-    {% for ev in conflict_events %}
-    {% set left = ((ev.start_min - range_min) / range * 100)|round(2) %}
-    {% set width = ((ev.end_min - ev.start_min) / range * 100)|round(2) %}
-    <div class="conflict {{ conflict.severity }}" style="position:absolute;top:0.5rem;left:{{ left }}%;width:{{ width }}%;height:3.5rem;border-radius:6px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.8rem;line-height:1.2;min-width:3rem">
-      <strong>{{ ev.label }}</strong>
-      <div style="color:rgba(255,255,255,0.9);font-size:0.75rem">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}</div>
+  <div style="display:flex;gap:0.6rem;align-items:stretch;margin-bottom:0.4rem">
+    <div style="width:4.2rem;display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+      <div style="font-weight:700;font-size:1rem;line-height:1.1">{{ conflict_day.strftime('%d/%m') }}</div>
+      <div class="muted" style="font-size:0.78rem">{{ conflict_day }}</div>
     </div>
-    {% endfor %}
+    <div style="flex:1">
+      <div style="position:relative;height:1.2rem;margin-bottom:0.25rem">
+        {% for h in range(range_min_hour // 60, (range_max_hour // 60) + 1) %}
+        <span style="position:absolute;left:{{ ((h*60 - range_min_hour) / range * 100)|round(2) }}%;transform:translateX(-50%);font-size:0.72rem;color:var(--muted);font-variant-numeric:tabular-nums">{{ '%02d' % h }}:00</span>
+        {% endfor %}
+      </div>
+      <div style="position:relative;height:{{ (n_events * 3.2) + 0.4 }}rem;background:#f5f5f5;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
+        {% for h in range(range_min_hour // 60, (range_max_hour // 60) + 1) %}
+        <div style="position:absolute;top:0;bottom:0;left:{{ ((h*60 - range_min_hour) / range * 100)|round(2) }}%;width:1px;background:rgba(15,40,30,0.12)"></div>
+        {% endfor %}
+        {% for ev in conflict_events %}
+        {% set left = ((ev.start_min - range_min_hour) / range * 100)|round(2) %}
+        {% set width = ((ev.end_min - ev.start_min) / range * 100)|round(2) %}
+        {% set top = (loop.index0 * 3.2) + 0.2 %}
+        <div class="conflict {{ conflict.severity }}" style="position:absolute;top:{{ top }}rem;left:{{ left }}%;width:{{ width }}%;height:2.8rem;border-radius:8px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.78rem;line-height:1.15;min-width:3rem;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:0.68rem;opacity:0.85;text-transform:uppercase;letter-spacing:0.03em">{{ ev.kind_label }}</div>
+          <div style="font-weight:700">{{ ev.label }}</div>
+          {% if ev.subtitle %}<div style="font-size:0.72rem;opacity:0.9">{{ ev.subtitle }}</div>{% endif %}
+          <div style="font-size:0.72rem;opacity:0.85">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}{% if ev.venue %} · {{ ev.venue }}{% endif %}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 </div>
 {% endif %}
