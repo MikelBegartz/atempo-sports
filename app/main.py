@@ -4457,6 +4457,38 @@ def conflict_detail(
     row = db.get(Conflict, selected.id) if selected.id else None
     ignored_dates = {i.ignored_date for i in (row.ignored_dates if row else [])}
     is_ignored_day = selected.d in ignored_dates if selected.d else False
+
+    conflict_events: list[dict[str, object]] = []
+    for mid in selected.match_ids:
+        m = next((x for x in matches if x.id == mid), None)
+        if not m or not m.start_time or not m.end_time:
+            continue
+        home_label = " (local)" if m.is_home else " (fora)"
+        conflict_events.append(
+            {
+                "start_min": m.start_time.hour * 60 + m.start_time.minute,
+                "end_min": m.end_time.hour * 60 + m.end_time.minute,
+                "start": m.start_time,
+                "end": m.end_time,
+                "label": f"{m.team.name} vs {m.opponent or '?'}{home_label}",
+                "kind": "match",
+            }
+        )
+    for tid in selected.training_ids:
+        t = next((x for x in trainings if x.id == tid), None)
+        if not t or not t.start_time or not t.end_time:
+            continue
+        conflict_events.append(
+            {
+                "start_min": t.start_time.hour * 60 + t.start_time.minute,
+                "end_min": t.end_time.hour * 60 + t.end_time.minute,
+                "start": t.start_time,
+                "end": t.end_time,
+                "label": f"{t.team.name} (entreno)",
+                "kind": "training",
+            }
+        )
+
     return templates.TemplateResponse(
         request,
         "conflict_detail.html",
@@ -4464,6 +4496,7 @@ def conflict_detail(
             **ctx,
             "conflict": selected,
             "conflict_day": selected.d,
+            "conflict_events": conflict_events,
             "related": related,
             "matches": {m.id: m for m in matches},
             "trainings": {t.id: t for t in trainings},
