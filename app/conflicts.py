@@ -347,7 +347,7 @@ def find_conflicts(
             shared = set(people_a) & set(people_b)
             if not shared:
                 continue
-            # Si els dos són entrenaments del mateix grup o exactament la mateixa sessió (dia, hora i pista), no és conflicte
+            # Si els dos són entrenaments del mateix grup o a la mateixa pista, no és conflicte
             if (
                 a.etype == "training"
                 and b.etype == "training"
@@ -358,9 +358,6 @@ def find_conflicts(
             if (
                 a.etype == "training"
                 and b.etype == "training"
-                and a.d == b.d
-                and a.start == b.start
-                and a.end == b.end
                 and a.venue_id == b.venue_id
             ):
                 continue
