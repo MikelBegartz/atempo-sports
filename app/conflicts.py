@@ -401,11 +401,15 @@ def find_conflicts(
     for (venue_id, day), v_occs in by_venue_day.items():
         v_occs.sort(key=lambda o: (o.start, o.end))
         clusters: list[list[_Occ]] = []
+        cluster_ends: list[time] = []
         for o in v_occs:
-            if not clusters or o.start >= clusters[-1][-1].end:
+            if not clusters or o.start >= cluster_ends[-1]:
                 clusters.append([o])
+                cluster_ends.append(o.end)
             else:
                 clusters[-1].append(o)
+                if o.end > cluster_ends[-1]:
+                    cluster_ends[-1] = o.end
         for cluster in clusters:
             if len(cluster) < 2:
                 continue
@@ -765,6 +769,10 @@ def persist_conflicts(
             seen_rows[key] = row
             c.id = row.id
             c.ignored = _is_ignored_on(row, c.d)
+            if row.message != c.message:
+                row.message = c.message
+            if row.severity != c.severity:
+                row.severity = c.severity
             if row.resolved_at:
                 row.resolved_at = None
             continue
