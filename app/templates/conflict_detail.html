@@ -26,8 +26,8 @@
 <div class="conflict-timeline" style="margin:1rem 0">
   <div style="display:flex;gap:0.6rem;align-items:stretch;margin-bottom:0.4rem">
     <div style="width:4.2rem;display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
-      <div style="font-weight:700;font-size:1rem;line-height:1.1">{{ conflict_day.strftime('%d/%m') }}</div>
-      <div class="muted" style="font-size:0.78rem">{{ conflict_day }}</div>
+      <div style="font-weight:700;font-size:1rem;line-height:1.1">{{ conflict_weekday }}</div>
+      <div class="muted" style="font-size:0.78rem">{{ conflict_day.strftime('%d/%m') }}({{ conflict_day.year }})</div>
     </div>
     <div style="flex:1">
       <div style="position:relative;height:1.2rem;margin-bottom:0.25rem">

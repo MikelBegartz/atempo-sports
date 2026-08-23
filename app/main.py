@@ -4476,25 +4476,50 @@ def conflict_detail(
                 "kind": "match",
             }
         )
+
+    training_clusters: list[list[Training]] = []
     for tid in selected.training_ids:
         t = next((x for x in trainings if x.id == tid), None)
         if not t or not t.start_time or not t.end_time:
             continue
+        if t.training_group_id:
+            for cl in training_clusters:
+                if cl[0].training_group_id == t.training_group_id:
+                    cl.append(t)
+                    break
+            else:
+                training_clusters.append([t])
+        else:
+            training_clusters.append([t])
+
+    for cl in training_clusters:
+        t0 = cl[0]
+        team_names = [t.team.name for t in cl]
+        categories = [t.team.category or "" for t in cl]
+        if t0.training_group and t0.training_group.label:
+            kind_label = "Grup"
+            label = t0.training_group.label
+            subtitle = ", ".join(team_names)
+        else:
+            kind_label = "Entrenament"
+            label = ", ".join(team_names)
+            subtitle = ", ".join(c for c in categories if c)
         conflict_events.append(
             {
-                "start_min": t.start_time.hour * 60 + t.start_time.minute,
-                "end_min": t.end_time.hour * 60 + t.end_time.minute,
-                "start": t.start_time,
-                "end": t.end_time,
-                "kind_label": "Entrenament",
-                "label": t.team.name,
-                "subtitle": t.team.category or "",
-                "venue": t.venue.name if t.venue else "",
+                "start_min": t0.start_time.hour * 60 + t0.start_time.minute,
+                "end_min": t0.end_time.hour * 60 + t0.end_time.minute,
+                "start": t0.start_time,
+                "end": t0.end_time,
+                "kind_label": kind_label,
+                "label": label,
+                "subtitle": subtitle,
+                "venue": t0.venue.name if t0.venue else "",
                 "kind": "training",
             }
         )
     conflict_events.sort(key=lambda x: x["start_min"])
 
+    conflict_weekday = weekdays(lang)[selected.d.weekday()] if selected.d else ""
     return templates.TemplateResponse(
         request,
         "conflict_detail.html",
@@ -4502,6 +4527,7 @@ def conflict_detail(
             **ctx,
             "conflict": selected,
             "conflict_day": selected.d,
+            "conflict_weekday": conflict_weekday,
             "conflict_events": conflict_events,
             "related": related,
             "matches": {m.id: m for m in matches},
