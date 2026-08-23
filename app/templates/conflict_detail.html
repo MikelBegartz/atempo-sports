@@ -20,9 +20,9 @@
 {% set ends = conflict_events|map(attribute='end_min')|list %}
 {% set range_min_hour = (starts|min // 60) * 60 %}
 {% set range_max_hour = ((ends|max // 60) + 1) * 60 %}
-{% set range = range_max_hour - range_min_hour %}
+{% set time_span = range_max_hour - range_min_hour %}
 {% set n_events = conflict_events|length %}
-{% if range > 0 %}
+{% if time_span > 0 %}
 <div class="conflict-timeline" style="margin:1rem 0">
   <div style="display:flex;gap:0.6rem;align-items:stretch;margin-bottom:0.4rem">
     <div style="width:4.2rem;display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
@@ -32,16 +32,16 @@
     <div style="flex:1">
       <div style="position:relative;height:1.2rem;margin-bottom:0.25rem">
         {% for h in range(range_min_hour // 60, (range_max_hour // 60) + 1) %}
-        <span style="position:absolute;left:{{ ((h*60 - range_min_hour) / range * 100)|round(2) }}%;transform:translateX(-50%);font-size:0.72rem;color:var(--muted);font-variant-numeric:tabular-nums">{{ '%02d' % h }}:00</span>
+        <span style="position:absolute;left:{{ ((h*60 - range_min_hour) / time_span * 100)|round(2) }}%;transform:translateX(-50%);font-size:0.72rem;color:var(--muted);font-variant-numeric:tabular-nums">{{ '%02d' % h }}:00</span>
         {% endfor %}
       </div>
       <div style="position:relative;height:{{ (n_events * 3.2) + 0.4 }}rem;background:#f5f5f5;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
         {% for h in range(range_min_hour // 60, (range_max_hour // 60) + 1) %}
-        <div style="position:absolute;top:0;bottom:0;left:{{ ((h*60 - range_min_hour) / range * 100)|round(2) }}%;width:1px;background:rgba(15,40,30,0.12)"></div>
+        <div style="position:absolute;top:0;bottom:0;left:{{ ((h*60 - range_min_hour) / time_span * 100)|round(2) }}%;width:1px;background:rgba(15,40,30,0.12)"></div>
         {% endfor %}
         {% for ev in conflict_events %}
-        {% set left = ((ev.start_min - range_min_hour) / range * 100)|round(2) %}
-        {% set width = ((ev.end_min - ev.start_min) / range * 100)|round(2) %}
+        {% set left = ((ev.start_min - range_min_hour) / time_span * 100)|round(2) %}
+        {% set width = ((ev.end_min - ev.start_min) / time_span * 100)|round(2) %}
         {% set top = (loop.index0 * 3.2) + 0.2 %}
         <div class="conflict {{ conflict.severity }}" style="position:absolute;top:{{ top }}rem;left:{{ left }}%;width:{{ width }}%;height:2.8rem;border-radius:8px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.78rem;line-height:1.15;min-width:3rem;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:0.68rem;opacity:0.85;text-transform:uppercase;letter-spacing:0.03em">{{ ev.kind_label }}</div>
