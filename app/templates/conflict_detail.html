@@ -27,7 +27,7 @@
           <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_unignore') }} · {{ conflict_day }}</button>
         </form>
         {% else %}
-        <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" style="margin:0">
+        <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/ignore" style="margin:0" onsubmit="return confirm('{{ t('conflict_action_ignore') }}?')">
           <input type="hidden" name="scope" value="day" />
           <input type="hidden" name="day" value="{{ conflict_day }}" />
           <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">{{ t('conflict_action_ignore') }} · {{ conflict_day }}</button>
