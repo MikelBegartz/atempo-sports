@@ -31,9 +31,9 @@
     {% for ev in conflict_events %}
     {% set left = ((ev.start_min - range_min) / range * 100)|round(2) %}
     {% set width = ((ev.end_min - ev.start_min) / range * 100)|round(2) %}
-    <div style="position:absolute;top:0.5rem;left:{{ left }}%;width:{{ width }}%;height:3.5rem;background:{{ 'var(--accent)' if ev.kind == 'match' else '#6a9b7a' }};border-radius:6px;padding:0.3rem 0.5rem;color:#fff;box-sizing:border-box;overflow:hidden;font-size:0.8rem;line-height:1.2;min-width:3rem">
+    <div class="conflict {{ conflict.severity }}" style="position:absolute;top:0.5rem;left:{{ left }}%;width:{{ width }}%;height:3.5rem;border-radius:6px;padding:0.3rem 0.5rem;box-sizing:border-box;overflow:hidden;font-size:0.8rem;line-height:1.2;min-width:3rem">
       <strong>{{ ev.label }}</strong>
-      <div class="muted" style="color:rgba(255,255,255,0.9);font-size:0.75rem">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}</div>
+      <div style="color:rgba(255,255,255,0.9);font-size:0.75rem">{{ ev.start.strftime('%H:%M') }}–{{ ev.end.strftime('%H:%M') }}</div>
     </div>
     {% endfor %}
   </div>
