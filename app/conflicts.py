@@ -42,6 +42,18 @@ _MSGS: dict[str, dict[str, str]] = {
         "pista": "Pista",
         "block": "bloqueig",
         "all_day": "tot el dia",
+        "month_1": "gen",
+        "month_2": "feb",
+        "month_3": "mar",
+        "month_4": "abr",
+        "month_5": "maig",
+        "month_6": "jun",
+        "month_7": "jul",
+        "month_8": "ago",
+        "month_9": "set",
+        "month_10": "oct",
+        "month_11": "nov",
+        "month_12": "des",
     },
     "es": {
         "match_title": "partido vs {opponent}",
@@ -66,6 +78,18 @@ _MSGS: dict[str, dict[str, str]] = {
         "pista": "Pista",
         "block": "bloqueo",
         "all_day": "todo el día",
+        "month_1": "ene",
+        "month_2": "feb",
+        "month_3": "mar",
+        "month_4": "abr",
+        "month_5": "may",
+        "month_6": "jun",
+        "month_7": "jul",
+        "month_8": "ago",
+        "month_9": "sep",
+        "month_10": "oct",
+        "month_11": "nov",
+        "month_12": "dic",
     },
     "pt": {
         "match_title": "partido vs {opponent}",
@@ -168,6 +192,10 @@ _MSGS: dict[str, dict[str, str]] = {
 
 def _t(lang: str, key: str, **kwargs) -> str:
     return (_MSGS.get(lang, _MSGS["ca"]).get(key) or _MSGS["ca"][key]).format(**kwargs)
+
+
+def _month_short(lang: str, month: int) -> str:
+    return _t(lang, f"month_{month}")
 
 
 def _weekday_short(lang: str, weekday: int) -> str:

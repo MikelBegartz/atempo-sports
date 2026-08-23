@@ -75,6 +75,7 @@ from app.changes import (
 )
 from app.names import match_away_name, match_local_name, match_place_label
 from app.conflicts import (
+    _month_short,
     conflict_key,
     find_conflicts,
     hard_conflicts,
@@ -4511,7 +4512,15 @@ def conflict_detail(
         )
     conflict_events.sort(key=lambda x: x["start_min"])
 
-    conflict_weekday = weekdays(lang)[selected.d.weekday()] if selected.d else ""
+    if selected.d:
+        conflict_day_label = (
+            f"{weekdays(lang)[selected.d.weekday()]}, "
+            f"{selected.d.day} "
+            f"{_month_short(lang, selected.d.month)} "
+            f"{selected.d.strftime('%y')}"
+        )
+    else:
+        conflict_day_label = ""
     return templates.TemplateResponse(
         request,
         "conflict_detail.html",
@@ -4519,7 +4528,7 @@ def conflict_detail(
             **ctx,
             "conflict": selected,
             "conflict_day": selected.d,
-            "conflict_weekday": conflict_weekday,
+            "conflict_day_label": conflict_day_label,
             "conflict_events": conflict_events,
             "related": related,
             "matches": {m.id: m for m in matches},
