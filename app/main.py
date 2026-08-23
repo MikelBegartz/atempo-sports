@@ -4477,33 +4477,25 @@ def conflict_detail(
             }
         )
 
-    training_clusters: list[list[Training]] = []
+    by_training_key: dict[int | tuple[time, time, int], list[Training]] = {}
     for tid in selected.training_ids:
         t = next((x for x in trainings if x.id == tid), None)
         if not t or not t.start_time or not t.end_time:
             continue
-        if t.training_group_id:
-            for cl in training_clusters:
-                if cl[0].training_group_id == t.training_group_id:
-                    cl.append(t)
-                    break
-            else:
-                training_clusters.append([t])
-        else:
-            training_clusters.append([t])
+        key: int | tuple[time, time, int] = t.training_group_id or (t.start_time, t.end_time, t.venue_id or 0)
+        by_training_key.setdefault(key, []).append(t)
 
-    for cl in training_clusters:
+    for cl in by_training_key.values():
         t0 = cl[0]
         team_names = [t.team.name for t in cl]
         categories = [t.team.category or "" for t in cl]
         if t0.training_group_id:
             kind_label = "Grup"
             label = (t0.training_group.label or ", ".join(team_names)) if t0.training_group else ", ".join(team_names)
-            subtitle = ", ".join(c for c in categories if c)
         else:
             kind_label = "Entrenament"
             label = ", ".join(team_names)
-            subtitle = ", ".join(c for c in categories if c)
+        subtitle = ", ".join(c for c in categories if c)
         conflict_events.append(
             {
                 "start_min": t0.start_time.hour * 60 + t0.start_time.minute,
