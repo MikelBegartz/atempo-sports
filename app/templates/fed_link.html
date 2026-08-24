@@ -34,8 +34,14 @@
     {% for team_name, items in hit_groups %}
     <div class="entity-entry" style="display:block;padding:0.75rem 1rem">
       <strong class="entity-name" style="display:block;margin-bottom:0.4rem">{{ team_name }}</strong>
+      <label style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;font-size:0.9rem">
+        <span class="muted">Nombre interno</span>
+        <input type="text" name="internal_name_{{ loop.index0 }}" value="{{ team_name }}"
+               style="flex:1;min-width:12rem" placeholder="Nombre del coordinador" />
+      </label>
       {% for h in items %}
       <label class="entity-entry" style="cursor:pointer;align-items:flex-start;gap:0.6rem;padding:0.35rem 0;border:none">
+        <input type="hidden" name="group_for" value="{{ loop.index0 }}" />
         <input type="checkbox" name="pick" value="{{ h.pick_value }}"
                style="margin-top:0.2rem" />
         <span style="flex:1">

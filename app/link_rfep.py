@@ -214,46 +214,78 @@ def ensure_team_for_fed(
     external_name: str,
     competition: str,
     source: str = "rfep",
+    internal_name: str | None = None,
 ) -> Team:
-    """Un Team por (nombre federativo + competición). Nombre = completo federativo."""
+    """Crea o reutiliza un Team del club y añade el nombre federativo.
+
+    `internal_name` es el nombre que quiere el coordinador. Si no se da,
+    se usa el nombre federativo. Un mismo equipo interno puede acumular
+    varios nombres oficiales de distintas competiciones.
+    """
     if source not in FED_SOURCES:
         raise ValueError(f"Fuente no soportada: {source}")
-    # Identidad: alias + categoría (liga). Misma marca en ligas distintas = equipos distintos.
-    alias = (
-        db.query(TeamExternalName)
-        .join(Team)
+
+    wanted = (internal_name or external_name).strip()
+
+    # 1) Buscar si ya existe un equipo del club con ese nombre.
+    team = (
+        db.query(Team)
         .filter(
             Team.season_id == season_id,
-            Team.category == competition,
+            Team.name == wanted,
+        )
+        .first()
+    )
+
+    # 2) Si no, buscar un alias federativo existente para este nombre oficial.
+    if not team:
+        alias = (
+            db.query(TeamExternalName)
+            .join(Team)
+            .filter(
+                Team.season_id == season_id,
+                TeamExternalName.source == source,
+                TeamExternalName.external_name == external_name,
+            )
+            .first()
+        )
+        if alias:
+            team = alias.team
+
+    # 3) Si sigue sin existir, crearlo con el nombre del coordinador.
+    if not team:
+        branch = normalize_branch(_infer_branch(competition))
+        name = _unique_team_name(db, season_id, wanted, competition)
+        team = Team(
+            season_id=season_id,
+            name=name,
+            category=competition,
+            branch=branch,
+            source=source,
+            official_name=external_name.strip(),
+        )
+        db.add(team)
+        db.flush()
+
+    # 4) Asegurar el alias federativo para este equipo.
+    exists_alias = (
+        db.query(TeamExternalName)
+        .filter(
+            TeamExternalName.team_id == team.id,
             TeamExternalName.source == source,
             TeamExternalName.external_name == external_name,
         )
         .first()
     )
-    if alias:
-        return alias.team
-
-    branch = normalize_branch(_infer_branch(competition))
-    name = _unique_team_name(db, season_id, external_name.strip(), competition)
-    team = Team(
-        season_id=season_id,
-        name=name,
-        category=competition,
-        branch=branch,
-        source=source,
-        official_name=external_name.strip(),
-    )
-    db.add(team)
-    db.flush()
-
-    db.add(
-        TeamExternalName(
-            team_id=team.id,
-            source=source,
-            external_name=external_name,
+    if not exists_alias:
+        db.add(
+            TeamExternalName(
+                team_id=team.id,
+                source=source,
+                external_name=external_name,
+            )
         )
-    )
-    db.flush()
+        db.flush()
     return team
 
 
@@ -278,13 +310,13 @@ def has_rfep_link(db: Session, season_id: int) -> bool:
 def import_selected_fed_teams(
     db: Session,
     season_id: int,
-    selections: list[tuple[int, str, str]],
+    selections: list[tuple[int, str, str, str]],
     *,
     source: str = "rfep",
 ) -> list[ImportReport]:
     """
-    selections: [(idc, external_name, competition_label), ...]
-    Crea equipos/alias e importa cada competición implicada.
+    selections: [(idc, external_name, competition_label, internal_name), ...]
+    Crea/vincula equipos e importa cada competición implicada.
     """
     if source not in FED_SOURCES:
         raise ValueError(f"Fuente no soportada: {source}")
@@ -292,13 +324,14 @@ def import_selected_fed_teams(
         return []
 
     by_idc: dict[int, list[tuple[str, str]]] = {}
-    for idc, ext_name, comp_label in selections:
+    for idc, ext_name, comp_label, internal_name in selections:
         ensure_team_for_fed(
             db,
             season_id,
             external_name=ext_name,
             competition=comp_label,
             source=source,
+            internal_name=internal_name,
         )
         by_idc.setdefault(idc, []).append((ext_name, comp_label))
 
@@ -325,7 +358,7 @@ def import_selected_fed_teams(
 def import_selected_rfep_teams(
     db: Session,
     season_id: int,
-    selections: list[tuple[int, str, str]],
+    selections: list[tuple[int, str, str, str]],
 ) -> list[ImportReport]:
     return import_selected_fed_teams(db, season_id, selections, source="rfep")
 

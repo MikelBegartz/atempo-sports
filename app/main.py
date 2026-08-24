@@ -1215,8 +1215,9 @@ async def fed_link_import(
     form = await request.form()
     q = str(form.get("q") or "")
     picks = form.getlist("pick")
-    selections_by_source: dict[str, list[tuple[int, str, str]]] = {}
-    for raw in picks:
+    groups = form.getlist("group_for")
+    selections_by_source: dict[str, list[tuple[int, str, str, str]]] = {}
+    for raw, gidx in zip(picks, groups, strict=False):
         parts = str(raw).split("||", 3)
         if len(parts) != 4:
             continue
@@ -1226,7 +1227,8 @@ async def fed_link_import(
         except ValueError:
             continue
         name, comp = parts[2].strip(), parts[3].strip()
-        selections_by_source.setdefault(src, []).append((idc, name, comp))
+        internal_name = str(form.get(f"internal_name_{gidx}") or "").strip()
+        selections_by_source.setdefault(src, []).append((idc, name, comp, internal_name))
 
     def _fed_error(msg: str):
         return templates.TemplateResponse(
@@ -1249,7 +1251,9 @@ async def fed_link_import(
     try:
         for src, sels in selections_by_source.items():
             if src == "fvp":
-                reports.extend(import_fvp_matches(db, season_id, sels))
+                reports.extend(
+                    import_fvp_matches(db, season_id, [(idc, n, c) for idc, n, c, _ in sels])
+                )
             elif src in FED_SOURCES:
                 reports.extend(
                     import_selected_fed_teams(db, season_id, sels, source=src)
@@ -1265,7 +1269,7 @@ async def fed_link_import(
         return _fed_error(" · ".join(errors))
 
     lang = get_lang(request)
-    n = len(selections)
+    n = sum(len(s) for s in selections_by_source.values())
     request.session["fed_flash"] = translate(lang, "fed_import_ok").format(n=n)
     # Després d’una federació: preguntar si cal importar-ne una altra
     return RedirectResponse(
@@ -5069,13 +5073,14 @@ async def import_run(
     form = await request.form()
     q = str(form.get("q") or "").strip()
     picks = form.getlist("pick")
+    groups = form.getlist("group_for")
     if not picks:
         request.session["import_error"] = translate(
             get_lang(request), "rfep_need_pick"
         )
         return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
-    for raw in picks:
+    for raw, gidx in zip(picks, groups, strict=False):
         parts = str(raw).split("||", 3)
         if len(parts) != 4:
             continue
@@ -5086,6 +5091,7 @@ async def import_run(
             idc = int(idc_s)
         except ValueError:
             continue
+        internal_name = str(form.get(f"internal_name_{gidx}") or "").strip()
         try:
             ensure_team_for_fed(
                 db,
@@ -5093,6 +5099,7 @@ async def import_run(
                 external_name=ext_name,
                 competition=comp,
                 source=src,
+                internal_name=internal_name,
             )
         except Exception as exc:  # noqa: BLE001
             request.session["import_error"] = str(exc)
