@@ -1209,7 +1209,7 @@ async def fed_link_import(
     if path.endswith("/rfep/import"):
         source = "rfep"
     source = (source or "rfep").strip().lower()
-    if source not in FED_SOURCES:
+    if source not in FED_SOURCES and source != "global":
         return RedirectResponse(f"/season/{season_id}/fed", status_code=303)
 
     form = await request.form()
