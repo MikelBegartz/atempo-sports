@@ -240,6 +240,8 @@ def ensure_team_for_fed(
         name=name,
         category=competition,
         branch=branch,
+        source=source,
+        official_name=external_name.strip(),
     )
     db.add(team)
     db.flush()
