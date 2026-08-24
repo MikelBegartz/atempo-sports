@@ -261,7 +261,7 @@ def ensure_team_for_fed(
             name=name,
             category=competition,
             branch=branch,
-            source=source,
+            source=None,
             official_name=external_name.strip(),
         )
         db.add(team)

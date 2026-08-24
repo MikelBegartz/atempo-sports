@@ -1217,7 +1217,7 @@ async def fed_link_import(
     picks = form.getlist("pick")
     groups = form.getlist("group_for")
     selections_by_source: dict[str, list[tuple[int, str, str, str]]] = {}
-    for raw, gidx in zip(picks, groups, strict=False):
+    for raw, gidx in zip(picks, groups):
         parts = str(raw).split("||", 3)
         if len(parts) != 4:
             continue
@@ -5080,7 +5080,7 @@ async def import_run(
         )
         return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
-    for raw, gidx in zip(picks, groups, strict=False):
+    for raw, gidx in zip(picks, groups):
         parts = str(raw).split("||", 3)
         if len(parts) != 4:
             continue
