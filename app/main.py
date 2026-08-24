@@ -1179,6 +1179,12 @@ def fed_link_page(
         except Exception as exc:  # noqa: BLE001
             error = str(exc)
     hit_groups = group_hits_by_team(hits)
+    internal_teams = (
+        db.query(Team.name)
+        .filter(Team.season_id == season_id)
+        .order_by(Team.name)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "fed_link.html",
@@ -1188,6 +1194,7 @@ def fed_link_page(
             "q": q,
             "hits": hits,
             "hit_groups": hit_groups,
+            "internal_teams": [t[0] for t in internal_teams],
             "error": error,
         },
     )
@@ -1215,19 +1222,17 @@ async def fed_link_import(
     form = await request.form()
     q = str(form.get("q") or "")
     picks = form.getlist("pick")
-    groups = form.getlist("group_for")
     selections_by_source: dict[str, list[tuple[int, str, str, str]]] = {}
-    for raw, gidx in zip(picks, groups):
-        parts = str(raw).split("||", 3)
-        if len(parts) != 4:
+    for raw in picks:
+        parts = str(raw).split("||", 4)
+        if len(parts) != 5:
             continue
-        src = parts[0].strip()
+        src, idc_s, name, comp, idx = [p.strip() for p in parts]
         try:
-            idc = int(parts[1])
+            idc = int(idc_s)
         except ValueError:
             continue
-        name, comp = parts[2].strip(), parts[3].strip()
-        internal_name = str(form.get(f"internal_name_{gidx}") or "").strip()
+        internal_name = str(form.get(f"internal_name_{idx}") or "").strip()
         selections_by_source.setdefault(src, []).append((idc, name, comp, internal_name))
 
     def _fed_error(msg: str):
@@ -4970,6 +4975,12 @@ def import_page(
         except Exception as exc:  # noqa: BLE001
             error = str(exc)
     hit_groups = group_hits_by_team(hits)
+    internal_teams = (
+        db.query(Team.name)
+        .filter(Team.season_id == season_id)
+        .order_by(Team.name)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "import.html",
@@ -4979,6 +4990,7 @@ def import_page(
             "q": q,
             "hits": hits,
             "hit_groups": hit_groups,
+            "internal_teams": [t[0] for t in internal_teams],
             "error": error,
             "import_flash": request.session.pop("import_flash", None),
             "import_error": request.session.pop("import_error", None),
@@ -5073,25 +5085,24 @@ async def import_run(
     form = await request.form()
     q = str(form.get("q") or "").strip()
     picks = form.getlist("pick")
-    groups = form.getlist("group_for")
     if not picks:
         request.session["import_error"] = translate(
             get_lang(request), "rfep_need_pick"
         )
         return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
-    for raw, gidx in zip(picks, groups):
-        parts = str(raw).split("||", 3)
-        if len(parts) != 4:
+    for raw in picks:
+        parts = str(raw).split("||", 4)
+        if len(parts) != 5:
             continue
-        src, idc_s, ext_name, comp = [p.strip() for p in parts]
+        src, idc_s, ext_name, comp, idx = [p.strip() for p in parts]
         if src not in FED_SOURCES:
             continue
         try:
             idc = int(idc_s)
         except ValueError:
             continue
-        internal_name = str(form.get(f"internal_name_{gidx}") or "").strip()
+        internal_name = str(form.get(f"internal_name_{idx}") or "").strip()
         try:
             ensure_team_for_fed(
                 db,

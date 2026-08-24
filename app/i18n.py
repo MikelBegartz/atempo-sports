@@ -914,6 +914,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "wd_s_4": "DV",
         "wd_s_5": "DS",
         "wd_s_6": "DG",
+        "internal_name_label": "Nom intern",
+        "internal_name_ph": "Selecciona o escriu el nom intern",
     },
     "es": {
         "login_title": "AtempoSports — Acceso al club",
@@ -2393,6 +2395,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "wd_s_4": "Ven",
         "wd_s_5": "Sab",
         "wd_s_6": "Dom",
+        "internal_name_label": "Nombre interno",
+        "internal_name_ph": "Selecciona o escribe el nombre interno",
     },
     "en": {
         "login_title": "AtempoSports — Club access",

@@ -29,28 +29,39 @@
 {% endif %}
 
 {% if hit_groups %}
-<form method="post" action="/season/{{ season.id }}/import/run">
+<form method="post" action="/season/{{ season.id }}/import/run" id="import-form">
   <input type="hidden" name="q" value="{{ q }}" />
-  <p class="muted">{{ t('rfep_pick_hint') }}</p>
-  <div class="entity-list" style="margin-top:0.75rem">
+  <p class="muted" style="margin-bottom:0.25rem">{{ t('rfep_pick_hint') }}</p>
+  <label class="entity-entry" style="cursor:pointer;padding:0.35rem 1rem;border-bottom:1px solid var(--border);margin:0">
+    <input type="checkbox" id="select-all" style="margin-right:0.6rem" />
+    <strong>Seleccionar todos</strong>
+  </label>
+  {% if internal_teams %}
+  <datalist id="team-list">
+    {% for tn in internal_teams %}<option value="{{ tn }}"></option>{% endfor %}
+  </datalist>
+  {% endif %}
+  <div class="entity-list" style="margin-top:0">
     {% for team_name, items in hit_groups %}
+    {% set gidx = loop.index0 %}
     <div class="entity-entry" style="display:block;padding:0.75rem 1rem">
       <strong class="entity-name" style="display:block;margin-bottom:0.4rem">{{ team_name }}</strong>
-      <label style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;font-size:0.9rem">
-        <span class="muted">Nombre interno</span>
-        <input type="text" name="internal_name_{{ loop.index0 }}" value="{{ team_name }}"
-               style="flex:1;min-width:12rem" placeholder="Nombre del coordinador" />
-      </label>
       {% for h in items %}
+      {% set iidx = loop.index0 %}
       <label class="entity-entry" style="cursor:pointer;align-items:flex-start;gap:0.6rem;padding:0.35rem 0;border:none">
-        <input type="hidden" name="group_for" value="{{ loop.index0 }}" />
-        <input type="checkbox" name="pick" value="{{ h.pick_value }}"
+        <input type="checkbox" name="pick" value="{{ h.pick_value }}||{{ gidx }}_{{ iidx }}"
                style="margin-top:0.2rem" />
         <span style="flex:1">
           <span class="muted">
             <span class="badge" style="font-size:0.75rem;text-transform:uppercase">{{ h.source }}</span>
             {{ h.competition }}
           </span>
+          <label style="display:flex;gap:0.4rem;align-items:center;margin-top:0.3rem;font-size:0.85rem">
+            <span class="muted">{{ t('internal_name_label') }}</span>
+            <input type="text" name="internal_name_{{ gidx }}_{{ iidx }}" value=""
+                   list="team-list" style="flex:1;min-width:10rem"
+                   placeholder="{{ t('internal_name_ph') }}" />
+          </label>
         </span>
       </label>
       {% endfor %}
@@ -61,6 +72,14 @@
     <button type="submit">{{ t('rfep_import') }}</button>
   </p>
 </form>
+<script>
+document.getElementById('select-all').addEventListener('change', function() {
+  var checked = this.checked;
+  document.querySelectorAll('#import-form input[name="pick"]').forEach(function(el) {
+    el.checked = checked;
+  });
+});
+</script>
 {% elif not q %}
 <p class="muted">{{ t('rfep_examples') }}</p>
 {% endif %}
