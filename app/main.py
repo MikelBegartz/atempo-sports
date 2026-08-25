@@ -1904,6 +1904,29 @@ async def teams_link_update(
 
         db.delete(fed)
 
+    for club in club_teams:
+        manual_src = str(form.get(f"manual_source_{club.id}") or "").strip().lower()
+        manual_name = str(form.get(f"manual_name_{club.id}") or "").strip()
+        if not manual_name or manual_src not in FED_SOURCES:
+            continue
+        exists = (
+            db.query(TeamExternalName)
+            .filter(
+                TeamExternalName.team_id == club.id,
+                TeamExternalName.source == manual_src,
+                TeamExternalName.external_name == manual_name,
+            )
+            .first()
+        )
+        if not exists:
+            db.add(
+                TeamExternalName(
+                    team_id=club.id,
+                    source=manual_src,
+                    external_name=manual_name,
+                )
+            )
+
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams/link", status_code=303)
 

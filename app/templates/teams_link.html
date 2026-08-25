@@ -26,12 +26,31 @@
         <tr>
           <td>{{ club.name }}</td>
           <td>
-            <select name="link_{{ club.id }}">
+            {% if club.external_names %}
+            <ul class="muted" style="margin:0 0 0.5rem 1rem;list-style:disc">
+              {% for ext in club.external_names %}
+              <li>{{ ext.external_name }} <span class="badge" style="font-size:0.7rem">{{ ext.source }}</span></li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            <p class="muted" style="font-size:0.8rem;margin-bottom:0.25rem">Vincular equip importat:</p>
+            <select name="link_{{ club.id }}" style="margin-bottom:0.5rem">
               <option value="">{{ t('import_link_choose') }}</option>
               {% for fed in fed_teams %}
               <option value="{{ fed.id }}">{{ fed.name }} ({{ fed.source }}{% if fed.category %} · {{ fed.category }}{% endif %})</option>
               {% endfor %}
             </select>
+            <p class="muted" style="font-size:0.8rem;margin-bottom:0.25rem">O afegir a mà:</p>
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+              <select name="manual_source_{{ club.id }}" style="min-width:6rem">
+                <option value="">Font</option>
+                <option value="rfep">RFEP</option>
+                <option value="fecapa">FECAPA</option>
+                <option value="fvp">FVP</option>
+              </select>
+              <input type="text" name="manual_name_{{ club.id }}" placeholder="Nom oficial"
+                     style="flex:1;min-width:10rem" />
+            </div>
           </td>
         </tr>
         {% else %}
