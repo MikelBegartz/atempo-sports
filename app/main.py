@@ -1828,11 +1828,18 @@ def teams_create_batch(
 def teams_link(
     season_id: int,
     request: Request,
+    q: str = "",
+    club_id: int | None = None,
     db: Session = Depends(get_db),
 ):
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    q = (q or request.query_params.get("q") or "").strip()
+    try:
+        club_id = int(request.query_params.get("club_id")) if request.query_params.get("club_id") else None
+    except ValueError:
+        club_id = None
     teams = (
         db.query(Team)
         .options(joinedload(Team.external_names))
@@ -1843,11 +1850,32 @@ def teams_link(
     club_teams = [
         t for t in teams if not t.source or t.source not in FED_SOURCES
     ]
-    fed_teams = [t for t in teams if t.source and t.source in FED_SOURCES]
+    existing_names = {
+        (e.source, e.external_name, e.competition)
+        for t in club_teams
+        for e in t.external_names
+    }
+    active_club = next((t for t in club_teams if t.id == club_id), None)
+    hits = []
+    error = None
+    if active_club and q:
+        try:
+            hits = search_all_federations(q)
+        except Exception as exc:  # noqa: BLE001
+            error = str(exc)
+    hits = [h for h in hits if (h.source, h.team.full_name, h.competition) not in existing_names]
+    hit_groups = group_hits_by_team(hits)
     return templates.TemplateResponse(
         request,
         "teams_link.html",
-        {**ctx, "club_teams": club_teams, "fed_teams": fed_teams},
+        {
+            **ctx,
+            "q": q,
+            "club_teams": club_teams,
+            "active_club": active_club,
+            "hit_groups": hit_groups,
+            "error": error,
+        },
     )
 
 
@@ -1861,60 +1889,29 @@ async def teams_link_update(
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
     form = await request.form()
-    club_teams = (
-        db.query(Team)
-        .filter(Team.season_id == season_id, Team.source.notin_(FED_SOURCES))
-        .all()
-    )
-    for club in club_teams:
-        raw = form.get(f"link_{club.id}")
-        if not raw:
+    q = str(form.get("q") or "").strip()
+    try:
+        club_id = int(form.get("club_id") or 0)
+    except ValueError:
+        club_id = 0
+    club = db.get(Team, club_id)
+    if not club or club.season_id != season_id or club.source in FED_SOURCES:
+        return RedirectResponse(f"/season/{season_id}/teams/link", status_code=303)
+    picks = form.getlist("pick")
+    for raw in picks:
+        parts = str(raw).split("||", 3)
+        if len(parts) != 4:
             continue
-        try:
-            fed_id = int(str(raw).strip())
-        except ValueError:
-            continue
-        if fed_id == club.id:
-            continue
-        fed = db.get(Team, fed_id)
-        if not fed or fed.season_id != season_id:
-            continue
-
-        # Copiar dades federatives al club
-        if not club.official_name:
-            club.official_name = fed.name
-        if not club.category:
-            club.category = fed.category
-        if not club.branch:
-            club.branch = fed.branch
-        if not club.external_id:
-            club.external_id = fed.external_id
-
-        # Moure els noms externs de la federació cap a l'equip del club
-        for ext in list(fed.external_names):
-            ext.team_id = club.id
-
-        # Reassignar partits i entrenaments de l'equip importat
-        db.query(Match).filter(Match.team_id == fed.id).update(
-            {"team_id": club.id}, synchronize_session=False
-        )
-        db.query(Training).filter(Training.team_id == fed.id).update(
-            {"team_id": club.id}, synchronize_session=False
-        )
-
-        db.delete(fed)
-
-    for club in club_teams:
-        manual_src = str(form.get(f"manual_source_{club.id}") or "").strip().lower()
-        manual_name = str(form.get(f"manual_name_{club.id}") or "").strip()
-        if not manual_name or manual_src not in FED_SOURCES:
+        source, _idc, external_name, competition = [p.strip() for p in parts]
+        if source not in FED_SOURCES:
             continue
         exists = (
             db.query(TeamExternalName)
             .filter(
                 TeamExternalName.team_id == club.id,
-                TeamExternalName.source == manual_src,
-                TeamExternalName.external_name == manual_name,
+                TeamExternalName.source == source,
+                TeamExternalName.external_name == external_name,
+                TeamExternalName.competition == competition,
             )
             .first()
         )
@@ -1922,13 +1919,16 @@ async def teams_link_update(
             db.add(
                 TeamExternalName(
                     team_id=club.id,
-                    source=manual_src,
-                    external_name=manual_name,
+                    source=source,
+                    external_name=external_name,
+                    competition=competition,
                 )
             )
-
     db.commit()
-    return RedirectResponse(f"/season/{season_id}/teams/link", status_code=303)
+    return RedirectResponse(
+        f"/season/{season_id}/teams/link?club_id={club.id}&q={q}",
+        status_code=303,
+    )
 
 
 @app.post("/season/{season_id}/teams/{team_id}/update")

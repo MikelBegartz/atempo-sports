@@ -12,55 +12,108 @@
 </div>
 
 <section class="panel-sheet">
-  <h2>{{ t('teams_link_list') }}</h2>
-  <form method="post" action="/season/{{ season.id }}/teams/link/update">
-    <table>
-      <thead>
-        <tr>
-          <th>{{ t('teams_link_internal') }}</th>
-          <th>{{ t('teams_link_official') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for club in club_teams %}
-        <tr>
-          <td>{{ club.name }}</td>
-          <td>
-            {% if club.external_names %}
-            <ul class="muted" style="margin:0 0 0.5rem 1rem;list-style:disc">
-              {% for ext in club.external_names %}
-              <li>{{ ext.external_name }} <span class="badge" style="font-size:0.7rem">{{ ext.source }}</span></li>
-              {% endfor %}
-            </ul>
-            {% endif %}
-            <p class="muted" style="font-size:0.8rem;margin-bottom:0.25rem">Vincular equip importat:</p>
-            <select name="link_{{ club.id }}" style="margin-bottom:0.5rem">
-              <option value="">{{ t('import_link_choose') }}</option>
-              {% for fed in fed_teams %}
-              <option value="{{ fed.id }}">{{ fed.name }} ({{ fed.source }}{% if fed.category %} · {{ fed.category }}{% endif %})</option>
-              {% endfor %}
-            </select>
-            <p class="muted" style="font-size:0.8rem;margin-bottom:0.25rem">O afegir a mà:</p>
-            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-              <select name="manual_source_{{ club.id }}" style="min-width:6rem">
-                <option value="">Font</option>
-                <option value="rfep">RFEP</option>
-                <option value="fecapa">FECAPA</option>
-                <option value="fvp">FVP</option>
-              </select>
-              <input type="text" name="manual_name_{{ club.id }}" placeholder="Nom oficial"
-                     style="flex:1;min-width:10rem" />
-            </div>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="2" class="muted">{{ t('teams_empty') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <button type="submit" style="margin-top:0.75rem">{{ t('teams_link_save') }}</button>
-  </form>
+  <h2>{{ t('teams_link_club_teams') }}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t('teams_link_internal') }}</th>
+        <th>{{ t('teams_link_official') }}</th>
+        <th style="min-width:16rem">{{ t('teams_link_search_fed') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for club in club_teams %}
+      <tr>
+        <td>{{ club.name }}</td>
+        <td>
+          {% if club.external_names %}
+          <ul class="muted" style="margin:0 0 0 1.2rem;list-style:disc">
+            {% for ext in club.external_names %}
+            <li>
+              {{ ext.external_name }}
+              <span class="badge" style="font-size:0.7rem">{{ ext.source }}</span>
+              {% if ext.competition %}
+              <span class="muted" style="font-size:0.8rem">· {{ ext.competition }}</span>
+              {% elif club.category %}
+              <span class="muted" style="font-size:0.8rem">· {{ club.category }}</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <span class="muted">{{ t('teams_link_none') }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="get" action="/season/{{ season.id }}/teams/link" style="display:flex;gap:0.4rem;align-items:center" autocomplete="off">
+            <input type="hidden" name="club_id" value="{{ club.id }}" />
+            <input type="search" name="q" value="{% if active_club and active_club.id == club.id %}{{ q or '' }}{% endif %}"
+                   placeholder="p. ex. CH Mataró" style="flex:1;min-width:8rem" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <button type="submit" class="cal-goto-btn">{{ t('rfep_search') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" class="muted">{{ t('teams_empty') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
+
+{% if active_club %}
+<section class="panel-sheet" style="margin-top:1.5rem">
+  <h2>{{ t('teams_link_results_for') }} <em>{{ active_club.name }}</em></h2>
+  {% if error %}
+  <div class="conflict hard">{{ error }}</div>
+  {% endif %}
+  {% if q and not hit_groups %}
+  <p class="muted">{{ t('teams_link_no_hits') }}</p>
+  {% endif %}
+  {% if not q %}
+  <p class="muted">{{ t('teams_link_search_hint') }}</p>
+  {% endif %}
+  {% if hit_groups %}
+  <form method="post" action="/season/{{ season.id }}/teams/link/update" id="link-form">
+    <input type="hidden" name="club_id" value="{{ active_club.id }}" />
+    <input type="hidden" name="q" value="{{ q }}" />
+    <p class="muted">{{ t('teams_link_results_hint') }}</p>
+    <label class="entity-entry" style="cursor:pointer;padding:0.35rem 0;border-bottom:1px solid var(--border);margin:0 0 0.5rem 0">
+      <input type="checkbox" id="select-all" checked style="margin-right:0.6rem" />
+      <strong>{{ t('select_all') }}</strong>
+    </label>
+    <div class="entity-list" style="margin-top:0.5rem">
+      {% for team_name, items in hit_groups %}
+      <div class="entity-entry" style="display:block;padding:0.75rem 1rem">
+        <strong class="entity-name" style="display:block;margin-bottom:0.4rem">{{ team_name }}</strong>
+        {% for h in items %}
+        <label class="entity-entry" style="cursor:pointer;align-items:flex-start;gap:0.6rem;padding:0.35rem 0;border:none">
+          <input type="checkbox" name="pick" value="{{ h.pick_value }}" checked style="margin-top:0.2rem" />
+          <span style="flex:1">
+            <span class="muted">
+              <span class="badge" style="font-size:0.75rem;text-transform:uppercase">{{ h.source }}</span>
+              {{ h.competition }}
+            </span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <p style="margin-top:1rem">
+      <button type="submit">{{ t('teams_link_save') }}</button>
+    </p>
+  </form>
+  <script>
+document.getElementById('select-all').addEventListener('change', function() {
+  var checked = this.checked;
+  document.querySelectorAll('#link-form input[name="pick"]').forEach(function(el) {
+    el.checked = checked;
+  });
+});
+  </script>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}

@@ -4697,6 +4697,49 @@ BANNER_PACKS: dict[str, dict[str, str]] = {
 }
 
 
+TEAMS_LINK_PACKS: dict[str, dict[str, str]] = {
+    "ca": {
+        "select_all": "Seleccionar tots",
+        "internal_name_label": "Nom intern",
+        "internal_name_ph": "Selecciona o escriu el nom intern",
+        "teams_link_existing": "Noms oficials ja vinculats",
+        "teams_link_club_teams": "Equips del club",
+        "teams_link_search_fed": "Cercar noms federatius",
+        "teams_link_none": "Cap nom vinculat",
+        "teams_link_results_for": "Resultats per a",
+        "teams_link_results_hint": "Marca els noms federatius que vols vincular a aquest equip.",
+        "teams_link_search_hint": "Escriu un nom i fes clic a Cercar.",
+        "teams_link_no_hits": "No s'han trobat equips nous per a aquesta cerca.",
+    },
+    "es": {
+        "select_all": "Seleccionar todos",
+        "internal_name_label": "Nombre interno",
+        "internal_name_ph": "Selecciona o escribe el nombre interno",
+        "teams_link_existing": "Nombres oficiales ya vinculados",
+        "teams_link_club_teams": "Equipos del club",
+        "teams_link_search_fed": "Buscar nombres federativos",
+        "teams_link_none": "Ningún nombre vinculado",
+        "teams_link_results_for": "Resultados para",
+        "teams_link_results_hint": "Marca los nombres federativos que quieres vincular a este equipo.",
+        "teams_link_search_hint": "Escribe un nombre y haz clic en Buscar.",
+        "teams_link_no_hits": "No se han encontrado equipos nuevos para esta búsqueda.",
+    },
+    "en": {
+        "select_all": "Select all",
+        "internal_name_label": "Internal name",
+        "internal_name_ph": "Select or type the internal name",
+        "teams_link_existing": "Already linked official names",
+        "teams_link_club_teams": "Club teams",
+        "teams_link_search_fed": "Search federation names",
+        "teams_link_none": "No linked name",
+        "teams_link_results_for": "Results for",
+        "teams_link_results_hint": "Check the federation names you want to link to this team.",
+        "teams_link_search_hint": "Type a name and click Search.",
+        "teams_link_no_hits": "No new teams found for this search.",
+    },
+}
+
+
 def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
     for lang, pack in AUTH_PACKS.items():
         if lang in strings:
@@ -4708,6 +4751,9 @@ def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
         if lang in strings:
             strings[lang].update(pack)
     for lang, pack in BANNER_PACKS.items():
+        if lang in strings:
+            strings[lang].update(pack)
+    for lang, pack in TEAMS_LINK_PACKS.items():
         if lang in strings:
             strings[lang].update(pack)
     for lang, pack in MATCH_CREATE_PACKS.items():

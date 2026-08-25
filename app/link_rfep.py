@@ -237,7 +237,7 @@ def ensure_team_for_fed(
         .first()
     )
 
-    # 2) Si no, buscar un alias federativo existente para este nombre oficial.
+    # 2) Si no, buscar un alias federativo existente para este nombre y competició.
     if not team:
         alias = (
             db.query(TeamExternalName)
@@ -246,6 +246,7 @@ def ensure_team_for_fed(
                 Team.season_id == season_id,
                 TeamExternalName.source == source,
                 TeamExternalName.external_name == external_name,
+                TeamExternalName.competition == competition,
             )
             .first()
         )
@@ -267,13 +268,14 @@ def ensure_team_for_fed(
         db.add(team)
         db.flush()
 
-    # 4) Asegurar el alias federativo para este equipo.
+    # 4) Asegurar el alias federativo para este equipo y competició.
     exists_alias = (
         db.query(TeamExternalName)
         .filter(
             TeamExternalName.team_id == team.id,
             TeamExternalName.source == source,
             TeamExternalName.external_name == external_name,
+            TeamExternalName.competition == competition,
         )
         .first()
     )
@@ -283,6 +285,7 @@ def ensure_team_for_fed(
                 team_id=team.id,
                 source=source,
                 external_name=external_name,
+                competition=competition,
             )
         )
         db.flush()

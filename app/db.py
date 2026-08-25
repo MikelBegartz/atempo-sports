@@ -467,12 +467,15 @@ class TeamExternalName(Base):
     """Nombre del equipo tal como aparece en la federación."""
 
     __tablename__ = "team_external_names"
-    __table_args__ = (UniqueConstraint("team_id", "source", "external_name"),)
+    __table_args__ = (
+        UniqueConstraint("team_id", "source", "external_name", "competition"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
     source: Mapped[str] = mapped_column(String(40), nullable=False)  # rfep|fecapa
     external_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    competition: Mapped[str] = mapped_column(String(160), nullable=False, default="")
 
     team: Mapped[Team] = relationship(back_populates="external_names")
 
@@ -552,6 +555,7 @@ def _ensure_sqlite_columns() -> None:
         ("training_groups", "end_time", "TIME"),
         ("training_groups", "venue_id", "INTEGER"),
         ("training_groups", "is_draft", "INTEGER DEFAULT 1"),
+        ("team_external_names", "competition", "VARCHAR(160) DEFAULT ''"),
     ]
     with engine.begin() as conn:
         for table, col, typ in alters:
