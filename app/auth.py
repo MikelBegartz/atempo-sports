@@ -44,6 +44,9 @@ WEAK_DEMO_PASSWORD = "mataro"
 
 
 def session_secret() -> str:
+    env_secret = (os.environ.get("ATEMPO_SESSION_SECRET") or "").strip()
+    if env_secret:
+        return env_secret
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if SECRET_FILE.exists():
         return SECRET_FILE.read_text(encoding="utf-8").strip()
