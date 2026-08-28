@@ -12,6 +12,12 @@
       {% endif %}
     </div>
     <div class="page-head-actions">
+      {% if is_admin %}
+      <form method="post" action="/season/{{ season.id }}/matches/dedup"
+            onsubmit="return confirm('Eliminar partits duplicats d’aquesta temporada?');" style="margin:0">
+        <button type="submit" class="secondary">Netejar duplicats</button>
+      </form>
+      {% endif %}
       <form method="post" action="/season/{{ season.id }}/matches/clear"
             onsubmit='return confirm({{ (t("matches_clear_all") ~ "?")|tojson }}) && confirm({{ t("matches_clear_confirm")|tojson }});' style="margin:0">
         <button type="submit" class="secondary">{{ t('matches_clear_all') }}</button>

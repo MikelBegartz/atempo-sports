@@ -2614,6 +2614,7 @@ def _matches_page(
             "clean_alternatives": clean_alternatives,
             "all_matches": all_matches,
             "matches_flash": request.session.pop("matches_flash", None),
+            "is_admin": is_admin(request),
         },
     )
 
