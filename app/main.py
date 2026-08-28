@@ -129,6 +129,7 @@ from app.overlaps import (
     group_overlaps_by_horizon,
 )
 from app.fvp import import_fvp_matches, search_fvp_club_hits
+from app.import_fed import dedup_matches
 from app.link_rfep import (
     FED_SOURCES,
     ensure_team_for_fed,
@@ -5152,6 +5153,23 @@ async def import_run(
     n = len(picks)
     request.session["import_flash"] = translate(lang, "fed_import_ok").format(n=n)
     return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
+
+
+@app.post("/season/{season_id}/matches/dedup")
+def dedup_matches_route(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    if not is_admin(request):
+        return RedirectResponse(f"/season/{season_id}", status_code=303)
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    n = dedup_matches(db, season_id)
+    lang = get_lang(request)
+    request.session["import_flash"] = translate(lang, "matches_cleared").format(n=n)
+    return RedirectResponse(f"/season/{season_id}/calendar", status_code=303)
 
 
 @app.post("/season/{season_id}/import/sources/{source_id}/delete")

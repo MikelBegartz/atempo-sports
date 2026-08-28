@@ -498,6 +498,46 @@ def import_fecapa_competition(
     )
 
 
+def dedup_matches(db: Session, season_id: int) -> int:
+    """Elimina partidos duplicados (mismo equipo, rival, casa/fuera, fecha y hora)."""
+    matches = db.query(Match).filter(Match.season_id == season_id).all()
+    groups: dict[
+        tuple[int, str, bool, date | None, time | None], list[Match]
+    ] = {}
+    for m in matches:
+        key = (m.team_id, m.opponent, m.is_home, m.match_date, m.start_time)
+        groups.setdefault(key, []).append(m)
+
+    to_delete: list[Match] = []
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        group.sort(key=lambda m: (-int(m.locked), m.external_id is None, m.id))
+        to_delete.extend(group[1:])
+
+    if not to_delete:
+        return 0
+
+    delete_ids = [m.id for m in to_delete]
+    db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(delete_ids)).delete(
+        synchronize_session=False
+    )
+    db.query(Match).filter(Match.id.in_(delete_ids)).delete(synchronize_session=False)
+
+    conflicts = find_conflicts(db, season_id)
+    matches = db.query(Match).filter(Match.season_id == season_id).all()
+    trainings = (
+        db.query(Training)
+        .filter(Training.season_id == season_id, Training.is_draft.is_(False))
+        .all()
+    )
+    match_team = {m.id: m.team_id for m in matches}
+    training_team = {t.id: t.team_id for t in trainings}
+    persist_conflicts(db, season_id, conflicts, match_team, training_team)
+    db.commit()
+    return len(to_delete)
+
+
 def list_federation_competitions(source: str) -> list[tuple[int, str]]:
     client = SidgadClient(source)
     html = client.fetch_competition_list()
