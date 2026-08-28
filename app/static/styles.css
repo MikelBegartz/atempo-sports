@@ -1748,7 +1748,7 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 1.8rem;
+  margin-top: 3rem;
   justify-content: center;
 }
 .public-hero .button-like,
