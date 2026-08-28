@@ -54,7 +54,7 @@
 .cal-timeline { position: relative; display: flex; flex-direction: column; min-width: 800px; border-bottom: 1px solid var(--line); }
 .cal-timeline-header, .cal-timeline-row { display: flex; align-items: stretch; }
 .cal-timeline-header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
-.cal-timeline-dayhead { position: sticky; left: 0; align-self: stretch; width: 6.5rem; flex-shrink: 0; padding: 0 0.5rem; display: flex; flex-direction: column; justify-content: center; background: var(--bg); z-index: 100; }
+.cal-timeline-dayhead { position: sticky; left: 0; align-self: stretch; width: 6.5rem; flex-shrink: 0; padding: 0 0.5rem; display: flex; flex-direction: column; justify-content: center; background: var(--bg); z-index: 100; isolation: isolate; }
 .cal-timeline-track { flex: 1; position: relative; align-self: stretch; }
 .cal-timeline-body { position: relative; z-index: 1; background: var(--bg); }
 .cal-timeline-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
