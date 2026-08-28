@@ -2242,7 +2242,7 @@ def _parse_slot(weekday_raw: str, start_raw: str, end_raw: str) -> tuple[int, ti
         end = time_from_input(end_raw)
     except (TypeError, ValueError):
         return None
-    if weekday < 0 or weekday > 6 or end <= start:
+    if start is None or end is None or weekday < 0 or weekday > 6 or end <= start:
         return None
     return weekday, start, end
 
