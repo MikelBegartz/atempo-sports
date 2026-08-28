@@ -4727,30 +4727,74 @@ async def conflict_training_edit(
     scope = str(form.get("scope") or "").strip()
     if scope not in ("one", "all"):
         scope = "one"
-    update = {
-        Training.start_time: st,
-        Training.end_time: et,
-        Training.venue_id: venue_id,
-    }
+
+    def _new_training(
+        team_id: int,
+        session_date: date,
+        is_draft: bool,
+        series_id: str | None,
+        training_group_id: int | None = None,
+    ) -> Training:
+        return Training(
+            season_id=season_id,
+            team_id=team_id,
+            session_date=session_date,
+            start_time=st,
+            end_time=et,
+            venue_id=venue_id,
+            is_draft=is_draft,
+            is_manual=True,
+            series_id=series_id,
+            training_group_id=training_group_id,
+            allows_share=t.allows_share,
+        )
+
     if scope == "one":
-        if t.training_group_id:
-            update[Training.training_group_id] = None
-            update[Training.is_manual] = True
-        db.query(Training).filter(Training.id == t.id).update(update, synchronize_session=False)
+        is_draft = t.is_draft
+        team_id = t.team_id
+        session_date = t.session_date
+        db.delete(t)
+        db.add(_new_training(team_id, session_date, is_draft, None))
     elif t.training_group_id:
         g = db.get(TrainingGroup, t.training_group_id)
-        if g:
-            g.start_time = st
-            g.end_time = et
-            g.venue_id = venue_id
-        db.query(Training).filter(Training.training_group_id == t.training_group_id).update(update, synchronize_session=False)
+        if not g:
+            request.session["conflict_flash"] = "Grup no trobat"
+            return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+        team_ids = [m.team_id for m in g.members]
+        db.query(Training).filter(Training.training_group_id == g.id).delete(
+            synchronize_session=False
+        )
+        g.start_time = st
+        g.end_time = et
+        g.venue_id = venue_id
+        db.commit()
+        _generate_group_draft(db, season, g, team_ids)
+        db.query(Training).filter(Training.training_group_id == g.id).update(
+            {Training.is_draft: g.is_draft}, synchronize_session=False
+        )
     elif t.series_id:
-        db.query(Training).filter(
-            Training.season_id == season_id,
-            Training.series_id == t.series_id,
-        ).update(update, synchronize_session=False)
+        old_trainings = (
+            db.query(Training)
+            .filter(
+                Training.season_id == season_id,
+                Training.series_id == t.series_id,
+            )
+            .all()
+        )
+        team_id = t.team_id
+        is_draft = t.is_draft
+        series_id = t.series_id
+        for tr in old_trainings:
+            db.delete(tr)
+        for d in {tr.session_date for tr in old_trainings}:
+            db.add(_new_training(team_id, d, is_draft, series_id))
     else:
-        db.query(Training).filter(Training.id == t.id).update(update, synchronize_session=False)
+        is_draft = t.is_draft
+        team_id = t.team_id
+        session_date = t.session_date
+        db.delete(t)
+        db.add(_new_training(team_id, session_date, is_draft, None))
+
     db.commit()
     request.session["conflict_flash"] = "Horari actualitzat"
     return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
