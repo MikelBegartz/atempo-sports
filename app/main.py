@@ -4503,6 +4503,7 @@ def conflict_detail(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
     lang = get_lang(request)
     conflicts = find_conflicts(db, season_id, lang=lang)
     matches = db.query(Match).filter(Match.season_id == season_id).all()
