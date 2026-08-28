@@ -5230,9 +5230,12 @@ def calendar_week(
     season = ctx["season"]
     focus = date.fromisoformat(day) if day else date.today()
     today = date.today()
-    mode = request.query_params.get("mode", "all")
-    if mode not in ("all", "matches", "trainings"):
-        mode = "all"
+    qmode = request.query_params.get("mode")
+    if qmode in ("all", "matches", "trainings"):
+        request.session["calendar_mode"] = qmode
+        mode = qmode
+    else:
+        mode = request.session.get("calendar_mode", "all")
     from app.calendar_week import build_global_draft
     from app.db import Training
     (
