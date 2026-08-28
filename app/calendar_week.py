@@ -423,7 +423,8 @@ def build_global_draft(
         day_slots.setdefault(slot["date"], []).append(slot)
 
     if mode in ("matches", "trainings"):
-        kind = mode[:-1]  # match / training
+        kind_map = {"matches": "match", "trainings": "training"}
+        kind = kind_map[mode]
         day_slots = {
             d: [s for s in slots if s["kind"] == kind]
             for d, slots in day_slots.items()
