@@ -79,8 +79,9 @@
   <h2 class="match-calendar-title">{{ t('calendar_title') }}</h2>
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
+  {% set min_w = (day_range / 60 * 120)|round(0)|int %}{% if min_w < 800 %}{% set min_w = 800 %}{% endif %}
   <div class="draft-scroll">
-    <div class="cal-timeline" style="min-width:{{ max(800, (day_range / 60 * 120)|round(0)) }}px">
+    <div class="cal-timeline" style="min-width:{{ min_w }}px">
       <div class="cal-timeline-header">
         <div class="cal-timeline-dayhead"></div>
         <div class="cal-timeline-track" style="height:1.5rem">
