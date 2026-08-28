@@ -5164,13 +5164,18 @@ def dedup_matches_route(
 ):
     if not is_admin(request):
         return RedirectResponse(f"/season/{season_id}", status_code=303)
-    ctx = _active_context(request, db, season_id)
-    if not ctx or not ctx.get("season"):
+    season = db.get(Season, season_id)
+    if not season:
         return RedirectResponse("/app", status_code=303)
     n = dedup_matches(db, season_id)
     lang = get_lang(request)
-    request.session["matches_flash"] = translate(lang, "matches_cleared").format(n=n)
-    return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
+    msg = translate(lang, "matches_cleared").format(n=n)
+    ctx = _active_context(request, db, season_id)
+    if ctx and ctx.get("season"):
+        request.session["matches_flash"] = msg
+        return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
+    request.session["admin_flash"] = msg
+    return RedirectResponse(f"/admin/clubs/{season.club_id}/seasons", status_code=303)
 
 
 @app.post("/season/{season_id}/import/sources/{source_id}/delete")
