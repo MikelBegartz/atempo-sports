@@ -4734,6 +4734,7 @@ async def conflict_training_edit(
         is_draft: bool,
         series_id: str | None,
         training_group_id: int | None = None,
+        allows_share: bool | None = None,
     ) -> Training:
         return Training(
             season_id=season_id,
@@ -4746,7 +4747,7 @@ async def conflict_training_edit(
             is_manual=True,
             series_id=series_id,
             training_group_id=training_group_id,
-            allows_share=t.allows_share,
+            allows_share=allows_share if allows_share is not None else t.allows_share,
         )
 
     if scope == "one":
@@ -4793,19 +4794,48 @@ async def conflict_training_edit(
             )
             .all()
         )
-        team_id = t.team_id
-        is_draft = t.is_draft
-        series_id = t.series_id
         for tr in old_trainings:
             db.delete(tr)
-        for d in {tr.session_date for tr in old_trainings}:
-            db.add(_new_training(team_id, d, is_draft, series_id))
+        for tr in old_trainings:
+            db.add(
+                _new_training(
+                    tr.team_id,
+                    tr.session_date,
+                    tr.is_draft,
+                    tr.series_id,
+                    allows_share=tr.allows_share,
+                )
+            )
     else:
-        is_draft = t.is_draft
-        team_id = t.team_id
-        session_date = t.session_date
-        db.delete(t)
-        db.add(_new_training(team_id, session_date, is_draft, None))
+        old_trainings = (
+            db.query(Training)
+            .filter(
+                Training.season_id == season_id,
+                Training.start_time == t.start_time,
+                Training.end_time == t.end_time,
+                Training.venue_id == (t.venue_id or 0),
+                Training.training_group_id.is_(None),
+                Training.series_id.is_(None),
+            )
+            .all()
+        )
+        old_trainings = [
+            tr
+            for tr in old_trainings
+            if tr.session_date.weekday() == t.session_date.weekday()
+        ]
+        for tr in old_trainings:
+            db.delete(tr)
+        for tr in old_trainings:
+            db.add(
+                _new_training(
+                    tr.team_id,
+                    tr.session_date,
+                    tr.is_draft,
+                    None,
+                    allows_share=tr.allows_share,
+                )
+            )
 
     db.commit()
     request.session["conflict_flash"] = "Horari actualitzat"
