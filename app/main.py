@@ -4761,12 +4761,24 @@ async def conflict_training_edit(
             request.session["conflict_flash"] = "Grup no trobat"
             return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
         team_ids = [m.team_id for m in g.members]
-        db.query(Training).filter(Training.training_group_id == g.id).delete(
-            synchronize_session=False
+        old_trainings = (
+            db.query(Training)
+            .filter(Training.training_group_id == g.id)
+            .all()
         )
+        old_dates = [tr.session_date for tr in old_trainings]
+        for tr in old_trainings:
+            db.delete(tr)
         g.start_time = st
         g.end_time = et
         g.venue_id = venue_id
+        if old_dates:
+            g.start_date = min(
+                g.start_date or min(old_dates), min(old_dates)
+            )
+        g.end_date = g.end_date or (
+            season.end_date or default_end_date_for_season(season.name)
+        )
         db.commit()
         _generate_group_draft(db, season, g, team_ids)
         db.query(Training).filter(Training.training_group_id == g.id).update(
