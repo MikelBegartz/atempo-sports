@@ -362,10 +362,30 @@ def build_global_draft(
     all_minutes: list[int] = []
 
     for m in matches:
-        if not m.match_date or not m.start_time:
+        if not m.match_date:
+            continue
+        status = _match_status(m, hard_ids, soft_ids)
+        if not m.start_time:
+            day_slots.setdefault(m.match_date, []).append(
+                {
+                    "id": m.id,
+                    "kind": "match",
+                    "home": match_local_name(m),
+                    "away": match_away_name(m),
+                    "team": m.team.name if m.team else "",
+                    "competition": m.team.category or "",
+                    "venue": match_place_label(m) or "",
+                    "date": m.match_date,
+                    "start": None,
+                    "end": None,
+                    "status": status,
+                    "href": f"/season/{season_id}/matches?m={m.id}#fitxa",
+                    "is_home": bool(m.is_home),
+                    "no_time": True,
+                }
+            )
             continue
         end_t = _end_default(m.match_date, m.start_time, m.end_time)
-        status = _match_status(m, hard_ids, soft_ids)
         slot = {
             "id": m.id,
             "kind": "match",
@@ -434,6 +454,7 @@ def build_global_draft(
             _minutes(t)
             for slots in day_slots.values()
             for s in slots
+            if not s.get("no_time")
             for t in (s["start"], s["end"])
         ]
 
@@ -456,11 +477,21 @@ def build_global_draft(
 
     day_max_lanes: dict[date, int] = {}
     for d, slots in day_slots.items():
-        slots.sort(key=lambda s: (_minutes(s["start"]), _minutes(s["end"])))
+        slots.sort(
+            key=lambda s: (
+                0 if s.get("no_time") else 1,
+                _minutes(s["start"]) if s.get("start") else 0,
+                _minutes(s["end"]) if s.get("end") else 0,
+            )
+        )
         lanes: list[int] = []
         for slot in slots:
-            s = _minutes(slot["start"])
-            e = _minutes(slot["end"])
+            if slot.get("no_time"):
+                s = 0
+                e = 1
+            else:
+                s = _minutes(slot["start"])
+                e = _minutes(slot["end"])
             lane = -1
             for i, last_end in enumerate(lanes):
                 if last_end <= s:
@@ -471,8 +502,12 @@ def build_global_draft(
                 lanes.append(e)
                 lane = len(lanes) - 1
             slot["lane"] = lane
-            slot["left_pct"] = round((s - day_start_min) / day_range * 100, 2)
-            slot["width_pct"] = round((e - s) / day_range * 100, 2)
+            if slot.get("no_time"):
+                slot["left_pct"] = 0.0
+                slot["width_pct"] = 98.0
+            else:
+                slot["left_pct"] = round((s - day_start_min) / day_range * 100, 2)
+                slot["width_pct"] = round((e - s) / day_range * 100, 2)
         day_max_lanes[d] = len(lanes)
 
     return sorted_days, sorted_hours, day_slots, start, end, day_start_min, day_range, day_max_lanes

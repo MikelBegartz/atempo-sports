@@ -119,14 +119,14 @@
                 <div class="draft-side">{{ slot.home }}</div>
                 <div class="draft-side">{{ slot.away }}</div>
               </div>
-              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+              <div class="draft-time">{% if slot.no_time %}TBD{% else %}{{ slot.start|time_input }}–{{ slot.end|time_input }}{% endif %}</div>
               {% if slot.venue and slot.is_home %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
               {% else %}
               <div class="draft-title">{{ t('tr_title') }}</div>
               {% for team in slot.teams %}
               <div class="draft-team">{{ team }}</div>
               {% endfor %}
-              <div class="draft-time">{{ slot.start|time_input }}–{{ slot.end|time_input }}</div>
+              <div class="draft-time">{% if slot.no_time %}TBD{% else %}{{ slot.start|time_input }}–{{ slot.end|time_input }}{% endif %}</div>
               {% if slot.venue %}<div class="draft-venue">{{ slot.venue }}</div>{% endif %}
               {% endif %}
             </a>
