@@ -1754,22 +1754,23 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 .public-hero .button-like,
 .public-hero .button-like.secondary {
   display: inline-block;
-  padding: 0.6rem 1.2rem;
+  padding: 0.55rem 1.1rem;
   border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 500;
+  font-size: 0.9rem;
   text-decoration: none;
   white-space: nowrap;
   min-width: 120px;
   text-align: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  background: #d4f3e1;
+}
+.public-hero .button-like {
+  background: rgba(200, 236, 217, 0.82);
   color: #0b2f24;
 }
 .public-hero .button-like.secondary {
-  background: rgba(212, 243, 225, 0.1);
+  background: rgba(212, 243, 225, 0.08);
   color: #d4f3e1;
-  border: 1px solid rgba(212, 243, 225, 0.4);
+  border: 1px solid rgba(212, 243, 225, 0.35);
 }
 .public-content {
   padding: 2.6rem 2.2rem;
