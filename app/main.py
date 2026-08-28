@@ -5114,6 +5114,7 @@ async def import_run(
         )
         return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
+    selections_by_source: dict[str, list[tuple[int, str, str, str]]] = {}
     for raw in picks:
         parts = str(raw).split("||", 4)
         if len(parts) != 5:
@@ -5126,20 +5127,27 @@ async def import_run(
         except ValueError:
             continue
         internal_name = str(form.get(f"internal_name_{idx}") or "").strip()
-        try:
-            ensure_team_for_fed(
-                db,
-                season_id,
-                external_name=ext_name,
-                competition=comp,
-                source=src,
-                internal_name=internal_name,
-            )
-        except Exception as exc:  # noqa: BLE001
-            request.session["import_error"] = str(exc)
-            return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
+        selections_by_source.setdefault(src, []).append(
+            (idc, ext_name, comp, internal_name)
+        )
 
-    db.commit()
+    if not selections_by_source:
+        request.session["import_error"] = translate(
+            get_lang(request), "rfep_need_pick"
+        )
+        return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
+
+    reports: list[ImportReport] = []
+    for src, sels in selections_by_source.items():
+        reports.extend(
+            import_selected_fed_teams(db, season_id, sels, source=src)
+        )
+
+    errors = [r.error for r in reports if r.error]
+    if errors:
+        request.session["import_error"] = " · ".join(errors)
+        return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
+
     lang = get_lang(request)
     n = len(picks)
     request.session["import_flash"] = translate(lang, "fed_import_ok").format(n=n)

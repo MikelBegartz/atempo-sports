@@ -216,6 +216,8 @@ def import_competition(
     club_id = season.club_id if season else None
 
     for cm in calendar:
+        if apply:
+            db.flush()
         local_n = _norm(cm.local)
         visit_n = _norm(cm.visitante)
         team = None
