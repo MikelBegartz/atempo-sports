@@ -11,6 +11,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Request, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -3650,6 +3651,27 @@ def trainings_propose_solapes(
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
 
+def _delete_overlapping_manual_trainings(
+    db: Session,
+    season,
+    g: TrainingGroup,
+    team_ids: list[int],
+) -> None:
+    """Esborra entrenaments manuals que ocupen el mateix equip/dia que el grup."""
+    start = g.start_date or default_plan_range()[0]
+    end = g.end_date or default_plan_range()[1]
+    wds = parse_weekdays(g.weekdays)
+    weekday_strs = [str((wd + 1) % 7) for wd in wds]
+    db.query(Training).filter(
+        Training.season_id == season.id,
+        Training.team_id.in_(team_ids),
+        Training.session_date >= start,
+        Training.session_date <= end,
+        Training.training_group_id.is_(None),
+        func.strftime("%w", Training.session_date).in_(weekday_strs),
+    ).delete(synchronize_session=False)
+
+
 @app.post("/season/{season_id}/trainings/groups")
 async def trainings_groups_create(
     season_id: int,
@@ -3690,6 +3712,7 @@ async def trainings_groups_create(
                 status_code=303,
             )
         db.query(Training).filter(Training.training_group_id == g.id).delete(synchronize_session=False)
+        _delete_overlapping_manual_trainings(db, season, g, [m.team_id for m in g.members])
         db.commit()
         _generate_group_draft(db, season, g, [m.team_id for m in g.members])
         _refresh_training_draft(db, season)
@@ -3717,6 +3740,8 @@ async def trainings_groups_create(
     if not g:
         request.session["groups_error"] = translate(lang, "tr_groups_create_error")
         return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    _delete_overlapping_manual_trainings(db, season, g, team_ids)
+    db.commit()
     _generate_group_draft(db, season, g, team_ids)
     _refresh_training_draft(db, season)
     request.session["plan_flash"] = translate(lang, "tr_groups_planning_updated")
