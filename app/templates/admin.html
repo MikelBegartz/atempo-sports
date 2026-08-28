@@ -172,6 +172,10 @@
         <button type="submit">{{ t('admin_save_password') }}</button>
       </form>
 
+      <p style="margin:0.75rem 0 0">
+        <a class="secondary" href="/admin/clubs/{{ c.id }}/seasons">{{ t('admin_seasons_link') }}</a>
+      </p>
+
       {% if c.password_hash %}
       <form method="post" action="/admin/clubs/{{ c.id }}/delete" style="display:inline" onsubmit="return confirm({{ t('admin_delete_confirm')|tojson }});">
         <button type="submit" class="text-action-btn danger">{{ t('admin_delete_club') }}</button>
@@ -179,10 +183,6 @@
       {% endif %}
     </section>
     {% endfor %}
-
-    <p class="muted" style="margin-top:1.5rem">
-      <a href="/admin/seasons">{{ t('admin_seasons_link') }}</a>
-    </p>
   </main>
 </body>
 </html>

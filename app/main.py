@@ -5169,8 +5169,8 @@ def dedup_matches_route(
         return RedirectResponse("/app", status_code=303)
     n = dedup_matches(db, season_id)
     lang = get_lang(request)
-    request.session["import_flash"] = translate(lang, "matches_cleared").format(n=n)
-    return RedirectResponse(f"/season/{season_id}/calendar", status_code=303)
+    request.session["matches_flash"] = translate(lang, "matches_cleared").format(n=n)
+    return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
 
 
 @app.post("/season/{season_id}/import/sources/{source_id}/delete")
