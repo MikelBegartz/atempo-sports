@@ -5208,6 +5208,9 @@ def calendar_week(
     season = ctx["season"]
     focus = date.fromisoformat(day) if day else date.today()
     today = date.today()
+    mode = request.query_params.get("mode", "all")
+    if mode not in ("all", "matches", "trainings"):
+        mode = "all"
     from app.calendar_week import build_global_draft
     from app.db import Training
     (
@@ -5219,7 +5222,7 @@ def calendar_week(
         day_start_min,
         day_range,
         day_max_lanes,
-    ) = build_global_draft(db, season_id, focus, today=today)
+    ) = build_global_draft(db, season_id, focus, today=today, mode=mode)
     has_live_trainings = (
         db.query(Training)
         .filter(Training.season_id == season_id, Training.is_draft.is_(False))
@@ -5259,6 +5262,7 @@ def calendar_week(
             "prev_day": (focus - timedelta(days=7)).isoformat(),
             "next_day": (focus + timedelta(days=7)).isoformat(),
             "has_live_trainings": has_live_trainings,
+            "mode": mode,
             "nav_week": nav_week,
             "nav_prev": nav_prev,
             "nav_next": nav_next,

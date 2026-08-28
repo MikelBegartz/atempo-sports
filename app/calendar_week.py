@@ -316,6 +316,7 @@ def build_global_draft(
     season_id: int,
     any_day: date,
     today: date | None = None,
+    mode: str = "all",
 ) -> tuple[list[date], list[time], dict[date, list[dict]], date, date, time, time, int, dict[date, int]]:
     """Vista de calendario combinada: partits + entrenaments."""
     today = today or date.today()
@@ -421,8 +422,22 @@ def build_global_draft(
     for slot in group_slots.values():
         day_slots.setdefault(slot["date"], []).append(slot)
 
+    if mode in ("matches", "trainings"):
+        kind = mode[:-1]  # match / training
+        day_slots = {
+            d: [s for s in slots if s["kind"] == kind]
+            for d, slots in day_slots.items()
+        }
+        day_slots = {d: slots for d, slots in day_slots.items() if slots}
+        all_minutes = [
+            _minutes(t)
+            for slots in day_slots.values()
+            for s in slots
+            for t in (s["start"], s["end"])
+        ]
+
     sorted_days = sorted(day_slots.keys())
-    if not sorted_days:
+    if not sorted_days and mode == "all":
         sorted_days = days
 
     if all_minutes:

@@ -76,7 +76,14 @@
 </style>
 
 <section class="match-draft">
-  <h2 class="match-calendar-title">{{ t('calendar_title') }}</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem">
+    <h2 class="match-calendar-title" style="margin:0">{{ t('calendar_title') }}</h2>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <a class="{% if mode == 'all' %}button{% else %}button secondary{% endif %}" href="/season/{{ season.id }}/calendar?mode=all&day={{ focus_day }}">{{ t('calendar_mode_all') }}</a>
+      <a class="{% if mode == 'matches' %}button{% else %}button secondary{% endif %}" href="/season/{{ season.id }}/calendar?mode=matches&day={{ focus_day }}">{{ t('calendar_mode_matches') }}</a>
+      <a class="{% if mode == 'trainings' %}button{% else %}button secondary{% endif %}" href="/season/{{ season.id }}/calendar?mode=trainings&day={{ focus_day }}">{{ t('calendar_mode_trainings') }}</a>
+    </div>
+  </div>
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
   {% set min_w = (day_range / 60 * 120)|round(0)|int %}{% if min_w < 800 %}{% set min_w = 800 %}{% endif %}
