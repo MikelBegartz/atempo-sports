@@ -108,6 +108,36 @@
   </div>
 </div>
 
+<div style="margin:0.75rem 0">
+  {% for ev in conflict_events %}
+  {% if ev.kind == 'training' %}
+  <form method="post" action="/season/{{ season.id }}/conflict/{{ conflict.key }}/training-edit" class="stack" style="margin:0.5rem 0;padding:0.75rem;border:1px solid var(--line);border-radius:8px">
+    <input type="hidden" name="training_id" value="{{ ev.training_id }}">
+    <div style="font-weight:600;margin-bottom:0.4rem">Cambiar horario · {{ ev.label }}{% if ev.subtitle %} · {{ ev.subtitle }}{% endif %}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end">
+      <label>{{ t('col_from') }} <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" value="{{ ev.start|time_input }}" style="width:5rem" required /></label>
+      <label>{{ t('col_to') }} <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" value="{{ ev.end|time_input }}" style="width:5rem" required /></label>
+      <label>{{ t('col_venue') }}
+        <select name="venue_id" style="min-width:8rem">
+          <option value="0"{% if not ev.venue_id %} selected{% endif %}>Sin pista</option>
+          {% for v in venues %}
+          <option value="{{ v.id }}"{% if v.id == ev.venue_id %} selected{% endif %}>{{ v.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Ámbito
+        <select name="scope" style="min-width:9rem">
+          <option value="one">Sólo esta sesión</option>
+          <option value="all">Toda la serie</option>
+        </select>
+      </label>
+      <button type="submit">Cambiar</button>
+    </div>
+  </form>
+  {% endif %}
+  {% endfor %}
+</div>
+
 <details style="margin:0.75rem 0">
   <summary>{{ t('conflict_detail_open_cases').format(count=related|length) }}</summary>
   <div style="margin-top:0.5rem">

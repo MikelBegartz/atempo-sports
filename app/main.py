@@ -4575,7 +4575,11 @@ def conflict_detail(
                 "kind_label": kind_label,
                 "label": label,
                 "subtitle": subtitle,
-                "venue": t0.venue.name if t0.venue else "",
+                "venue_name": t0.venue.name if t0.venue else "",
+                "venue_id": t0.venue_id or 0,
+                "training_id": t0.id,
+                "training_group_id": t0.training_group_id,
+                "series_id": t0.series_id,
                 "kind": "training",
             }
         )
@@ -4590,6 +4594,12 @@ def conflict_detail(
         )
     else:
         conflict_day_label = ""
+    venues = (
+        db.query(Venue)
+        .filter(Venue.club_id == season.club_id)
+        .order_by(Venue.name)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "conflict_detail.html",
@@ -4602,6 +4612,7 @@ def conflict_detail(
             "related": related,
             "matches": {m.id: m for m in matches},
             "trainings": {t.id: t for t in trainings},
+            "venues": venues,
             "ignored_series": row.ignored if row else False,
             "is_ignored_day": is_ignored_day,
         },
@@ -4688,6 +4699,59 @@ async def conflict_unignore(
                 ).delete()
     db.commit()
     return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
+
+
+@app.post("/season/{season_id}/conflict/{conflict_key}/training-edit")
+async def conflict_training_edit(
+    season_id: int,
+    conflict_key: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    if not season:
+        return RedirectResponse("/app", status_code=303)
+    form = await request.form()
+    training_id = int(form.get("training_id") or 0)
+    t = db.get(Training, training_id)
+    if not t or t.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    st = time_from_input(str(form.get("start_time") or ""))
+    et = time_from_input(str(form.get("end_time") or ""))
+    if not st or not et or et <= st:
+        request.session["conflict_flash"] = "Horari invàlid"
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    venue_id = int(form.get("venue_id") or 0) or None
+    scope = str(form.get("scope") or "").strip()
+    if scope not in ("one", "all"):
+        scope = "one"
+    update = {
+        Training.start_time: st,
+        Training.end_time: et,
+        Training.venue_id: venue_id,
+    }
+    if scope == "one":
+        if t.training_group_id:
+            update[Training.training_group_id] = None
+            update[Training.is_manual] = True
+        db.query(Training).filter(Training.id == t.id).update(update, synchronize_session=False)
+    elif t.training_group_id:
+        g = db.get(TrainingGroup, t.training_group_id)
+        if g:
+            g.start_time = st
+            g.end_time = et
+            g.venue_id = venue_id
+        db.query(Training).filter(Training.training_group_id == t.training_group_id).update(update, synchronize_session=False)
+    elif t.series_id:
+        db.query(Training).filter(
+            Training.season_id == season_id,
+            Training.series_id == t.series_id,
+        ).update(update, synchronize_session=False)
+    else:
+        db.query(Training).filter(Training.id == t.id).update(update, synchronize_session=False)
+    db.commit()
+    request.session["conflict_flash"] = "Horari actualitzat"
+    return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
 
 
 @app.get("/season/{season_id}/trainings/group-propose")
