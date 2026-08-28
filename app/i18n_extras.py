@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from app.i18n_fill import FILL_PACKS
 from app.i18n_match_create import MATCH_CREATE_PACKS
 from app.i18n_training_batch import TRAINING_BATCH_PACKS
 from app.i18n_by_team import BY_TEAM_CONFIRM_PACKS
@@ -4763,6 +4764,9 @@ def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
         if lang in strings:
             strings[lang].update(pack)
     for lang, pack in BY_TEAM_CONFIRM_PACKS.items():
+        if lang in strings:
+            strings[lang].update(pack)
+    for lang, pack in FILL_PACKS.items():
         if lang in strings:
             strings[lang].update(pack)
     # Cualquier clave que aún falte en pt/fr/it/de/en: inglés, luego catalán
