@@ -4575,6 +4575,7 @@ def conflict_detail(
                 "kind_label": kind_label,
                 "label": label,
                 "subtitle": subtitle,
+                "venue": t0.venue.name if t0.venue else "",
                 "venue_name": t0.venue.name if t0.venue else "",
                 "venue_id": t0.venue_id or 0,
                 "training_id": t0.id,
