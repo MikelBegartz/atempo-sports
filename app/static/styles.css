@@ -1744,6 +1744,27 @@ button.secondary, a.button.secondary { background: #3d4a3d; color: #fff; }
 .public-hero .login-kicker { margin-bottom: 0.8rem; }
 .public-hero .login-logo { font-size: clamp(2.8rem, 5vw, 3.8rem); margin: 0 0 0.8rem; }
 .public-hero .login-lead { max-width: none; margin: 0; }
+.public-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+}
+.public-hero .button-like,
+.public-hero .button-like.secondary {
+  display: inline-block;
+  padding: 0.65rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  background: #f4fcf8;
+  color: #0b2f24;
+}
+.public-hero .button-like.secondary {
+  background: rgba(244, 252, 248, 0.12);
+  color: #f4fcf8;
+  border: 1px solid rgba(244, 252, 248, 0.35);
+}
 .public-content {
   padding: 2.6rem 2.2rem;
   font-size: 1.05rem;
