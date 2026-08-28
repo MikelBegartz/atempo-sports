@@ -442,8 +442,12 @@ def find_conflicts(
             if len(cluster) < 2:
                 continue
             all_training = all(o.etype == "training" for o in cluster)
-            group_ids = {o.training_group_id for o in cluster if o.training_group_id}
-            if all_training and len(group_ids) == 1:
+            group_ids = {o.training_group_id for o in cluster}
+            if (
+                all_training
+                and len(group_ids) == 1
+                and next(iter(group_ids)) is not None
+            ):
                 continue
             if all_training and len({(o.start, o.end) for o in cluster}) == 1:
                 continue

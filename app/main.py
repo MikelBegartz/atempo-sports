@@ -3485,6 +3485,7 @@ def trainings_groups_page(
     venues = db.query(Venue).filter(Venue.club_id == season.club_id).all()
     start, end = default_plan_range()
     propose_weekdays = sorted({tr.weekday for tr in propose_trainings if tr.weekday is not None}) or [0]
+    today = date.today()
     return templates.TemplateResponse(
         request,
         "trainings_groups.html",
@@ -3517,6 +3518,7 @@ def trainings_groups_page(
             "propose_draft_created": bool(draft_group_id),
             "propose_draft_message": translate(lang, "tr_groups_planning_updated") if draft_group_id else "",
             "propose_group_id": draft_group_id,
+            "today": today,
         },
     )
 
@@ -3852,6 +3854,40 @@ def trainings_groups_delete(
         return RedirectResponse(
             f"/season/{season_id}/trainings#draft", status_code=303
         )
+    return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+
+
+@app.post("/season/{season_id}/trainings/groups/{group_id}/delete-day")
+async def trainings_groups_delete_day(
+    season_id: int,
+    group_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    lang = get_lang(request)
+    form = await request.form()
+    day_str = str(form.get("day") or "").strip()
+    if not day_str:
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    try:
+        day = date.fromisoformat(day_str)
+    except ValueError:
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    g = db.get(TrainingGroup, group_id)
+    if not g or g.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
+    db.query(Training).filter(
+        Training.season_id == season_id,
+        Training.training_group_id == group_id,
+        Training.session_date == day,
+    ).delete(synchronize_session=False)
+    db.commit()
+    _refresh_training_draft(db, season)
+    request.session["plan_flash"] = translate(lang, "tr_groups_deleted_planning")
     return RedirectResponse(f"/season/{season_id}/trainings/groups", status_code=303)
 
 
