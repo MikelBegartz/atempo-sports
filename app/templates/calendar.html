@@ -61,7 +61,7 @@
 .cal-timeline-grid { position: absolute; left: 6.5rem; right: 0; top: 0; bottom: 0; pointer-events: none; z-index: 1; }
 .cal-timeline-tick { position: absolute; top: 0.1rem; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted); }
 .cal-timeline-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
-.cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border: 1px solid; border-color: transparent; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.75rem; line-height: 1.05; height: 84px; overflow: hidden; box-sizing: border-box; z-index: 2; }
+.cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border: 1px solid; border-color: transparent; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.75rem; line-height: 1.05; height: 105px; overflow: hidden; box-sizing: border-box; z-index: 2; }
 .cal-event.status-training { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
 .cal-event.status-ok { background: #81c784 !important; border-color: #66bb6a !important; color: #1b4d2c !important; }
 .cal-event.status-soft { background: #f9d84c !important; border-color: #c9a82a !important; color: #5a3b0a; }
@@ -80,7 +80,7 @@
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
   <div class="draft-scroll">
-    <div class="cal-timeline">
+    <div class="cal-timeline" style="min-width:{{ max(800, (day_range / 60 * 120)|round(0)) }}px">
       <div class="cal-timeline-header">
         <div class="cal-timeline-dayhead"></div>
         <div class="cal-timeline-track" style="height:1.5rem">
@@ -101,10 +101,10 @@
             <strong>{{ weekday_names[d.weekday()] }}</strong>
             <span class="muted">{{ d.strftime('%d/%m') }}</span>
           </div>
-          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 84) }}px">
+          <div class="cal-timeline-track" style="height:{{ (day_max_lanes.get(d, 1) * 105) }}px">
             {% for slot in draft_grid.get(d, []) %}
             <a class="cal-event status-{{ slot.status }} kind-{{ slot.kind }}" href="{{ slot.href }}"
-               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 84 }}px">
+               style="left:{{ slot.left_pct }}%;width:{{ slot.width_pct }}%;top:{{ slot.lane * 105 }}px">
               {% if slot.kind == 'match' %}
               <div class="draft-title">{{ t('match_title_short') }}{% if slot.competition %} · {{ slot.competition }}{% endif %}</div>
               <div class="draft-sides">
