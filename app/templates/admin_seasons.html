@@ -46,7 +46,7 @@
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
             <a class="secondary" href="/season/{{ s.id }}/season">{{ t('nav_season') }}</a>
             <a class="secondary" href="/season/{{ s.id }}/matches">{{ t('nav_matches') }}</a>
-            <form method="post" action="/season/{{ s.id }}/matches/dedup" onsubmit="return confirm('Eliminar partits duplicats d\'aquesta temporada?');" style="margin:0;display:inline">
+            <form method="post" action="/admin/clubs/{{ club.id }}/seasons/{{ s.id }}/dedup" onsubmit="return confirm('Eliminar partits duplicats d\'aquesta temporada?');" style="margin:0;display:inline">
               <button type="submit" class="secondary">Netejar duplicats</button>
             </form>
             <a class="secondary" href="/season/{{ s.id }}/export/matches">{{ t('admin_export_matches') }}</a>

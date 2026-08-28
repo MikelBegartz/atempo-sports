@@ -13,7 +13,7 @@
     </div>
     <div class="page-head-actions">
       {% if is_admin %}
-      <form method="post" action="/season/{{ season.id }}/matches/dedup"
+      <form method="post" action="/admin/clubs/{{ season.club_id }}/seasons/{{ season.id }}/dedup"
             onsubmit="return confirm('Eliminar partits duplicats d’aquesta temporada?');" style="margin:0">
         <button type="submit" class="secondary">Netejar duplicats</button>
       </form>

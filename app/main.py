@@ -889,6 +889,28 @@ def admin_club_seasons(
     )
 
 
+@app.post("/admin/clubs/{club_id}/seasons/{season_id}/dedup")
+def admin_season_dedup(
+    request: Request,
+    club_id: int,
+    season_id: int,
+    db: Session = Depends(get_db),
+):
+    if not is_admin(request):
+        return RedirectResponse("/admin/login", status_code=303)
+    season = (
+        db.query(Season)
+        .filter(Season.id == season_id, Season.club_id == club_id)
+        .first()
+    )
+    if not season:
+        return RedirectResponse(f"/admin/clubs/{club_id}/seasons", status_code=303)
+    n = dedup_matches(db, season_id)
+    lang = get_lang(request)
+    request.session["admin_flash"] = translate(lang, "matches_cleared").format(n=n)
+    return RedirectResponse(f"/admin/clubs/{club_id}/seasons", status_code=303)
+
+
 @app.post("/admin/recovery")
 def admin_set_recovery(
     request: Request,
