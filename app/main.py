@@ -102,7 +102,6 @@ from app.db import (
     TrainingGroup,
     TrainingGroupMember,
     Venue,
-    VenueAvailability,
     default_end_date_for_season,
     get_db,
     init_db,
@@ -475,17 +474,6 @@ def login_get(request: Request):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     return response
-
-
-@app.get("/debug/auth")
-def debug_auth(code: str, secret: str, db: Session = Depends(get_db)):
-    club = authenticate_club(db, code, secret)
-    return {
-        "code": code,
-        "secret": secret,
-        "found": bool(club),
-        "club_name": club.name if club else None,
-    }
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -4195,6 +4183,32 @@ async def trainings_merge_apply(
     if session_date and wds_raw and wds_raw[0].isdigit():
         wds = [int(wds_raw[0])]
 
+    st_t = t_a.start_time
+    et_t = t_a.end_time
+    try:
+        st_t = time.fromisoformat(start_time)
+    except ValueError:
+        pass
+    try:
+        et_t = time.fromisoformat(end_time)
+    except ValueError:
+        pass
+
+    start_d = None
+    end_d = None
+    if session_date:
+        try:
+            start_d = date.fromisoformat(session_date)
+            end_d = start_d
+        except ValueError:
+            pass
+
+    venue_id_int = None
+    if venue_id.isdigit():
+        venue_id_int = int(venue_id)
+    elif t_a.venue_id:
+        venue_id_int = t_a.venue_id
+
     g = create_group(
         db,
         season_id=season_id,
@@ -4202,6 +4216,11 @@ async def trainings_merge_apply(
         mode="shared",
         overlap_minutes=0,
         weekdays=wds,
+        start_date=start_d,
+        end_date=end_d,
+        start_time=st_t,
+        end_time=et_t,
+        venue_id=venue_id_int,
     )
     if not g:
         request.session["groups_error"] = translate(lang, "tr_groups_create_error")

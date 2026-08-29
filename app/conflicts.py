@@ -281,7 +281,14 @@ def _match_to_occ(m: Match, override: dict | None, lang: str) -> _Occ | None:
     )
 
 
-def _training_to_occ(t: Training, lang: str) -> _Occ:
+def _training_to_occ(t: Training, lang: str) -> _Occ | None:
+    if (
+        t.team is None
+        or t.session_date is None
+        or t.start_time is None
+        or t.end_time is None
+    ):
+        return None
     share = t.allows_share or (
         bool(t.venue.allows_share_default) if t.venue else False
     )
@@ -346,7 +353,9 @@ def find_conflicts(
         if o:
             occs.append(o)
     for t in trainings:
-        occs.append(_training_to_occ(t, lang))
+        o = _training_to_occ(t, lang)
+        if o:
+            occs.append(o)
 
     venue_ids = {o.venue_id for o in occs if o.venue_id is not None}
     venues_by_id = {
