@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 
 import base64
@@ -224,33 +225,7 @@ def on_startup() -> None:
         db.close()
 
 
-@app.middleware("http")
-async def club_auth_guard(request: Request, call_next):
-    path = request.url.path
-    if (
-        path.startswith("/static")
-        or path
-        in {
-            "/",
-            "/login",
-            "/logout",
-            "/forgot",
-            "/forgot/done",
-            "/register",
-            "/privacitat",
-            "/guia",
-        }
-        or path.startswith("/reset/")
-        or path.startswith("/admin")
-        or path.startswith("/lang/")
-        or path.startswith("/favicon")
-    ):
-        return await call_next(request)
-
-    club_id = current_club_id(request)
-    if club_id is None:
-        return RedirectResponse("/login", status_code=303)
-
+def _check_auth_sync(request: Request, path: str, club_id: int):
     if path.startswith("/season/"):
         parts = path.strip("/").split("/")
         if len(parts) >= 2 and parts[1].isdigit():
@@ -299,6 +274,40 @@ async def club_auth_guard(request: Request, call_next):
                 )
         finally:
             db.close()
+
+    return None
+
+
+@app.middleware("http")
+async def club_auth_guard(request: Request, call_next):
+    path = request.url.path
+    if (
+        path.startswith("/static")
+        or path
+        in {
+            "/",
+            "/login",
+            "/logout",
+            "/forgot",
+            "/forgot/done",
+            "/register",
+            "/privacitat",
+            "/guia",
+        }
+        or path.startswith("/reset/")
+        or path.startswith("/admin")
+        or path.startswith("/lang/")
+        or path.startswith("/favicon")
+    ):
+        return await call_next(request)
+
+    club_id = current_club_id(request)
+    if club_id is None:
+        return RedirectResponse("/login", status_code=303)
+
+    response = await run_in_threadpool(_check_auth_sync, request, path, club_id)
+    if response:
+        return response
 
     return await call_next(request)
 
