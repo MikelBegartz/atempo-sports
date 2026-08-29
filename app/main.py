@@ -3694,7 +3694,7 @@ def _consolidate_live_groups(db: Session, season):
 
 def rebuild_groups(db: Session, season) -> dict:
     """Reconstrueix grups del borrador i consolida sessions oficials solapades."""
-    result = rebuild_groups(db, season)
+    result = import_draft_groups(db, season)
     _consolidate_live_groups(db, season)
     return result
 
