@@ -3184,14 +3184,38 @@ async def trainings_batch_delete(
     to_delete = {t.id for t in selected}
     if delete_series and selected:
         series_ids = {t.series_id for t in selected if t.series_id}
-        is_draft = selected[0].is_draft
         if series_ids:
             extra = db.query(Training).filter(
                 Training.season_id == season_id,
                 Training.series_id.in_(series_ids),
-                Training.is_draft.is_(is_draft),
+                Training.is_draft.is_(selected[0].is_draft),
             ).all()
             to_delete.update(t.id for t in extra)
+        else:
+            for t in selected:
+                if t.training_group_id:
+                    extra = db.query(Training).filter(
+                        Training.season_id == season_id,
+                        Training.training_group_id == t.training_group_id,
+                        Training.is_draft.is_(t.is_draft),
+                    ).all()
+                else:
+                    weekday_sql = str((t.session_date.weekday() + 1) % 7)
+                    extra = (
+                        db.query(Training)
+                        .filter(
+                            Training.season_id == season_id,
+                            Training.start_time == t.start_time,
+                            Training.end_time == t.end_time,
+                            Training.venue_id == t.venue_id,
+                            Training.is_draft.is_(t.is_draft),
+                            Training.training_group_id.is_(None),
+                            Training.series_id.is_(None),
+                            func.strftime("%w", Training.session_date) == weekday_sql,
+                        )
+                        .all()
+                    )
+                to_delete.update(tr.id for tr in extra)
     for tid in to_delete:
         t = db.get(Training, tid)
         if t:
@@ -4885,18 +4909,43 @@ async def conflict_training_edit(
             for tr in old_trainings
             if tr.session_date.weekday() == t.session_date.weekday()
         ]
+        team_ids = sorted({tr.team_id for tr in old_trainings})
+        old_dates = [tr.session_date for tr in old_trainings]
         for tr in old_trainings:
             db.delete(tr)
-        for tr in old_trainings:
-            db.add(
-                _new_training(
-                    tr.team_id,
-                    tr.session_date,
-                    tr.is_draft,
-                    None,
-                    allows_share=tr.allows_share,
-                )
+        if len(team_ids) > 1:
+            g = create_group(
+                db,
+                season_id=season_id,
+                team_ids=team_ids,
+                mode="shared",
+                overlap_minutes=0,
+                weekdays=[t.session_date.weekday()],
+                start_date=min(old_dates),
+                end_date=max(old_dates),
+                start_time=st,
+                end_time=et,
+                venue_id=venue_id,
+                is_draft=t.is_draft,
             )
+            if not g:
+                request.session["conflict_flash"] = "No s'ha pogut crear el grup"
+                return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+            _generate_group_draft(db, season, g, team_ids)
+            db.query(Training).filter(Training.training_group_id == g.id).update(
+                {Training.is_draft: g.is_draft}, synchronize_session=False
+            )
+        else:
+            for tr in old_trainings:
+                db.add(
+                    _new_training(
+                        tr.team_id,
+                        tr.session_date,
+                        tr.is_draft,
+                        None,
+                        allows_share=tr.allows_share,
+                    )
+                )
 
     db.commit()
     request.session["conflict_flash"] = "Horari actualitzat"
