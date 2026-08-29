@@ -4914,27 +4914,68 @@ async def conflict_training_edit(
         for tr in old_trainings:
             db.delete(tr)
         if len(team_ids) > 1:
-            g = create_group(
-                db,
-                season_id=season_id,
-                team_ids=team_ids,
-                mode="shared",
-                overlap_minutes=0,
-                weekdays=[t.session_date.weekday()],
-                start_date=min(old_dates),
-                end_date=max(old_dates),
-                start_time=st,
-                end_time=et,
-                venue_id=venue_id,
-                is_draft=t.is_draft,
+            existing = (
+                db.query(TrainingGroup)
+                .filter(
+                    TrainingGroup.season_id == season_id,
+                    TrainingGroup.start_time == st,
+                    TrainingGroup.end_time == et,
+                    TrainingGroup.venue_id == venue_id,
+                    TrainingGroup.weekdays == format_weekdays([t.session_date.weekday()]),
+                )
+                .first()
             )
-            if not g:
-                request.session["conflict_flash"] = "No s'ha pogut crear el grup"
-                return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
-            _generate_group_draft(db, season, g, team_ids)
-            db.query(Training).filter(Training.training_group_id == g.id).update(
-                {Training.is_draft: g.is_draft}, synchronize_session=False
-            )
+            if existing:
+                existing_team_ids = {m.team_id for m in existing.members}
+                missing = [tid for tid in team_ids if tid not in existing_team_ids]
+                if missing:
+                    for i, tid in enumerate(missing):
+                        db.add(
+                            TrainingGroupMember(
+                                group_id=existing.id,
+                                team_id=tid,
+                                sort_order=len(existing.members) + i,
+                            )
+                        )
+                    db.commit()
+                    existing_team_ids = {m.team_id for m in existing.members}
+                if old_dates:
+                    existing.start_date = min(
+                        existing.start_date or min(old_dates), min(old_dates)
+                    )
+                    existing.end_date = max(
+                        existing.end_date or max(old_dates), max(old_dates)
+                    )
+                _generate_group_draft(db, season, existing, sorted(existing_team_ids))
+                db.query(Training).filter(
+                    Training.training_group_id == existing.id
+                ).update(
+                    {Training.is_draft: existing.is_draft}, synchronize_session=False
+                )
+            else:
+                g = create_group(
+                    db,
+                    season_id=season_id,
+                    team_ids=team_ids,
+                    mode="shared",
+                    overlap_minutes=0,
+                    weekdays=[t.session_date.weekday()],
+                    start_date=min(old_dates),
+                    end_date=max(old_dates),
+                    start_time=st,
+                    end_time=et,
+                    venue_id=venue_id,
+                    is_draft=t.is_draft,
+                )
+                if not g:
+                    request.session["conflict_flash"] = "No s'ha pogut crear el grup"
+                    return RedirectResponse(
+                        f"/season/{season_id}/conflicts", status_code=303
+                    )
+                _generate_group_draft(db, season, g, team_ids)
+                db.query(Training).filter(Training.training_group_id == g.id).update(
+                    {Training.is_draft: g.is_draft}, synchronize_session=False
+                )
         else:
             for tr in old_trainings:
                 db.add(
