@@ -3132,7 +3132,7 @@ async def trainings_by_team_add(
                     )
                     created += 1
     db.commit()
-    import_draft_groups(db, season)
+    rebuild_groups(db, season)
     request.session["by_team_flash"] = translate(lang, "tr_by_team_added")
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
 
@@ -3158,7 +3158,7 @@ async def trainings_by_team_batch_delete(
             count += 1
     if count:
         db.commit()
-        import_draft_groups(db, season)
+        rebuild_groups(db, season)
     request.session["by_team_flash"] = translate(lang, "tr_by_team_deleted_n").format(n=count)
     return RedirectResponse(f"/season/{season_id}/trainings/by-team", status_code=303)
 
@@ -3222,7 +3222,7 @@ async def trainings_batch_delete(
             db.delete(t)
     if to_delete:
         db.commit()
-        import_draft_groups(db, season)
+        rebuild_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_bulk_deleted")
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
@@ -3259,7 +3259,7 @@ async def trainings_batch_edit(
             t.venue_id = new_venue
     if rows:
         db.commit()
-        import_draft_groups(db, season)
+        rebuild_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_bulk_edited")
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
@@ -3589,6 +3589,116 @@ def _generate_group_draft(db: Session, season, group: TrainingGroup, team_ids: l
     db.commit()
 
 
+def _consolidate_live_groups(db: Session, season):
+    """Converteix sessions oficials solapades sense grup en grups reals."""
+    from collections import defaultdict
+
+    trainings = (
+        db.query(Training)
+        .options(joinedload(Training.team))
+        .filter(
+            Training.season_id == season.id,
+            Training.is_draft.is_(False),
+            Training.training_group_id.is_(None),
+            Training.training_solape_id.is_(None),
+            Training.series_id.is_(None),
+        )
+        .all()
+    )
+    by_key: dict[tuple, list[Training]] = defaultdict(list)
+    for t in trainings:
+        if (
+            t.team_id is None
+            or t.start_time is None
+            or t.end_time is None
+            or t.session_date is None
+        ):
+            continue
+        key = (t.session_date.weekday(), t.start_time, t.end_time, t.venue_id)
+        by_key[key].append(t)
+
+    for key, rows in by_key.items():
+        team_ids = {r.team_id for r in rows}
+        if len(team_ids) < 2:
+            continue
+        wd, st, et, vid = key
+        candidates = (
+            db.query(TrainingGroup)
+            .options(joinedload(TrainingGroup.members))
+            .filter(
+                TrainingGroup.season_id == season.id,
+                TrainingGroup.is_draft.is_(False),
+                TrainingGroup.venue_id == vid,
+                TrainingGroup.start_time == st,
+                TrainingGroup.end_time == et,
+                TrainingGroup.weekdays == format_weekdays([wd]),
+            )
+            .all()
+        )
+        target = None
+        for g in candidates:
+            if set(m.team_id for m in g.members) == team_ids:
+                target = g
+                break
+        if not target and candidates:
+            target = candidates[0]
+            existing_ids = {m.team_id for m in target.members}
+            missing = sorted(team_ids - existing_ids)
+            for i, tid in enumerate(missing):
+                db.add(
+                    TrainingGroupMember(
+                        group_id=target.id,
+                        team_id=tid,
+                        sort_order=len(target.members) + i,
+                    )
+                )
+            db.flush()
+        if not target:
+            team_ids_list = sorted(team_ids)
+            dates = [r.session_date for r in rows]
+            target = create_group(
+                db,
+                season_id=season.id,
+                team_ids=team_ids_list,
+                mode="shared",
+                overlap_minutes=0,
+                weekdays=[wd],
+                start_date=min(dates),
+                end_date=max(dates),
+                start_time=st,
+                end_time=et,
+                venue_id=vid,
+                is_draft=False,
+            )
+            if not target:
+                continue
+
+        all_team_ids = {m.team_id for m in target.members}
+        dates_set = {r.session_date for r in rows}
+        if dates_set:
+            if target.start_date is None or min(dates_set) < target.start_date:
+                target.start_date = min(dates_set)
+            if target.end_date is None or max(dates_set) > target.end_date:
+                target.end_date = max(dates_set)
+            db.flush()
+
+        for r in rows:
+            db.delete(r)
+        db.flush()
+        _generate_group_draft(db, season, target, sorted(all_team_ids))
+        db.query(Training).filter(Training.training_group_id == target.id).update(
+            {Training.is_draft: target.is_draft}, synchronize_session=False
+        )
+        db.commit()
+
+
+def rebuild_groups(db: Session, season) -> dict:
+    """Reconstrueix grups del borrador i consolida sessions oficials solapades."""
+    result = rebuild_groups(db, season)
+    _consolidate_live_groups(db, season)
+    return result
+
+
 def _refresh_training_draft(db: Session, season):
     """Recalcula el borrador amb les plantilles actuals (no toca el calendari oficial)."""
     start, _ = default_plan_range()
@@ -3598,7 +3708,7 @@ def _refresh_training_draft(db: Session, season):
     )
     gen = generate_draft_plan(db, season=season, start=start, end=end)
     db.commit()
-    import_draft_groups(db, season)
+    rebuild_groups(db, season)
     return gen
 
 
@@ -3827,7 +3937,7 @@ def trainings_groups_import_draft(
         return RedirectResponse("/app", status_code=303)
     season = ctx["season"]
     lang = get_lang(request)
-    result = import_draft_groups(db, season)
+    result = rebuild_groups(db, season)
     msg = translate(lang, "tr_draft_import_done")
     if msg:
         request.session["plan_flash"] = msg.format(
@@ -4421,7 +4531,7 @@ def trainings_create(
         )
         db.commit()
     if season:
-        import_draft_groups(db, season)
+        rebuild_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_manual_added_draft")
     return RedirectResponse(f"/season/{season_id}/trainings#draft", status_code=303)
 
@@ -4459,7 +4569,7 @@ def trainings_create_recurring(
         is_manual=True,
     )
     if n and season:
-        import_draft_groups(db, season)
+        rebuild_groups(db, season)
     request.session["plan_flash"] = translate(lang, "tr_manual_series_draft").format(
         n=n
     )
@@ -4479,7 +4589,7 @@ def trainings_delete(
         db.commit()
         season = db.get(Season, season_id)
         if season:
-            import_draft_groups(db, season)
+            rebuild_groups(db, season)
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
@@ -4498,7 +4608,7 @@ def trainings_delete_series(
         db.commit()
         season = db.get(Season, season_id)
         if season:
-            import_draft_groups(db, season)
+            rebuild_groups(db, season)
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
