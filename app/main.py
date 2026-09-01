@@ -5603,10 +5603,18 @@ async def import_run(
         return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
     reports: list[ImportReport] = []
-    for src, sels in selections_by_source.items():
-        reports.extend(
-            import_selected_fed_teams(db, season_id, sels, source=src)
-        )
+    import_exc: Exception | None = None
+    try:
+        for src, sels in selections_by_source.items():
+            reports.extend(
+                import_selected_fed_teams(db, season_id, sels, source=src)
+            )
+    except Exception as exc:  # noqa: BLE001
+        import_exc = exc
+
+    if import_exc:
+        request.session["import_error"] = str(import_exc)
+        return RedirectResponse(f"/season/{season_id}/import?q={q}", status_code=303)
 
     errors = [r.error for r in reports if r.error]
     if errors:

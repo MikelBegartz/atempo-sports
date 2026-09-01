@@ -199,8 +199,13 @@ def _synthetic_idp(
     return -((int(digest[:8], 16) % 1_000_000_000) + 1)
 
 
-def parse_calendar(html: str, idc: int) -> list[CalendarMatch]:
-    soup = BeautifulSoup(html, "lxml")
+def parse_calendar(html: str | None, idc: int) -> list[CalendarMatch]:
+    if not html:
+        return []
+    try:
+        soup = BeautifulSoup(html, "lxml")
+    except Exception:  # noqa: BLE001
+        soup = BeautifulSoup(html, "html.parser")
     out: list[CalendarMatch] = []
     seen_idp: set[int] = set()
     seen_key: set[str] = set()
@@ -221,9 +226,10 @@ def parse_calendar(html: str, idc: int) -> list[CalendarMatch]:
         icon = tr.select_one(".game_report[idp]")
         idp = None
         if icon and icon.get("idp"):
+            raw_idp = icon.get("idp")
             try:
-                idp = int(icon.get("idp"))
-            except ValueError:
+                idp = int(raw_idp[0] if isinstance(raw_idp, list) else raw_idp)
+            except (ValueError, TypeError):
                 idp = None
 
         jornada_el = tr.select_one(".jor_in_games")
@@ -248,6 +254,8 @@ def parse_calendar(html: str, idc: int) -> list[CalendarMatch]:
                 lugar = cell
 
         gamedate = tr.get("gamedate")
+        if isinstance(gamedate, list):
+            gamedate = gamedate[0] if gamedate else None
         if idp is None:
             idp = _synthetic_idp(idc, gamedate, local, visitante, jornada)
 
@@ -261,9 +269,10 @@ def parse_calendar(html: str, idc: int) -> list[CalendarMatch]:
 
         row_idc = idc
         if icon and icon.get("idc"):
+            raw_idc = icon.get("idc")
             try:
-                row_idc = int(icon.get("idc"))
-            except ValueError:
+                row_idc = int(raw_idc[0] if isinstance(raw_idc, list) else raw_idc)
+            except (ValueError, TypeError):
                 row_idc = idc
 
         out.append(

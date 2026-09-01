@@ -176,7 +176,13 @@ def import_competition(
             0, 0, 0, 0, 0, [], error=str(exc), source=source, idc=idc
         )
 
-    calendar = parse_calendar(html, idc)
+    try:
+        calendar = parse_calendar(html, idc)
+    except Exception as exc:  # noqa: BLE001
+        return ImportReport(
+            0, 0, 0, 0, 0, [], error=str(exc), source=source, idc=idc
+        )
+
     aliases = team_alias_map(
         db,
         season_id,
