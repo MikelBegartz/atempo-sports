@@ -2000,8 +2000,11 @@ def teams_delete(
         return RedirectResponse(
             f"/season/{season_id}/teams?t={team_id}", status_code=303
         )
-    db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete()
-    db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete()
+    db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
+    db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
+    db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
+    db.query(TrainingSolape).filter(TrainingSolape.team_a_id == team_id).delete(synchronize_session=False)
+    db.query(TrainingSolape).filter(TrainingSolape.team_b_id == team_id).delete(synchronize_session=False)
     db.delete(team)
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
@@ -2025,8 +2028,11 @@ def teams_bulk_delete(
         has_trainings = db.query(Training.id).filter(Training.team_id == tid).first()
         if has_matches or has_trainings:
             continue
-        db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete()
-        db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete()
+        db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
+        db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
+        db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
+        db.query(TrainingSolape).filter(TrainingSolape.team_a_id == tid).delete(synchronize_session=False)
+        db.query(TrainingSolape).filter(TrainingSolape.team_b_id == tid).delete(synchronize_session=False)
         db.delete(team)
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
