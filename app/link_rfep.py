@@ -253,6 +253,15 @@ def ensure_team_for_fed(
         if alias:
             team = alias.team
 
+    # 2b) Si l'usuari ha indicat un nom intern diferent, renombrar l'equip.
+    if team and internal_name and internal_name.strip():
+        desired = internal_name.strip()
+        if team.name.casefold() != desired.casefold():
+            team.name = _unique_team_name(
+                db, season_id, desired, competition
+            )
+            db.flush()
+
     # 3) Si sigue sin existir, crearlo con el nombre del coordinador.
     if not team:
         branch = normalize_branch(_infer_branch(competition))
