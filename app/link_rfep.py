@@ -246,7 +246,6 @@ def ensure_team_for_fed(
                 Team.season_id == season_id,
                 TeamExternalName.source == source,
                 TeamExternalName.external_name == external_name,
-                TeamExternalName.competition == competition,
             )
             .first()
         )
@@ -284,7 +283,6 @@ def ensure_team_for_fed(
             TeamExternalName.team_id == team.id,
             TeamExternalName.source == source,
             TeamExternalName.external_name == external_name,
-            TeamExternalName.competition == competition,
         )
         .first()
     )

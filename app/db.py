@@ -468,7 +468,7 @@ class TeamExternalName(Base):
 
     __tablename__ = "team_external_names"
     __table_args__ = (
-        UniqueConstraint("team_id", "source", "external_name", "competition"),
+        UniqueConstraint("team_id", "source", "external_name"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
