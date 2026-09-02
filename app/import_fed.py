@@ -240,6 +240,10 @@ def import_competition(
         else:
             continue
 
+        if not team or opponent is None:
+            continue
+        opponent = (opponent or "").strip() or "?"
+
         report.matched += 1
         ext_id = f"{source}:{cm.idc}:{cm.idp}"
         md = _parse_fecha(cm.fecha, cm.gamedate)
@@ -432,49 +436,52 @@ def import_competition(
             )
 
     if apply:
-        src = (
-            db.query(CompetitionSource)
-            .filter(
-                CompetitionSource.season_id == season_id,
-                CompetitionSource.source == source,
-                CompetitionSource.external_id == str(idc),
-            )
-            .first()
-        )
-        pretty = label or f"{source.upper()} idc={idc}"
-        if not src:
-            db.add(
-                CompetitionSource(
-                    season_id=season_id,
-                    source=source,
-                    external_id=str(idc),
-                    label=pretty,
+        try:
+            src = (
+                db.query(CompetitionSource)
+                .filter(
+                    CompetitionSource.season_id == season_id,
+                    CompetitionSource.source == source,
+                    CompetitionSource.external_id == str(idc),
                 )
+                .first()
             )
-        else:
-            src.label = pretty
-        db.flush()
-        conflicts = find_conflicts(db, season_id)
-        if new_changes:
-            match_ids = set()
-            for c in conflicts:
-                match_ids.update(c.match_ids or [])
-            for fc in new_changes:
-                count = sum(1 for mid in match_ids if mid == fc.match_id)
-                fc.has_conflict = count > 0
-                fc.conflict_count = count
-        matches = db.query(Match).filter(Match.season_id == season_id).all()
-        trainings = (
-            db.query(Training)
-            .filter(
-                Training.season_id == season_id,
-                Training.is_draft.is_(False),
+            pretty = label or f"{source.upper()} idc={idc}"
+            if not src:
+                db.add(
+                    CompetitionSource(
+                        season_id=season_id,
+                        source=source,
+                        external_id=str(idc),
+                        label=pretty,
+                    )
+                )
+            else:
+                src.label = pretty
+            db.flush()
+            conflicts = find_conflicts(db, season_id)
+            if new_changes:
+                match_ids = set()
+                for c in conflicts:
+                    match_ids.update(c.match_ids or [])
+                for fc in new_changes:
+                    count = sum(1 for mid in match_ids if mid == fc.match_id)
+                    fc.has_conflict = count > 0
+                    fc.conflict_count = count
+            matches = db.query(Match).filter(Match.season_id == season_id).all()
+            trainings = (
+                db.query(Training)
+                .filter(
+                    Training.season_id == season_id,
+                    Training.is_draft.is_(False),
+                )
+                .all()
             )
-            .all()
-        )
-        match_team = {m.id: m.team_id for m in matches}
-        training_team = {t.id: t.team_id for t in trainings}
-        persist_conflicts(db, season_id, conflicts, match_team, training_team)
+            match_team = {m.id: m.team_id for m in matches}
+            training_team = {t.id: t.team_id for t in trainings}
+            persist_conflicts(db, season_id, conflicts, match_team, training_team)
+        except Exception as exc:  # noqa: BLE001
+            report.error = str(exc)
 
     if report.matched == 0 and not report.error:
         report.error = (

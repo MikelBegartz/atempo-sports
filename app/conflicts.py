@@ -259,7 +259,7 @@ def _match_to_occ(m: Match, override: dict | None, lang: str) -> _Occ | None:
         et = override.get("end_time", et)
         if "venue_id" in override:
             vid = override.get("venue_id")
-    if md is None or st is None:
+    if md is None or st is None or m.team is None:
         return None
     if et is None:
         et = (datetime.combine(md, st) + timedelta(minutes=90)).time()
