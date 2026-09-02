@@ -1112,6 +1112,7 @@ def fed_chooser(
     request: Request,
     db: Session = Depends(get_db),
     ask_more: str | None = None,
+    q: str = "",
 ):
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
@@ -1122,6 +1123,7 @@ def fed_chooser(
         {
             **ctx,
             "ask_more": ask_more in {"1", "true", "yes"},
+            "q": q,
             "fed_flash": request.session.pop("fed_flash", None),
             "federations": [*FED_SOURCES],
         },
@@ -1299,7 +1301,7 @@ async def fed_link_import(
     request.session["fed_flash"] = translate(lang, "fed_import_ok").format(n=n)
     # Després d’una federació: preguntar si cal importar-ne una altra
     return RedirectResponse(
-        f"/season/{season_id}/fed?ask_more=1", status_code=303
+        f"/season/{season_id}/fed?ask_more=1&q={quote(q)}", status_code=303
     )
 
 
