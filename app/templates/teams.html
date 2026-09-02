@@ -135,8 +135,8 @@
   </div>
 
   <form class="stack" method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/update" style="margin-top:0.75rem">
-    <label>{{ t('col_team') }}
-      <input class="venue-name-input" name="name" value="{{ selected.name }}" required
+    <label>{{ t('internal_name_label') }}
+      <input type="text" name="name" value="{{ selected.name }}" required
              style="width:100%;max-width:24rem" />
     </label>
     <div class="row">
