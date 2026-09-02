@@ -1934,6 +1934,7 @@ async def teams_link_update(
                 TeamExternalName.team_id == club.id,
                 TeamExternalName.source == source,
                 TeamExternalName.external_name == external_name,
+                TeamExternalName.competition == competition,
             )
             .first()
         )

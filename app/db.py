@@ -468,7 +468,7 @@ class TeamExternalName(Base):
 
     __tablename__ = "team_external_names"
     __table_args__ = (
-        UniqueConstraint("team_id", "source", "external_name"),
+        UniqueConstraint("team_id", "source", "external_name", "competition"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -590,6 +590,7 @@ def _ensure_sqlite_columns() -> None:
             )
         )
         _migrate_teams_unique_with_category(conn)
+        _migrate_team_external_names_unique_with_competition(conn)
 
 
 def _migrate_teams_unique_with_category(conn) -> None:
@@ -652,6 +653,60 @@ def _migrate_teams_unique_with_category(conn) -> None:
     )
     conn.execute(text("DROP TABLE teams"))
     conn.execute(text("ALTER TABLE teams_new RENAME TO teams"))
+    conn.execute(text("PRAGMA foreign_keys=ON"))
+
+
+def _migrate_team_external_names_unique_with_competition(conn) -> None:
+    """Permitir el mismo nombre federativo en distintas competiciones."""
+    from sqlalchemy import text
+
+    indexes = conn.execute(text("PRAGMA index_list(team_external_names)")).fetchall()
+    has_new = False
+    old_uniques: list[str] = []
+    for idx in indexes:
+        name = idx[1]
+        is_unique = bool(idx[2])
+        if not is_unique:
+            continue
+        cols = [
+            r[2]
+            for r in conn.execute(text(f"PRAGMA index_info('{name}')")).fetchall()
+        ]
+        if set(cols) == {"team_id", "source", "external_name", "competition"}:
+            has_new = True
+        elif cols == ["team_id", "source", "external_name"]:
+            old_uniques.append(name)
+    if has_new and not old_uniques:
+        return
+    conn.execute(text("PRAGMA foreign_keys=OFF"))
+    conn.execute(
+        text(
+            """
+            CREATE TABLE team_external_names_new (
+                id INTEGER NOT NULL PRIMARY KEY,
+                team_id INTEGER NOT NULL,
+                source VARCHAR(40) NOT NULL,
+                external_name VARCHAR(160) NOT NULL,
+                competition VARCHAR(160) NOT NULL,
+                UNIQUE (team_id, source, external_name, competition),
+                FOREIGN KEY(team_id) REFERENCES teams (id)
+            )
+            """
+        )
+    )
+    conn.execute(
+        text(
+            """
+            INSERT INTO team_external_names_new (
+                id, team_id, source, external_name, competition
+            )
+            SELECT id, team_id, source, external_name, competition
+            FROM team_external_names
+            """
+        )
+    )
+    conn.execute(text("DROP TABLE team_external_names"))
+    conn.execute(text("ALTER TABLE team_external_names_new RENAME TO team_external_names"))
     conn.execute(text("PRAGMA foreign_keys=ON"))
 
 
