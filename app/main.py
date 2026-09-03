@@ -2035,7 +2035,15 @@ def teams_delete(
     except Exception as e:
         db.rollback()
         request.session["teams_error"] = f"{type(e).__name__}: {e}"
-    return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+    return RedirectResponse(
+        f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
+        status_code=303,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.post("/season/{season_id}/teams/bulk-delete")
@@ -2090,7 +2098,15 @@ def teams_bulk_delete(
     except Exception as e:
         db.rollback()
         request.session["teams_error"] = f"{type(e).__name__}: {e}"
-    return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+    return RedirectResponse(
+        f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
+        status_code=303,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 def _dissolve_training_group_if_small(db: Session, group_id: int) -> None:
