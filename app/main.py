@@ -11,7 +11,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Request, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session, joinedload
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
@@ -2029,7 +2029,8 @@ def teams_delete(
             _dissolve_training_group_if_small(db, gid)
         db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
-        db.query(Team).filter(Team.id == team_id).delete(synchronize_session=False)
+        db.execute(text("DELETE FROM teams WHERE id = :id"), {"id": team_id})
+        db.flush()
         db.commit()
     except Exception as e:
         db.rollback()
@@ -2081,9 +2082,10 @@ def teams_bulk_delete(
             db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
             db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
             db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
-            db.query(Team).filter(Team.id == tid).delete(synchronize_session=False)
+            db.execute(text("DELETE FROM teams WHERE id = :id"), {"id": tid})
         for gid in group_ids:
             _dissolve_training_group_if_small(db, gid)
+        db.flush()
         db.commit()
     except Exception as e:
         db.rollback()
