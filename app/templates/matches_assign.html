@@ -4,7 +4,7 @@
 <div class="page-head">
   <div class="page-head-copy">
     <h1>{{ t('matches_assign_title') }}</h1>
-    <p class="muted">{{ t('matches_mod_intro') }}</p>
+    <p class="muted">{{ t('matches_assign_intro') }}</p>
     {% if request.query_params.get('saved') is not none %}
     <div class="badge ok" style="display:inline-block;margin-top:0.5rem">{{ t('matches_assigned_venues').format(n=request.query_params.get('saved')) }}</div>
     {% endif %}
