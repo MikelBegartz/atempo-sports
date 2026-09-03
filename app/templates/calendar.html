@@ -86,7 +86,7 @@
   </div>
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
-  {% set min_w = (day_range / 60 * 165)|round(0)|int %}{% if min_w < 1100 %}{% set min_w = 1100 %}{% endif %}
+  {% set min_w = (day_range / 60 * 220)|round(0)|int %}{% if min_w < 1400 %}{% set min_w = 1400 %}{% endif %}
   <div class="draft-scroll">
     <div class="cal-timeline" style="min-width:{{ min_w }}px">
       <div class="cal-timeline-header">
