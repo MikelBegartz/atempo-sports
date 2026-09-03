@@ -119,6 +119,7 @@ class Venue(Base):
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     allows_share_default: Mapped[bool] = mapped_column(Boolean, default=False)
     allows_matches: Mapped[bool] = mapped_column(Boolean, default=True)
+    preferred_for_matches: Mapped[bool] = mapped_column(Boolean, default=False)
 
     club: Mapped[Club] = relationship(back_populates="venues")
     availabilities: Mapped[list[VenueAvailability]] = relationship(
@@ -549,6 +550,7 @@ def _ensure_sqlite_columns() -> None:
         ("matches", "official_venue_id", "INTEGER"),
         ("matches", "place_name", "VARCHAR(160)"),
         ("venues", "allows_matches", "INTEGER DEFAULT 1"),
+        ("venues", "preferred_for_matches", "INTEGER DEFAULT 0"),
         ("training_groups", "start_date", "DATE"),
         ("training_groups", "end_date", "DATE"),
         ("training_groups", "start_time", "TIME"),

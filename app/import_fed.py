@@ -86,20 +86,25 @@ def _parse_hora(hora: str | None) -> time | None:
 def _match_home_venue_id(
     db: Session, club_id: int, lugar: str | None
 ) -> int | None:
-    """Si el club te una sola pista que permet partits, l'assigna. Si no, intenta coincidir pel nom."""
-    venues = db.query(Venue).filter(
-        Venue.club_id == club_id, Venue.allows_matches.is_(True)
-    ).all()
+    """Assigna pista preferent o la que coincideix pel nom."""
+    venues = (
+        db.query(Venue)
+        .filter(Venue.club_id == club_id, Venue.allows_matches.is_(True))
+        .order_by(Venue.preferred_for_matches.desc(), Venue.name)
+        .all()
+    )
+    if not venues:
+        return None
     if len(venues) == 1:
         return venues[0].id
     if not (lugar or "").strip():
-        return None
+        return venues[0].id
     needle = _norm(lugar)
     for v in venues:
         vn = _norm(v.name)
         if vn == needle or needle in vn or vn in needle:
             return v.id
-    return None
+    return venues[0].id
 
 
 def team_alias_map(

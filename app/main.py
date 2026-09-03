@@ -2291,6 +2291,7 @@ def _venues_page(
     draft_name: str = "",
     draft_share: bool = False,
     draft_matches: bool = True,
+    draft_preferred: bool = False,
     panel: str | None = None,
     selected_id: int | None = None,
 ):
@@ -2329,6 +2330,7 @@ def _venues_page(
             "draft_name": draft_name,
             "draft_share": draft_share,
             "draft_matches": draft_matches,
+            "draft_preferred": draft_preferred,
         },
     )
 
@@ -2369,6 +2371,7 @@ async def venues_create(
     name: str = Form(...),
     allows_share: str | None = Form(None),
     allows_matches: str | None = Form(None),
+    preferred_for_matches: str | None = Form(None),
     next: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -2413,6 +2416,7 @@ async def venues_create(
             draft_name=n,
             draft_share=bool(allows_share),
             draft_matches=bool(allows_matches),
+            draft_preferred=bool(preferred_for_matches),
             panel="pista",
         )
 
@@ -2421,6 +2425,7 @@ async def venues_create(
         name=n,
         allows_share_default=bool(allows_share),
         allows_matches=bool(allows_matches),
+        preferred_for_matches=bool(preferred_for_matches),
     )
     db.add(venue)
     db.flush()
@@ -2475,6 +2480,22 @@ def venues_matches(
     if not season or not venue or venue.club_id != season.club_id:
         return RedirectResponse(f"/season/{season_id}/venues", status_code=303)
     venue.allows_matches = bool(allows_matches)
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
+
+
+@app.post("/season/{season_id}/venues/{venue_id}/preferred")
+def venues_preferred(
+    season_id: int,
+    venue_id: int,
+    preferred_for_matches: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    venue = db.get(Venue, venue_id)
+    if not season or not venue or venue.club_id != season.club_id:
+        return RedirectResponse(f"/season/{season_id}/venues", status_code=303)
+    venue.preferred_for_matches = bool(preferred_for_matches)
     db.commit()
     return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
 
@@ -2701,7 +2722,7 @@ def _matches_page(
         .filter(
             Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
         )
-        .order_by(Venue.name)
+        .order_by(Venue.preferred_for_matches.desc(), Venue.name)
         .all()
     )
     list_matches = filtered if searching else all_matches
@@ -2827,7 +2848,7 @@ def match_create_page(
         .filter(
             Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
         )
-        .order_by(Venue.name)
+        .order_by(Venue.preferred_for_matches.desc(), Venue.name)
         .all()
     )
     create_type = type if type in {"official", "friendly"} else "official"
@@ -3579,7 +3600,7 @@ def matches_assign_venues(
         .filter(
             Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
         )
-        .order_by(Venue.name)
+        .order_by(Venue.preferred_for_matches.desc(), Venue.name)
         .all()
     )
     if not matches or not venues:
