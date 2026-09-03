@@ -510,6 +510,10 @@ def login_post(
             status_code=401,
         )
     login_club(request, club)
+    try:
+        sync_club_federation_matches(None, club.id)
+    except Exception:
+        pass
     return RedirectResponse("/app", status_code=303)
 
 
