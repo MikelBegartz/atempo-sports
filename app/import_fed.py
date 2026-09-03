@@ -97,6 +97,9 @@ def _match_home_venue_id(
         .all()
     )
     if not venues:
+        all_venues = db.query(Venue).filter(Venue.club_id == club_id).all()
+        if len(all_venues) == 1:
+            return all_venues[0].id
         return None
     if len(venues) == 1:
         return venues[0].id

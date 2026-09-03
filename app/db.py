@@ -600,6 +600,37 @@ def _ensure_sqlite_columns() -> None:
         if version < 1:
             conn.execute(text("UPDATE venues SET allows_matches = 1"))
             conn.execute(text("PRAGMA user_version = 1"))
+        if version < 2:
+            conn.execute(
+                text("""
+                UPDATE venues
+                SET allows_matches = 1, preferred_for_matches = 1
+                WHERE id IN (
+                    SELECT MIN(id) FROM venues
+                    GROUP BY club_id
+                    HAVING COUNT(*) = 1
+                )
+                """)
+            )
+            conn.execute(
+                text("""
+                UPDATE teams
+                SET home_venue_id = (
+                    SELECT v.id
+                    FROM venues v
+                    WHERE v.club_id = (
+                        SELECT s.club_id
+                        FROM seasons s
+                        WHERE s.id = teams.season_id
+                    )
+                    AND v.allows_matches = 1
+                    ORDER BY v.preferred_for_matches DESC, v.name
+                    LIMIT 1
+                )
+                WHERE home_venue_id IS NULL
+                """)
+            )
+            conn.execute(text("PRAGMA user_version = 2"))
 
 
 def _migrate_teams_unique_with_category(conn) -> None:

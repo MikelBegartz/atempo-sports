@@ -1802,6 +1802,20 @@ def teams_create(
     if n:
         nb = time_from_input(not_before) if not_before else None
         hvid = int(home_venue_id) if home_venue_id.strip() else None
+        if hvid is None:
+            season = db.get(Season, season_id)
+            venues = (
+                db.query(Venue)
+                .filter(
+                    Venue.club_id == season.club_id,
+                    Venue.allows_matches.is_(True),
+                )
+                .all()
+                if season
+                else []
+            )
+            if len(venues) == 1:
+                hvid = venues[0].id
         team = Team(
             season_id=season_id,
             name=n,
@@ -2442,6 +2456,17 @@ async def venues_create(
     )
     db.add(venue)
     db.flush()
+    only_venue = (
+        db.query(Venue).filter(Venue.club_id == season.club_id).count() == 1
+    )
+    if only_venue:
+        venue.allows_matches = True
+        venue.preferred_for_matches = True
+        db.query(Team).filter(
+            Team.season_id.in_(
+                db.query(Season.id).filter(Season.club_id == season.club_id)
+            )
+        ).update({"home_venue_id": venue.id}, synchronize_session=False)
     for weekday, start, end in slots:
         db.add(
             VenueAvailability(
