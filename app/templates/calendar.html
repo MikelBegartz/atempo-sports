@@ -61,7 +61,7 @@
 .cal-timeline-grid { position: absolute; left: 6.5rem; right: 0; top: 0; bottom: 0; pointer-events: none; z-index: 1; }
 .cal-timeline-tick { position: absolute; top: 0.1rem; transform: translateX(-50%); font-size: 0.75rem; color: var(--muted); }
 .cal-timeline-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
-.cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border: 1px solid; border-color: transparent; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.75rem; line-height: 1.05; height: 105px; overflow: hidden; box-sizing: border-box; z-index: 2; }
+.cal-event { position: absolute; display: block; padding: 0.25rem 0.4rem; border: 1px solid; border-color: transparent; border-radius: 0.4rem; color: #fff; text-decoration: none; font-size: 0.72rem; line-height: 1.08; height: 105px; overflow: hidden; box-sizing: border-box; z-index: 2; overflow-wrap: break-word; }
 .cal-event.status-training { background: #c8e6c9 !important; border-color: #a5d6a7 !important; color: #1b4d2c !important; }
 .cal-event.status-ok { background: #81c784 !important; border-color: #66bb6a !important; color: #1b4d2c !important; }
 .cal-event.status-soft { background: #f9d84c !important; border-color: #c9a82a !important; color: #5a3b0a; }
@@ -71,8 +71,8 @@
 .cal-swatch.changed, .cal-swatch.changed + span { display: none; }
 .cal-event .draft-team { font-weight: 600; }
 .cal-event .draft-time, .cal-event .draft-venue { font-size: 0.68rem; opacity: 0.9; }
-.cal-event .draft-sides { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-.cal-event .draft-side { font-weight: 600; }
+.cal-event .draft-sides { display: flex; flex-direction: column; gap: 0.05rem; }
+.cal-event .draft-side { font-weight: 600; font-size: 0.68rem; }
 </style>
 
 <section class="match-draft">
@@ -86,7 +86,7 @@
   </div>
   <p class="muted">{{ t('calendar_range') }}: {{ draft_start.strftime('%d/%m/%Y') }} – {{ draft_end.strftime('%d/%m/%Y') }}</p>
   {% if draft_days %}
-  {% set min_w = (day_range / 60 * 120)|round(0)|int %}{% if min_w < 800 %}{% set min_w = 800 %}{% endif %}
+  {% set min_w = (day_range / 60 * 165)|round(0)|int %}{% if min_w < 1100 %}{% set min_w = 1100 %}{% endif %}
   <div class="draft-scroll">
     <div class="cal-timeline" style="min-width:{{ min_w }}px">
       <div class="cal-timeline-header">
