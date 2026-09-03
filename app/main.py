@@ -2041,12 +2041,13 @@ def teams_delete(
             _dissolve_training_group_if_small(db, gid)
         db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
+        team_name = team.name
         result = db.execute(text("DELETE FROM teams WHERE id = :id"), {"id": team_id})
         db.flush()
         db.commit()
         remaining = db.query(Team).filter(Team.id == team_id).count()
         request.session["teams_debug"] = (
-            f"BORRAR team_id={team_id} name={team.name} "
+            f"BORRAR team_id={team_id} name={team_name} "
             f"rowcount={result.rowcount} remaining={remaining}"
         )
     except Exception as e:
