@@ -2045,11 +2045,6 @@ def teams_delete(
     return RedirectResponse(
         f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
         status_code=303,
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
     )
 
 
@@ -2108,11 +2103,6 @@ def teams_bulk_delete(
     return RedirectResponse(
         f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
         status_code=303,
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
     )
 
 
