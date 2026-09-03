@@ -2029,7 +2029,7 @@ def teams_delete(
             _dissolve_training_group_if_small(db, gid)
         db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
-        db.delete(team)
+        db.query(Team).filter(Team.id == team_id).delete(synchronize_session=False)
         db.commit()
     except Exception as e:
         db.rollback()
@@ -2081,7 +2081,7 @@ def teams_bulk_delete(
             db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
             db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
             db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
-            db.delete(team)
+            db.query(Team).filter(Team.id == tid).delete(synchronize_session=False)
         for gid in group_ids:
             _dissolve_training_group_if_small(db, gid)
         db.commit()
