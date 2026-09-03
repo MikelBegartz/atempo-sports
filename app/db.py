@@ -230,7 +230,8 @@ class Team(Base):
     external_names: Mapped[list[TeamExternalName]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
-    only_venue: Mapped[Venue | None] = relationship()
+    only_venue: Mapped[Venue | None] = relationship(foreign_keys=[only_venue_id])
+    home_venue: Mapped[Venue | None] = relationship(foreign_keys=[home_venue_id])
 
 
 class TeamMembership(Base):
