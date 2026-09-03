@@ -18,7 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, joinedload, mapped_column, relationship, sessionmaker
 
 _DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DATA_DIR = Path(os.environ.get("ATEMPO_DATA_DIR") or _DEFAULT_DATA_DIR)
@@ -524,6 +524,7 @@ class ConflictIgnored(Base):
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_sqlite_columns()
+    _ensure_match_durations()
 
 
 def _ensure_sqlite_columns() -> None:
@@ -614,6 +615,44 @@ def _ensure_sqlite_columns() -> None:
                 """)
             )
             conn.execute(text("PRAGMA user_version = 2"))
+
+
+def _ensure_match_durations() -> None:
+    """Recalcula end_time dels partits segons categoria de l'equip."""
+    from sqlalchemy import text
+    from app.calendar_week import match_duration_min
+
+    with SessionLocal() as s:
+        version = s.execute(text("PRAGMA user_version")).scalar() or 0
+        if version >= 3:
+            return
+        matches = (
+            s.query(Match)
+            .filter(Match.match_date.isnot(None), Match.start_time.isnot(None))
+            .options(joinedload(Match.team))
+            .all()
+        )
+        for m in matches:
+            if not m.team:
+                continue
+            dur = match_duration_min(m.team.category)
+            m.end_time = (
+                datetime.combine(m.match_date, m.start_time)
+                + timedelta(minutes=dur)
+            ).time()
+            if (
+                m.official_date
+                and m.official_start_time
+                and m.source
+                in {"rfep", "fecapa", "fvp", "fgp", "fap", "fmp", "fnp"}
+            ):
+                m.official_end_time = (
+                    datetime.combine(m.official_date, m.official_start_time)
+                    + timedelta(minutes=dur)
+                ).time()
+        s.commit()
+        s.execute(text("PRAGMA user_version = 3"))
+        s.commit()
 
 
 def _migrate_teams_unique_with_category(conn) -> None:
