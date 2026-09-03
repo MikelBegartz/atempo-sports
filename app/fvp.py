@@ -262,7 +262,9 @@ def import_fvp_competition(
         place = (p.get("Instalacion") or "").strip()
         venue_id = None
         if is_home and club_id is not None:
-            venue_id = _match_home_venue_id(db, club_id, place)
+            venue_id = _match_home_venue_id(
+                db, club_id, place, team.home_venue_id if is_home else None
+            )
         id_partido = p.get("IdPartido")
         ext_id = f"{source}:{idcompeticion}:{id_partido}"
 

@@ -26,9 +26,6 @@
   </div>
 
   {% if matches_flash %}<div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ matches_flash }}</div>{% endif %}
-  {% if request.query_params.get('assigned') is not none %}
-  <div class="badge ok" style="display:inline-block;margin-bottom:0.75rem">{{ t('matches_assigned_venues').format(n=request.query_params.get('assigned')) }}</div>
-  {% endif %}
 
   {% if not selected %}
   <section class="match-create" style="margin-bottom:1.5rem">
@@ -38,9 +35,7 @@
       <a class="draft-horizon-link" href="/season/{{ season.id }}/import">{{ t('matches_import_link') }}</a>
       <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/create?type=official">{{ t('matches_create_official') }}</a>
       <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/create?type=friendly">{{ t('matches_create_friendly') }}</a>
-      <form method="post" action="/season/{{ season.id }}/matches/assign-venues" style="display:inline">
-        <button type="submit" class="draft-horizon-link" style="border:none;background:none;cursor:pointer">{{ t('matches_assign_venues') }}</button>
-      </form>
+      <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/assign-venues">{{ t('matches_assign_venues') }}</a>
     </div>
   </section>
   <section class="match-draft">

@@ -220,6 +220,8 @@ class Team(Base):
     not_before: Mapped[time | None] = mapped_column(Time)
     not_after: Mapped[time | None] = mapped_column(Time)
     immovable: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Pista de casa preferent per als partits
+    home_venue_id: Mapped[int | None] = mapped_column(ForeignKey("venues.id"))
     # Override d'hores/setmana (None = usar default de temporada)
     training_hours_week: Mapped[float | None] = mapped_column(Float)
 
@@ -544,6 +546,7 @@ def _ensure_sqlite_columns() -> None:
         ("teams", "external_id", "VARCHAR(80)"),
         ("teams", "source", "VARCHAR(40)"),
         ("teams", "training_hours_week", "FLOAT"),
+        ("teams", "home_venue_id", "INTEGER"),
         ("matches", "official_date", "DATE"),
         ("matches", "official_start_time", "TIME"),
         ("matches", "official_end_time", "TIME"),

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('matches_assign_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('matches_assign_title') }}</h1>
+    <p class="muted">{{ t('matches_mod_intro') }}</p>
+    {% if request.query_params.get('saved') is not none %}
+    <div class="badge ok" style="display:inline-block;margin-top:0.5rem">{{ t('matches_assigned_venues').format(n=request.query_params.get('saved')) }}</div>
+    {% endif %}
+  </div>
+  <div class="page-head-actions">
+    <a class="text-action" href="/season/{{ season.id }}/matches">{{ t('matches_back_list') }}</a>
+  </div>
+</div>
+
+<div class="draft-horizon" style="margin:0.75rem 0">
+  {% for h in horizon_order %}
+  <a class="draft-horizon-link{% if horizon == h %} is-active{% endif %}" href="?horizon={{ h }}">{{ t('horizon_' ~ h) }}</a>
+  {% endfor %}
+</div>
+
+<form method="post" action="/season/{{ season.id }}/matches/assign-venues">
+  {% if matches %}
+  <table class="draft-grid">
+    <thead>
+      <tr>
+        <th class="draft-day-head">{{ t('col_date') }}</th>
+        <th class="draft-day-head">{{ t('col_from') }}</th>
+        <th class="draft-day-head">{{ t('col_to') }}</th>
+        <th class="draft-day-head">{{ t('nav_teams') }}</th>
+        <th class="draft-day-head">{{ t('setup_category') }}</th>
+        <th class="draft-day-head">Rival</th>
+        <th class="draft-day-head">{{ t('col_venue') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in matches %}
+      <tr>
+        <td>{{ m.match_date.strftime('%d/%m/%Y') }}</td>
+        <td>{% if m.start_time %}{{ m.start_time|time_input }}{% else %}—{% endif %}</td>
+        <td>{% if m.end_time %}{{ m.end_time|time_input }}{% else %}—{% endif %}</td>
+        <td>{{ m.team.name }}</td>
+        <td>{% if m.team.category %}{{ m.team.category }}{% else %}—{% endif %}</td>
+        <td>{{ m.opponent }}</td>
+        <td>
+          <select name="venue_{{ m.id }}" {% if not m.is_home %}disabled{% endif %}>
+            <option value="" {% if not m.venue_id %}selected{% endif %}>—</option>
+            {% for v in venues %}
+            <option value="{{ v.id }}"
+              {% if m.venue_id == v.id %}selected{% elif not m.venue_id and team_home_venue.get(m.team_id) == v.id %}selected{% endif %}>
+              {{ v.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div style="margin-top:1rem">
+    <button type="submit">{{ t('matches_assign_save') }}</button>
+  </div>
+  {% else %}
+  <p class="muted">{{ t('matches_assign_no_matches') }}</p>
+  {% endif %}
+</form>
+{% endblock %}

@@ -42,6 +42,16 @@
     <label>{{ t('teams_not_before') }}
       <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" />
     </label>
+    {% if venues %}
+    <label>{{ t('teams_home_venue') }}
+      <select name="home_venue_id">
+        <option value="" selected>—</option>
+        {% for v in venues %}
+        <option value="{{ v.id }}">{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
     <button type="submit">{{ t('setup_add_team') }}</button>
   </form>
 </section>
@@ -155,6 +165,16 @@
         <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" value="{{ selected.not_before|time_input if selected.not_before else '' }}" />
       </label>
     </div>
+    {% if venues %}
+    <label>{{ t('teams_home_venue') }}
+      <select name="home_venue_id">
+        <option value="" {% if not selected.home_venue_id %}selected{% endif %}>—</option>
+        {% for v in venues %}
+        <option value="{{ v.id }}" {% if selected.home_venue_id == v.id %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
     <input type="hidden" name="category" value="{{ selected.category or '' }}" />
     <button type="submit" class="secondary">{{ t('teams_save') }}</button>
   </form>

@@ -84,9 +84,12 @@ def _parse_hora(hora: str | None) -> time | None:
 
 
 def _match_home_venue_id(
-    db: Session, club_id: int, lugar: str | None
+    db: Session,
+    club_id: int,
+    lugar: str | None,
+    home_venue_id: int | None = None,
 ) -> int | None:
-    """Assigna pista preferent o la que coincideix pel nom."""
+    """Assigna pista preferent del club/equip o la que coincideix pel nom."""
     venues = (
         db.query(Venue)
         .filter(Venue.club_id == club_id, Venue.allows_matches.is_(True))
@@ -97,13 +100,14 @@ def _match_home_venue_id(
         return None
     if len(venues) == 1:
         return venues[0].id
-    if not (lugar or "").strip():
-        return venues[0].id
-    needle = _norm(lugar)
-    for v in venues:
-        vn = _norm(v.name)
-        if vn == needle or needle in vn or vn in needle:
-            return v.id
+    if (lugar or "").strip():
+        needle = _norm(lugar)
+        for v in venues:
+            vn = _norm(v.name)
+            if vn == needle or needle in vn or vn in needle:
+                return v.id
+    if home_venue_id and any(v.id == home_venue_id for v in venues):
+        return home_venue_id
     return venues[0].id
 
 
@@ -265,7 +269,9 @@ def import_competition(
         place = (cm.lugar or "").strip() or None
         venue_id = None
         if is_home and club_id is not None:
-            venue_id = _match_home_venue_id(db, club_id, place)
+            venue_id = _match_home_venue_id(
+                db, club_id, place, team.home_venue_id if team else None
+            )
 
         existing = (
             db.query(Match)
