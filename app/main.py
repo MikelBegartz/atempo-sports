@@ -1998,39 +1998,43 @@ def teams_delete(
     if not team:
         return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
 
-    match_ids = db.query(Match.id).filter(Match.team_id == team_id).scalars().all()
-    if match_ids:
-        db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
-        db.query(Match).filter(Match.team_id == team_id).delete(synchronize_session=False)
-    db.query(Training).filter(Training.team_id == team_id).delete(synchronize_session=False)
-    solape_ids = (
-        db.query(TrainingSolape.id)
-        .filter(
-            (TrainingSolape.team_a_id == team_id)
-            | (TrainingSolape.team_b_id == team_id)
+    try:
+        match_ids = db.query(Match.id).filter(Match.team_id == team_id).scalars().all()
+        if match_ids:
+            db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
+            db.query(Match).filter(Match.team_id == team_id).delete(synchronize_session=False)
+        db.query(Training).filter(Training.team_id == team_id).delete(synchronize_session=False)
+        solape_ids = (
+            db.query(TrainingSolape.id)
+            .filter(
+                (TrainingSolape.team_a_id == team_id)
+                | (TrainingSolape.team_b_id == team_id)
+            )
+            .scalars()
+            .all()
         )
-        .scalars()
-        .all()
-    )
-    if solape_ids:
-        db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
-            {"training_solape_id": None}, synchronize_session=False
+        if solape_ids:
+            db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
+                {"training_solape_id": None}, synchronize_session=False
+            )
+            db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+        group_ids = (
+            db.query(TrainingGroupMember.group_id)
+            .filter(TrainingGroupMember.team_id == team_id)
+            .scalars()
+            .all()
         )
-        db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
-    group_ids = (
-        db.query(TrainingGroupMember.group_id)
-        .filter(TrainingGroupMember.team_id == team_id)
-        .scalars()
-        .all()
-    )
-    db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
-    for gid in group_ids:
-        _dissolve_training_group_if_small(db, gid)
-    db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
-    db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
-    db.delete(team)
-    db.commit()
-    return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+        db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
+        for gid in group_ids:
+            _dissolve_training_group_if_small(db, gid)
+        db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
+        db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
+        db.delete(team)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        request.session["teams_error"] = f"{type(e).__name__}: {e}"
+    return RedirectResponse(f"/season/{season_id}/teams?t={team_id}", status_code=303)
 
 
 @app.post("/season/{season_id}/teams/bulk-delete")
@@ -2043,43 +2047,47 @@ def teams_bulk_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx:
         return RedirectResponse("/app", status_code=303)
-    group_ids: set[int] = set()
-    for tid in team_ids:
-        team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
-        if not team:
-            continue
-        match_ids = db.query(Match.id).filter(Match.team_id == tid).scalars().all()
-        if match_ids:
-            db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
-            db.query(Match).filter(Match.team_id == tid).delete(synchronize_session=False)
-        db.query(Training).filter(Training.team_id == tid).delete(synchronize_session=False)
-        solape_ids = (
-            db.query(TrainingSolape.id)
-            .filter(
-                (TrainingSolape.team_a_id == tid)
-                | (TrainingSolape.team_b_id == tid)
+    try:
+        group_ids: set[int] = set()
+        for tid in team_ids:
+            team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
+            if not team:
+                continue
+            match_ids = db.query(Match.id).filter(Match.team_id == tid).scalars().all()
+            if match_ids:
+                db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
+                db.query(Match).filter(Match.team_id == tid).delete(synchronize_session=False)
+            db.query(Training).filter(Training.team_id == tid).delete(synchronize_session=False)
+            solape_ids = (
+                db.query(TrainingSolape.id)
+                .filter(
+                    (TrainingSolape.team_a_id == tid)
+                    | (TrainingSolape.team_b_id == tid)
+                )
+                .scalars()
+                .all()
             )
-            .scalars()
-            .all()
-        )
-        if solape_ids:
-            db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
-                {"training_solape_id": None}, synchronize_session=False
+            if solape_ids:
+                db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
+                    {"training_solape_id": None}, synchronize_session=False
+                )
+                db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+            group_ids.update(
+                db.query(TrainingGroupMember.group_id)
+                .filter(TrainingGroupMember.team_id == tid)
+                .scalars()
+                .all()
             )
-            db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
-        group_ids.update(
-            db.query(TrainingGroupMember.group_id)
-            .filter(TrainingGroupMember.team_id == tid)
-            .scalars()
-            .all()
-        )
-        db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
-        db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
-        db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
-        db.delete(team)
-    for gid in group_ids:
-        _dissolve_training_group_if_small(db, gid)
-    db.commit()
+            db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
+            db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
+            db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
+            db.delete(team)
+        for gid in group_ids:
+            _dissolve_training_group_if_small(db, gid)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        request.session["teams_error"] = f"{type(e).__name__}: {e}"
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
 
 
