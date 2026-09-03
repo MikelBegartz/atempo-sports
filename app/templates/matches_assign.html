@@ -29,9 +29,9 @@
         <th class="draft-day-head">{{ t('col_from') }}</th>
         <th class="draft-day-head">{{ t('col_to') }}</th>
         <th class="draft-day-head">{{ t('nav_teams') }}</th>
-        <th class="draft-day-head">{{ t('setup_category') }}</th>
         <th class="draft-day-head">Rival</th>
         <th class="draft-day-head">{{ t('col_venue') }}</th>
+        <th class="draft-day-head">{{ t('setup_category') }}</th>
       </tr>
     </thead>
     <tbody>
@@ -41,7 +41,6 @@
         <td>{% if m.start_time %}{{ m.start_time|time_input }}{% else %}—{% endif %}</td>
         <td>{% if m.end_time %}{{ m.end_time|time_input }}{% else %}—{% endif %}</td>
         <td>{{ m.team.name }}</td>
-        <td>{% if m.team.category %}{{ m.team.category }}{% else %}—{% endif %}</td>
         <td>{{ m.opponent }}</td>
         <td>
           <select name="venue_{{ m.id }}" {% if not m.is_home %}disabled{% endif %}>
@@ -54,6 +53,7 @@
             {% endfor %}
           </select>
         </td>
+        <td>{% if m.team.category %}{{ m.team.category }}{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
