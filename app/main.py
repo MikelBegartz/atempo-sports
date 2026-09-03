@@ -2500,6 +2500,22 @@ def venues_preferred(
     return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
 
 
+@app.post("/season/{season_id}/venues/{venue_id}/share")
+def venues_share(
+    season_id: int,
+    venue_id: int,
+    allows_share: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    venue = db.get(Venue, venue_id)
+    if not season or not venue or venue.club_id != season.club_id:
+        return RedirectResponse(f"/season/{season_id}/venues", status_code=303)
+    venue.allows_share_default = bool(allows_share)
+    db.commit()
+    return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
+
+
 @app.post("/season/{season_id}/venues/availability")
 def venues_add_availability_pick(
     season_id: int,
