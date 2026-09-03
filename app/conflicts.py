@@ -207,6 +207,12 @@ def _weekday_short(lang: str, weekday: int) -> str:
     return _t(lang, f"weekday_{weekday}")
 
 
+def _format_date(lang: str, d: date | None) -> str:
+    if d is None:
+        return ""
+    return f"{_weekday_short(lang, d.weekday())} {d.day:02d}/{d.month:02d}"
+
+
 
 @dataclass
 class Conflict:
@@ -434,7 +440,7 @@ def find_conflicts(
                             title_a=a.title,
                             team_b=b.team_name,
                             title_b=b.title,
-                            date=a.d.isoformat(),
+                            date=_format_date(lang, a.d),
                             time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
                             time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
                         ),
@@ -489,7 +495,7 @@ def find_conflicts(
                     title_a=a.title,
                     team_b=b.team_name,
                     title_b=b.title,
-                    date=day.isoformat(),
+                    date=_format_date(lang, day),
                     time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
                     time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
                 )
@@ -499,7 +505,7 @@ def find_conflicts(
                     "venue_multi",
                     venue=venue_name,
                     teams=", ".join(team_names),
-                    date=day.isoformat(),
+                    date=_format_date(lang, day),
                     times=", ".join(times),
                 )
             if share_ok:
@@ -657,7 +663,7 @@ def find_conflicts(
                             why=why,
                             team=o.team_name,
                             title=o.title,
-                            date=o.d.isoformat(),
+                            date=_format_date(lang, o.d),
                             time=f"{o.start.strftime('%H:%M')}–{o.end.strftime('%H:%M')}",
                         ),
                         match_ids=mids, d=d,
@@ -775,7 +781,7 @@ def find_conflicts(
                             title_a=a.title,
                             team_b=b.team_name,
                             title_b=b.title,
-                            date=day.isoformat(),
+                            date=_format_date(lang, day),
                         ),
                         match_ids=mids, d=d,
                         training_ids=tids,
@@ -794,7 +800,7 @@ def _minutes_between(a_end: time, b_start: time) -> int | None:
 
 def _unavailability_label(u: PersonUnavailability, lang: str) -> str:
     if u.specific_date:
-        base = u.specific_date.isoformat()
+        base = _format_date(lang, u.specific_date)
     elif u.weekday is not None:
         base = f"cada {_t(lang, f'weekday_{u.weekday}')}"
     else:
