@@ -122,6 +122,9 @@
 {% if teams_error %}
 <div class="conflict hard" style="margin-top:0.75rem">{{ teams_error }}</div>
 {% endif %}
+{% if teams_debug %}
+<div class="setup-banner" style="margin-top:0.75rem">{{ teams_debug }}</div>
+{% endif %}
 
 {% if selected and not panel %}
 <section class="panel-sheet venue-card" id="team-{{ selected.id }}">
