@@ -2017,7 +2017,15 @@ def teams_delete(
             {"training_solape_id": None}, synchronize_session=False
         )
         db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+    group_ids = (
+        db.query(TrainingGroupMember.group_id)
+        .filter(TrainingGroupMember.team_id == team_id)
+        .scalars()
+        .all()
+    )
     db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
+    for gid in group_ids:
+        _dissolve_training_group_if_small(db, gid)
     db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
     db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
     db.delete(team)
@@ -2035,6 +2043,7 @@ def teams_bulk_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx:
         return RedirectResponse("/app", status_code=303)
+    group_ids: set[int] = set()
     for tid in team_ids:
         team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
         if not team:
@@ -2058,12 +2067,54 @@ def teams_bulk_delete(
                 {"training_solape_id": None}, synchronize_session=False
             )
             db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+        group_ids.update(
+            db.query(TrainingGroupMember.group_id)
+            .filter(TrainingGroupMember.team_id == tid)
+            .scalars()
+            .all()
+        )
         db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
         db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
         db.delete(team)
+    for gid in group_ids:
+        _dissolve_training_group_if_small(db, gid)
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+
+
+def _dissolve_training_group_if_small(db: Session, group_id: int) -> None:
+    """Desfà el grup si, després d'esborrar un equip, no arriba a 2 membres."""
+    remaining = (
+        db.query(TrainingGroupMember)
+        .filter(TrainingGroupMember.group_id == group_id)
+        .count()
+    )
+    if remaining >= 2:
+        return
+    group = db.query(TrainingGroup).filter(TrainingGroup.id == group_id).first()
+    if not group:
+        return
+    db.query(Training).filter(Training.training_group_id == group_id).update(
+        {"training_group_id": None}, synchronize_session=False
+    )
+    solape_ids = (
+        db.query(TrainingSolape.id)
+        .filter(
+            (TrainingSolape.group_a_id == group_id)
+            | (TrainingSolape.group_b_id == group_id)
+        )
+        .scalars()
+        .all()
+    )
+    if solape_ids:
+        db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
+            {"training_solape_id": None}, synchronize_session=False
+        )
+        db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(
+            synchronize_session=False
+        )
+    db.delete(group)
 
 
 @app.post("/season/{season_id}/teams/{team_id}/members")
