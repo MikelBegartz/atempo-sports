@@ -2698,7 +2698,9 @@ def _matches_page(
     )
     venues = (
         db.query(Venue)
-        .filter(Venue.club_id == season.club_id)
+        .filter(
+            Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
+        )
         .order_by(Venue.name)
         .all()
     )
@@ -3549,6 +3551,103 @@ def matches_clear_all(
     db.commit()
     request.session["matches_flash"] = translate(lang, "matches_cleared").format(n=n)
     return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
+
+
+@app.post("/season/{season_id}/matches/assign-venues")
+def matches_assign_venues(
+    season_id: int,
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    if not season:
+        return RedirectResponse("/app", status_code=303)
+    matches = (
+        db.query(Match)
+        .options(joinedload(Match.team))
+        .filter(
+            Match.season_id == season_id,
+            Match.is_home.is_(True),
+            Match.venue_id.is_(None),
+            Match.match_date.isnot(None),
+            Match.start_time.isnot(None),
+        )
+        .order_by(Match.match_date, Match.start_time, Match.id)
+        .all()
+    )
+    venues = (
+        db.query(Venue)
+        .filter(
+            Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
+        )
+        .order_by(Venue.name)
+        .all()
+    )
+    if not matches or not venues:
+        return RedirectResponse(f"/season/{season_id}/matches", status_code=303)
+    dates = {m.match_date for m in matches}
+    existing_matches = (
+        db.query(Match)
+        .filter(
+            Match.season_id == season_id,
+            Match.match_date.in_(dates),
+            Match.venue_id.in_([v.id for v in venues]),
+        )
+        .all()
+    )
+    existing_trainings = (
+        db.query(Training)
+        .filter(
+            Training.season_id == season_id,
+            Training.session_date.in_(dates),
+            Training.venue_id.in_([v.id for v in venues]),
+        )
+        .all()
+    )
+    occupied: dict[int, dict[date, list[tuple[time, time]]]] = {
+        v.id: {} for v in venues
+    }
+    for m in existing_matches:
+        if m.match_date is None or m.start_time is None or m.venue_id is None:
+            continue
+        et = (
+            m.end_time
+            or (
+                datetime.combine(m.match_date, m.start_time)
+                + timedelta(minutes=90)
+            ).time()
+        )
+        occupied[m.venue_id].setdefault(m.match_date, []).append(
+            (m.start_time, et)
+        )
+    for t in existing_trainings:
+        if t.venue_id is None:
+            continue
+        occupied[t.venue_id].setdefault(t.session_date, []).append(
+            (t.start_time, t.end_time)
+        )
+    assigned = 0
+    for m in matches:
+        md = m.match_date
+        st = m.start_time
+        et = (
+            m.end_time
+            or (datetime.combine(md, st) + timedelta(minutes=90)).time()
+        )
+        for v in venues:
+            free = True
+            for s, e in occupied[v.id].get(md, []):
+                if s < et and st < e:
+                    free = False
+                    break
+            if free:
+                m.venue_id = v.id
+                occupied[v.id].setdefault(md, []).append((st, et))
+                assigned += 1
+                break
+    db.commit()
+    return RedirectResponse(
+        f"/season/{season_id}/matches?assigned={assigned}", status_code=303
+    )
 
 
 @app.get("/season/{season_id}/trainings/groups", response_class=HTMLResponse)
