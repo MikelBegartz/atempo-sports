@@ -613,24 +613,6 @@ def _ensure_sqlite_columns() -> None:
                 )
                 """)
             )
-            conn.execute(
-                text("""
-                UPDATE teams
-                SET home_venue_id = (
-                    SELECT v.id
-                    FROM venues v
-                    WHERE v.club_id = (
-                        SELECT s.club_id
-                        FROM seasons s
-                        WHERE s.id = teams.season_id
-                    )
-                    AND v.allows_matches = 1
-                    ORDER BY v.preferred_for_matches DESC, v.name
-                    LIMIT 1
-                )
-                WHERE home_venue_id IS NULL
-                """)
-            )
             conn.execute(text("PRAGMA user_version = 2"))
 
 
