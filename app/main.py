@@ -2034,7 +2034,7 @@ def teams_delete(
     except Exception as e:
         db.rollback()
         request.session["teams_error"] = f"{type(e).__name__}: {e}"
-    return RedirectResponse(f"/season/{season_id}/teams?t={team_id}", status_code=303)
+    return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
 
 
 @app.post("/season/{season_id}/teams/bulk-delete")

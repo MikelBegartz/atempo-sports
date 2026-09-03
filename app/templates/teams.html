@@ -117,9 +117,10 @@
   {% if teams_result.skipped %} · {{ t('teams_paste_skipped').format(n=teams_result.skipped) }}{% endif %}
 </div>
 {% endif %}
+{% endif %}
+
 {% if teams_error %}
 <div class="conflict hard" style="margin-top:0.75rem">{{ teams_error }}</div>
-{% endif %}
 {% endif %}
 
 {% if selected and not panel %}
