@@ -1742,6 +1742,7 @@ def _teams_page(
             for m in g.members:
                 team_in_solape.add(m.team_id)
     q = request.query_params
+    teams_error = request.session.pop("teams_error", None)
     teams_result = None
     if "created" in q or "skipped" in q:
         teams_result = {
@@ -1760,6 +1761,7 @@ def _teams_page(
             "people": people,
             "team_group_label": team_group_label,
             "team_in_solape": team_in_solape,
+            "teams_error": teams_error,
             "teams_delete_label": translate(lang, "teams_delete"),
             "teams_delete_confirm": translate(lang, "teams_delete_confirm"),
             "teams_result": teams_result,
@@ -1985,6 +1987,7 @@ def teams_update(
 def teams_delete(
     season_id: int,
     team_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     team = (
@@ -1997,6 +2000,10 @@ def teams_delete(
     has_matches = db.query(Match.id).filter(Match.team_id == team_id).first()
     has_trainings = db.query(Training.id).filter(Training.team_id == team_id).first()
     if has_matches or has_trainings:
+        lang = get_lang(request)
+        request.session["teams_error"] = translate(
+            lang, "teams_delete_blocked"
+        )
         return RedirectResponse(
             f"/season/{season_id}/teams?t={team_id}", status_code=303
         )
@@ -2020,6 +2027,8 @@ def teams_bulk_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx:
         return RedirectResponse("/app", status_code=303)
+    blocked = 0
+    lang = get_lang(request)
     for tid in team_ids:
         team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
         if not team:
@@ -2027,6 +2036,7 @@ def teams_bulk_delete(
         has_matches = db.query(Match.id).filter(Match.team_id == tid).first()
         has_trainings = db.query(Training.id).filter(Training.team_id == tid).first()
         if has_matches or has_trainings:
+            blocked += 1
             continue
         db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
@@ -2034,6 +2044,8 @@ def teams_bulk_delete(
         db.query(TrainingSolape).filter(TrainingSolape.team_a_id == tid).delete(synchronize_session=False)
         db.query(TrainingSolape).filter(TrainingSolape.team_b_id == tid).delete(synchronize_session=False)
         db.delete(team)
+    if blocked:
+        request.session["teams_error"] = translate(lang, "teams_delete_blocked")
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
 
