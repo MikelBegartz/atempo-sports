@@ -32,6 +32,10 @@
       <input type="checkbox" name="allows_share" {% if draft_share %}checked{% endif %} />
       {{ t('setup_venue_share') }}
     </label>
+    <label class="check">
+      <input type="checkbox" name="allows_matches" value="1" {% if draft_matches %}checked{% endif %} />
+      {{ t('setup_venue_matches') }}
+    </label>
     <h3 class="venue-sub">{{ t('venues_week_heading') }}</h3>
     <p class="muted">{{ t('venues_week_hint') }}</p>
     <div class="slot-copy" style="margin-bottom:0.75rem;display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem">
@@ -170,6 +174,12 @@
       <span class="badge {% if selected.allows_share_default %}ok{% else %}hard{% endif %}">
         {% if selected.allows_share_default %}{{ t('venue_shared') }}{% else %}{{ t('venue_exclusive') }}{% endif %}
       </span>
+    </form>
+    <form class="venue-name-form" method="post" action="/season/{{ season.id }}/venues/{{ selected.id }}/matches" style="margin-top:0.25rem">
+      <label class="badge {% if selected.allows_matches %}ok{% else %}hard{% endif %}" style="cursor:pointer">
+        <input type="checkbox" name="allows_matches" value="1" {% if selected.allows_matches %}checked{% endif %} onchange="this.form.submit()" style="margin-right:0.3rem" />
+        {% if selected.allows_matches %}{{ t('setup_venue_matches') }}{% else %}{{ t('venue_no_matches') }}{% endif %}
+      </label>
     </form>
     <div class="venue-head-actions">
       <a class="text-action" href="/season/{{ season.id }}/venues">{{ t('venues_close') }}</a>

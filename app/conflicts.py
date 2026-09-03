@@ -339,7 +339,11 @@ def find_conflicts(
     season = db.get(Season, season_id)
     club_id = season.club_id if season else None
     num_venues = (
-        db.query(Venue).filter(Venue.club_id == club_id).count() if club_id else 0
+        db.query(Venue)
+        .filter(Venue.club_id == club_id, Venue.allows_matches.is_(True))
+        .count()
+        if club_id
+        else 0
     )
     matches = (
         db.query(Match)

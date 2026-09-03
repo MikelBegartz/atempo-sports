@@ -2290,6 +2290,7 @@ def _venues_page(
     venue_error: str | None = None,
     draft_name: str = "",
     draft_share: bool = False,
+    draft_matches: bool = True,
     panel: str | None = None,
     selected_id: int | None = None,
 ):
@@ -2327,6 +2328,7 @@ def _venues_page(
             "venue_error": venue_error,
             "draft_name": draft_name,
             "draft_share": draft_share,
+            "draft_matches": draft_matches,
         },
     )
 
@@ -2366,6 +2368,7 @@ async def venues_create(
     request: Request,
     name: str = Form(...),
     allows_share: str | None = Form(None),
+    allows_matches: str | None = Form(None),
     next: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -2409,6 +2412,7 @@ async def venues_create(
             venue_error=translate(lang, "venues_need_hours"),
             draft_name=n,
             draft_share=bool(allows_share),
+            draft_matches=bool(allows_matches),
             panel="pista",
         )
 
@@ -2416,6 +2420,7 @@ async def venues_create(
         club_id=season.club_id,
         name=n,
         allows_share_default=bool(allows_share),
+        allows_matches=bool(allows_matches),
     )
     db.add(venue)
     db.flush()
@@ -2455,6 +2460,22 @@ def venues_rename(
     if n:
         venue.name = n
         db.commit()
+    return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
+
+
+@app.post("/season/{season_id}/venues/{venue_id}/matches")
+def venues_matches(
+    season_id: int,
+    venue_id: int,
+    allows_matches: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    venue = db.get(Venue, venue_id)
+    if not season or not venue or venue.club_id != season.club_id:
+        return RedirectResponse(f"/season/{season_id}/venues", status_code=303)
+    venue.allows_matches = bool(allows_matches)
+    db.commit()
     return RedirectResponse(f"/season/{season_id}/venues?v={venue_id}", status_code=303)
 
 
@@ -2801,7 +2822,9 @@ def match_create_page(
     )
     venues = (
         db.query(Venue)
-        .filter(Venue.club_id == season.club_id)
+        .filter(
+            Venue.club_id == season.club_id, Venue.allows_matches.is_(True)
+        )
         .order_by(Venue.name)
         .all()
     )

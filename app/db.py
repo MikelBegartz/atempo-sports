@@ -118,7 +118,7 @@ class Venue(Base):
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     allows_share_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    allows_matches: Mapped[bool] = mapped_column(Boolean, default=False)
+    allows_matches: Mapped[bool] = mapped_column(Boolean, default=True)
 
     club: Mapped[Club] = relationship(back_populates="venues")
     availabilities: Mapped[list[VenueAvailability]] = relationship(
@@ -548,7 +548,7 @@ def _ensure_sqlite_columns() -> None:
         ("matches", "official_end_time", "TIME"),
         ("matches", "official_venue_id", "INTEGER"),
         ("matches", "place_name", "VARCHAR(160)"),
-        ("venues", "allows_matches", "INTEGER DEFAULT 0"),
+        ("venues", "allows_matches", "INTEGER DEFAULT 1"),
         ("training_groups", "start_date", "DATE"),
         ("training_groups", "end_date", "DATE"),
         ("training_groups", "start_time", "TIME"),
@@ -591,6 +591,10 @@ def _ensure_sqlite_columns() -> None:
         )
         _migrate_teams_unique_with_category(conn)
         _migrate_team_external_names_unique_with_competition(conn)
+        version = conn.execute(text("PRAGMA user_version")).scalar() or 0
+        if version < 1:
+            conn.execute(text("UPDATE venues SET allows_matches = 1"))
+            conn.execute(text("PRAGMA user_version = 1"))
 
 
 def _migrate_teams_unique_with_category(conn) -> None:
