@@ -539,7 +539,7 @@ def find_conflicts(
                         cluster_ends[-1] = o.end
             for cluster in clusters:
                 k = len(cluster)
-                if k <= num_venues and num_venues == 1:
+                if k == 1:
                     continue
                 hard = k > num_venues
                 severity = "hard" if hard else "soft"
