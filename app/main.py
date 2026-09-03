@@ -1744,7 +1744,6 @@ def _teams_page(
                 team_in_solape.add(m.team_id)
     q = request.query_params
     teams_error = request.session.pop("teams_error", None)
-    teams_debug = request.session.pop("teams_debug", None)
     teams_result = None
     if "created" in q or "skipped" in q:
         teams_result = {
@@ -1764,7 +1763,6 @@ def _teams_page(
             "team_group_label": team_group_label,
             "team_in_solape": team_in_solape,
             "teams_error": teams_error,
-            "teams_debug": teams_debug,
             "teams_delete_label": translate(lang, "teams_delete"),
             "teams_delete_confirm": translate(lang, "teams_delete_confirm"),
             "teams_result": teams_result,
@@ -1993,16 +1991,12 @@ def teams_delete(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    request.session["teams_debug"] = f"0-start team_id={team_id} season_id={season_id}"
     team = (
         db.query(Team)
         .filter(Team.id == team_id, Team.season_id == season_id)
         .first()
     )
     if not team:
-        request.session[
-            "teams_debug"
-        ] = f"1-team_not_found team_id={team_id} season_id={season_id}"
         return RedirectResponse(
             f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
             status_code=303,
@@ -2041,15 +2035,9 @@ def teams_delete(
             _dissolve_training_group_if_small(db, gid)
         db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
-        team_name = team.name
-        result = db.execute(text("DELETE FROM teams WHERE id = :id"), {"id": team_id})
+        db.execute(text("DELETE FROM teams WHERE id = :id"), {"id": team_id})
         db.flush()
         db.commit()
-        remaining = db.query(Team).filter(Team.id == team_id).count()
-        request.session["teams_debug"] = (
-            f"BORRAR team_id={team_id} name={team_name} "
-            f"rowcount={result.rowcount} remaining={remaining}"
-        )
     except Exception as e:
         db.rollback()
         request.session["teams_error"] = f"{type(e).__name__}: {e}"
