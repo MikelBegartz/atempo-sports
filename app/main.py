@@ -1992,13 +1992,20 @@ def teams_delete(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    request.session["teams_debug"] = f"0-start team_id={team_id} season_id={season_id}"
     team = (
         db.query(Team)
         .filter(Team.id == team_id, Team.season_id == season_id)
         .first()
     )
     if not team:
-        return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
+        request.session[
+            "teams_debug"
+        ] = f"1-team_not_found team_id={team_id} season_id={season_id}"
+        return RedirectResponse(
+            f"/season/{season_id}/teams?r={int(datetime.now().timestamp())}",
+            status_code=303,
+        )
 
     try:
         match_ids = db.query(Match.id).filter(Match.team_id == team_id).scalars().all()
