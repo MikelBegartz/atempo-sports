@@ -18,6 +18,7 @@ from app.db import (
     Training,
     Venue,
 )
+from app.calendar_week import match_duration_min
 from app.sidgad import FEDERATIONS, SidgadClient, parse_calendar, parse_competition_list
 
 
@@ -177,7 +178,7 @@ def import_competition(
     idc: int,
     *,
     apply: bool = True,
-    default_duration_min: int = 90,
+    default_duration_min: int | None = None,
     label: str | None = None,
     only_external_names: list[str] | None = None,
 ) -> ImportReport:
@@ -266,9 +267,12 @@ def import_competition(
         st = _parse_hora(cm.hora)
         et = None
         if md and st:
-            et = (
-                datetime.combine(md, st) + timedelta(minutes=default_duration_min)
-            ).time()
+            dur = (
+                default_duration_min
+                if default_duration_min is not None
+                else match_duration_min(team.category)
+            )
+            et = (datetime.combine(md, st) + timedelta(minutes=dur)).time()
         place = (cm.lugar or "").strip() or None
         venue_id = None
         if is_home and club_id is not None:

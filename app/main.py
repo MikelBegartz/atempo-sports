@@ -65,7 +65,7 @@ from app.auth import (
     set_club_password,
     verify_password,
 )
-from app.calendar_week import build_four_weeks, build_match_draft, relative_week_key
+from app.calendar_week import build_four_weeks, build_match_draft, match_duration_min, relative_week_key
 from app.changes import (
     ChangeFrame,
     analyze_change,
@@ -2938,9 +2938,15 @@ def match_create(
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
     create_type = type if type in {"official", "friendly"} else "official"
+    team = db.get(Team, team_id)
     md = date.fromisoformat(match_date)
     st = time_from_input(start_time)
     et = time_from_input(end_time)
+    if not et and st:
+        et = (
+            datetime.combine(md, st)
+            + timedelta(minutes=match_duration_min(team.category if team else None))
+        ).time()
     home = is_home in ("1", "true", "on", "True")
     vid = int(venue_id) if venue_id else None
     place = place_name.strip() or None

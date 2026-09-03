@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
@@ -109,10 +110,53 @@ def build_week_block(monday: date, today: date | None = None) -> WeekBlock:
     )
 
 
-def _end_default(d: date, start: time, end: time | None, minutes: int = 90) -> time:
+def _norm_duration(s: str | None) -> str:
+    if not s:
+        return ""
+    return (
+        s.lower()
+        .replace(" ", "")
+        .replace("-", "")
+        .replace("·", "")
+        .replace("è", "e")
+        .replace("é", "e")
+        .replace("à", "a")
+        .replace("á", "a")
+        .replace("í", "i")
+        .replace("ï", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+
+
+def match_duration_min(category: str | None) -> int:
+    c = _norm_duration(category)
+    if not c:
+        return 75
+    # Femení: senior/junior o edat >= 19 -> 90
+    if "fem" in c:
+        if "senior" in c or "junior" in c:
+            return 90
+        nums = re.findall(r"\d+", c)
+        if nums and max(int(n) for n in nums) >= 19:
+            return 90
+        return 75
+    # Masculí: senior o junior (no juvenil) -> 90
+    if "senior" in c or "junior" in c:
+        return 90
+    # Prebenjamí, benjamí, aleví, infantil, cadet, juvenil...
+    return 75
+
+
+def _end_default(
+    d: date, start: time, end: time | None, category: str | None = None
+) -> time:
     if end:
         return end
-    return (datetime.combine(d, start) + timedelta(minutes=minutes)).time()
+    return (
+        datetime.combine(d, start)
+        + timedelta(minutes=match_duration_min(category))
+    ).time()
 
 
 def _match_status(
@@ -176,7 +220,7 @@ def build_four_weeks(
     for m in matches:
         assert m.match_date
         st = m.start_time
-        et = _end_default(m.match_date, st, m.end_time) if st else None
+        et = _end_default(m.match_date, st, m.end_time, m.team.category) if st else None
         local = match_local_name(m)
         visit = match_away_name(m)
         by_day.setdefault(m.match_date, []).append(
@@ -283,7 +327,7 @@ def build_match_draft(
     for m in matches:
         if not m.match_date or not m.start_time:
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
         status = _match_status(m, hard_ids, soft_ids)
         slot = {
             "id": m.id,
@@ -385,7 +429,7 @@ def build_global_draft(
                 }
             )
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
         slot = {
             "id": m.id,
             "kind": "match",

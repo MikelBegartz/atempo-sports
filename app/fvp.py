@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
-from datetime import date, time
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 import requests
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.conflicts import find_conflicts, persist_conflicts
 from app.db import CompetitionSource, Match, Season, Training
+from app.calendar_week import match_duration_min
 from app.import_fed import ImportReport, ImportRow, _match_home_venue_id
 from app.link_rfep import ClubTeamHit, FedTeam, ensure_team_for_fed
 
@@ -258,6 +259,11 @@ def import_fvp_competition(
         match_date = date.fromisoformat(p["Fecha"]) if p.get("Fecha") else None
         start_time = _parse_fvp_time(p.get("Hora", ""))
         end_time: time | None = None
+        if match_date and start_time:
+            end_time = (
+                datetime.combine(match_date, start_time)
+                + timedelta(minutes=match_duration_min(team.category))
+            ).time()
         jornada = _parse_fvp_jornada(p.get("NombreJornada", ""))
         place = (p.get("Instalacion") or "").strip()
         venue_id = None
