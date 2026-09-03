@@ -10,6 +10,7 @@ from app.db import (
     Match,
     Person,
     PersonUnavailability,
+    Season,
     TeamMembership,
     Training,
     Venue,
@@ -32,6 +33,8 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} no té disponibilitat el {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fora d'horari disponible per a {team} ({title}) {time}",
         "coach_gap": "Atenció: {name} té {gap} min entre {team_a} ({title_a}) i {team_b} ({title_b}) el {date}. Assegura't que és temps suficient o ho movem a conflicte.",
+        "home_no_venue": "{team} ({title}): partit a casa sense pista assignada",
+        "home_no_venue_insufficient": "{team} ({title}): massa partits a casa a la mateixa hora ({n} partits, {courts} pistes)",
         "weekday_0": "dl",
         "weekday_1": "dt",
         "weekday_2": "dx",
@@ -68,6 +71,8 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} no tiene disponibilidad el {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fuera de horario disponible para {team} ({title}) {time}",
         "coach_gap": "Atención: {name} tiene {gap} min entre {team_a} ({title_a}) y {team_b} ({title_b}) el {date}. Asegúrate de que es tiempo suficiente o lo movemos a conflicto.",
+        "home_no_venue": "{team} ({title}): partido en casa sin pista asignada",
+        "home_no_venue_insufficient": "{team} ({title}): demasiados partidos en casa a la misma hora ({n} partidos, {courts} pistas)",
         "weekday_0": "lun",
         "weekday_1": "mar",
         "weekday_2": "mié",
@@ -331,6 +336,11 @@ def find_conflicts(
     """Detecta conflictos entre partidos y entrenos. override: match_id → campos."""
     lang = lang or "ca"
     override = override or {}
+    season = db.get(Season, season_id)
+    club_id = season.club_id if season else None
+    num_venues = (
+        db.query(Venue).filter(Venue.club_id == club_id).count() if club_id else 0
+    )
     matches = (
         db.query(Match)
         .options(joinedload(Match.team), joinedload(Match.venue))
@@ -506,6 +516,55 @@ def find_conflicts(
                     training_ids=tids,
                 )
             )
+
+    # Home matches without assigned venue
+    home_no_venue = [
+        o for o in occs if o.etype == "match" and o.is_home and o.venue_id is None
+    ]
+    if home_no_venue and num_venues:
+        by_day: dict[date, list[_Occ]] = {}
+        for o in home_no_venue:
+            by_day.setdefault(o.d, []).append(o)
+        for day, v_occs in by_day.items():
+            v_occs.sort(key=lambda o: (o.start, o.end))
+            clusters: list[list[_Occ]] = []
+            cluster_ends: list[time] = []
+            for o in v_occs:
+                if not clusters or o.start >= cluster_ends[-1]:
+                    clusters.append([o])
+                    cluster_ends.append(o.end)
+                else:
+                    clusters[-1].append(o)
+                    if o.end > cluster_ends[-1]:
+                        cluster_ends[-1] = o.end
+            for cluster in clusters:
+                k = len(cluster)
+                if k <= num_venues and num_venues == 1:
+                    continue
+                hard = k > num_venues
+                severity = "hard" if hard else "soft"
+                key = (
+                    "home_no_venue_insufficient" if hard else "home_no_venue"
+                )
+                for o in cluster:
+                    mids, tids, d = _ids(o)
+                    conflicts.append(
+                        Conflict(
+                            kind="venue",
+                            severity=severity,
+                            message=_t(
+                                lang,
+                                key,
+                                team=o.team_name,
+                                title=o.title,
+                                n=k,
+                                courts=num_venues,
+                            ),
+                            match_ids=mids,
+                            d=d,
+                            training_ids=tids,
+                        )
+                    )
 
     # Category / team time restrictions
     for o in occs:

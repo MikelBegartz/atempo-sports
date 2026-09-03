@@ -86,11 +86,13 @@ def _parse_hora(hora: str | None) -> time | None:
 def _match_home_venue_id(
     db: Session, club_id: int, lugar: str | None
 ) -> int | None:
-    """Si el lugar federativo coincide con una pista del club, enlázala."""
+    """Si el club te una sola pista, l'assigna. Si no, intenta coincidir pel nom."""
+    venues = db.query(Venue).filter(Venue.club_id == club_id).all()
+    if len(venues) == 1:
+        return venues[0].id
     if not (lugar or "").strip():
         return None
     needle = _norm(lugar)
-    venues = db.query(Venue).filter(Venue.club_id == club_id).all()
     for v in venues:
         vn = _norm(v.name)
         if vn == needle or needle in vn or vn in needle:
