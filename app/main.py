@@ -2008,31 +2008,33 @@ def teams_delete(
         )
 
     try:
-        match_ids = db.query(Match.id).filter(Match.team_id == team_id).scalars().all()
+        match_ids = [
+            row[0] for row in db.query(Match.id).filter(Match.team_id == team_id).all()
+        ]
         if match_ids:
             db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
             db.query(Match).filter(Match.team_id == team_id).delete(synchronize_session=False)
         db.query(Training).filter(Training.team_id == team_id).delete(synchronize_session=False)
-        solape_ids = (
-            db.query(TrainingSolape.id)
+        solape_ids = [
+            row[0]
+            for row in db.query(TrainingSolape.id)
             .filter(
                 (TrainingSolape.team_a_id == team_id)
                 | (TrainingSolape.team_b_id == team_id)
             )
-            .scalars()
             .all()
-        )
+        ]
         if solape_ids:
             db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
                 {"training_solape_id": None}, synchronize_session=False
             )
             db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
-        group_ids = (
-            db.query(TrainingGroupMember.group_id)
+        group_ids = [
+            row[0]
+            for row in db.query(TrainingGroupMember.group_id)
             .filter(TrainingGroupMember.team_id == team_id)
-            .scalars()
             .all()
-        )
+        ]
         db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
         for gid in group_ids:
             _dissolve_training_group_if_small(db, gid)
@@ -2071,29 +2073,31 @@ def teams_bulk_delete(
             team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
             if not team:
                 continue
-            match_ids = db.query(Match.id).filter(Match.team_id == tid).scalars().all()
+            match_ids = [
+                row[0] for row in db.query(Match.id).filter(Match.team_id == tid).all()
+            ]
             if match_ids:
                 db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
                 db.query(Match).filter(Match.team_id == tid).delete(synchronize_session=False)
             db.query(Training).filter(Training.team_id == tid).delete(synchronize_session=False)
-            solape_ids = (
-                db.query(TrainingSolape.id)
+            solape_ids = [
+                row[0]
+                for row in db.query(TrainingSolape.id)
                 .filter(
                     (TrainingSolape.team_a_id == tid)
                     | (TrainingSolape.team_b_id == tid)
                 )
-                .scalars()
                 .all()
-            )
+            ]
             if solape_ids:
                 db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
                     {"training_solape_id": None}, synchronize_session=False
                 )
                 db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
             group_ids.update(
-                db.query(TrainingGroupMember.group_id)
+                row[0]
+                for row in db.query(TrainingGroupMember.group_id)
                 .filter(TrainingGroupMember.team_id == tid)
-                .scalars()
                 .all()
             )
             db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
@@ -2128,15 +2132,15 @@ def _dissolve_training_group_if_small(db: Session, group_id: int) -> None:
     db.query(Training).filter(Training.training_group_id == group_id).update(
         {"training_group_id": None}, synchronize_session=False
     )
-    solape_ids = (
-        db.query(TrainingSolape.id)
+    solape_ids = [
+        row[0]
+        for row in db.query(TrainingSolape.id)
         .filter(
             (TrainingSolape.group_a_id == group_id)
             | (TrainingSolape.group_b_id == group_id)
         )
-        .scalars()
         .all()
-    )
+    ]
     if solape_ids:
         db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
             {"training_solape_id": None}, synchronize_session=False
