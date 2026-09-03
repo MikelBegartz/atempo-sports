@@ -57,6 +57,25 @@ _MSGS: dict[str, dict[str, str]] = {
         "month_10": "oct",
         "month_11": "nov",
         "month_12": "des",
+        "month_full_1": "gener",
+        "month_full_2": "febrer",
+        "month_full_3": "març",
+        "month_full_4": "abril",
+        "month_full_5": "maig",
+        "month_full_6": "juny",
+        "month_full_7": "juliol",
+        "month_full_8": "agost",
+        "month_full_9": "setembre",
+        "month_full_10": "octubre",
+        "month_full_11": "novembre",
+        "month_full_12": "desembre",
+        "weekday_full_0": "dilluns",
+        "weekday_full_1": "dimarts",
+        "weekday_full_2": "dimecres",
+        "weekday_full_3": "dijous",
+        "weekday_full_4": "divendres",
+        "weekday_full_5": "dissabte",
+        "weekday_full_6": "diumenge",
     },
     "es": {
         "match_title": "partido vs {opponent}",
@@ -95,6 +114,25 @@ _MSGS: dict[str, dict[str, str]] = {
         "month_10": "oct",
         "month_11": "nov",
         "month_12": "dic",
+        "month_full_1": "enero",
+        "month_full_2": "febrero",
+        "month_full_3": "marzo",
+        "month_full_4": "abril",
+        "month_full_5": "mayo",
+        "month_full_6": "junio",
+        "month_full_7": "julio",
+        "month_full_8": "agosto",
+        "month_full_9": "septiembre",
+        "month_full_10": "octubre",
+        "month_full_11": "noviembre",
+        "month_full_12": "diciembre",
+        "weekday_full_0": "lunes",
+        "weekday_full_1": "martes",
+        "weekday_full_2": "miércoles",
+        "weekday_full_3": "jueves",
+        "weekday_full_4": "viernes",
+        "weekday_full_5": "sábado",
+        "weekday_full_6": "domingo",
     },
     "pt": {
         "match_title": "partido vs {opponent}",
@@ -203,14 +241,22 @@ def _month_short(lang: str, month: int) -> str:
     return _t(lang, f"month_{month}")
 
 
+def _month_full(lang: str, month: int) -> str:
+    return _t(lang, f"month_full_{month}")
+
+
 def _weekday_short(lang: str, weekday: int) -> str:
     return _t(lang, f"weekday_{weekday}")
+
+
+def _weekday_full(lang: str, weekday: int) -> str:
+    return _t(lang, f"weekday_full_{weekday}")
 
 
 def _format_date(lang: str, d: date | None) -> str:
     if d is None:
         return ""
-    return f"{_weekday_short(lang, d.weekday())} {d.day:02d}/{d.month:02d}"
+    return f"{_weekday_full(lang, d.weekday())} {d.day} de {_month_full(lang, d.month)}"
 
 
 
