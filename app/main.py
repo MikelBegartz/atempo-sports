@@ -102,6 +102,7 @@ from app.db import (
     Training,
     TrainingGroup,
     TrainingGroupMember,
+    TrainingSolape,
     Venue,
     default_end_date_for_season,
     get_db,
