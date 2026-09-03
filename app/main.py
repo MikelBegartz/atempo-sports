@@ -1997,21 +1997,29 @@ def teams_delete(
     )
     if not team:
         return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
-    has_matches = db.query(Match.id).filter(Match.team_id == team_id).first()
-    has_trainings = db.query(Training.id).filter(Training.team_id == team_id).first()
-    if has_matches or has_trainings:
-        lang = get_lang(request)
-        request.session["teams_error"] = translate(
-            lang, "teams_delete_blocked"
+
+    match_ids = db.query(Match.id).filter(Match.team_id == team_id).scalars().all()
+    if match_ids:
+        db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
+        db.query(Match).filter(Match.team_id == team_id).delete(synchronize_session=False)
+    db.query(Training).filter(Training.team_id == team_id).delete(synchronize_session=False)
+    solape_ids = (
+        db.query(TrainingSolape.id)
+        .filter(
+            (TrainingSolape.team_a_id == team_id)
+            | (TrainingSolape.team_b_id == team_id)
         )
-        return RedirectResponse(
-            f"/season/{season_id}/teams?t={team_id}", status_code=303
+        .scalars()
+        .all()
+    )
+    if solape_ids:
+        db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
+            {"training_solape_id": None}, synchronize_session=False
         )
+        db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+    db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
     db.query(TeamMembership).filter(TeamMembership.team_id == team_id).delete(synchronize_session=False)
     db.query(TeamExternalName).filter(TeamExternalName.team_id == team_id).delete(synchronize_session=False)
-    db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == team_id).delete(synchronize_session=False)
-    db.query(TrainingSolape).filter(TrainingSolape.team_a_id == team_id).delete(synchronize_session=False)
-    db.query(TrainingSolape).filter(TrainingSolape.team_b_id == team_id).delete(synchronize_session=False)
     db.delete(team)
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
@@ -2027,25 +2035,33 @@ def teams_bulk_delete(
     ctx = _active_context(request, db, season_id)
     if not ctx:
         return RedirectResponse("/app", status_code=303)
-    blocked = 0
-    lang = get_lang(request)
     for tid in team_ids:
         team = db.query(Team).filter(Team.id == tid, Team.season_id == season_id).first()
         if not team:
             continue
-        has_matches = db.query(Match.id).filter(Match.team_id == tid).first()
-        has_trainings = db.query(Training.id).filter(Training.team_id == tid).first()
-        if has_matches or has_trainings:
-            blocked += 1
-            continue
+        match_ids = db.query(Match.id).filter(Match.team_id == tid).scalars().all()
+        if match_ids:
+            db.query(FedMatchChange).filter(FedMatchChange.match_id.in_(match_ids)).delete(synchronize_session=False)
+            db.query(Match).filter(Match.team_id == tid).delete(synchronize_session=False)
+        db.query(Training).filter(Training.team_id == tid).delete(synchronize_session=False)
+        solape_ids = (
+            db.query(TrainingSolape.id)
+            .filter(
+                (TrainingSolape.team_a_id == tid)
+                | (TrainingSolape.team_b_id == tid)
+            )
+            .scalars()
+            .all()
+        )
+        if solape_ids:
+            db.query(Training).filter(Training.training_solape_id.in_(solape_ids)).update(
+                {"training_solape_id": None}, synchronize_session=False
+            )
+            db.query(TrainingSolape).filter(TrainingSolape.id.in_(solape_ids)).delete(synchronize_session=False)
+        db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
         db.query(TeamMembership).filter(TeamMembership.team_id == tid).delete(synchronize_session=False)
         db.query(TeamExternalName).filter(TeamExternalName.team_id == tid).delete(synchronize_session=False)
-        db.query(TrainingGroupMember).filter(TrainingGroupMember.team_id == tid).delete(synchronize_session=False)
-        db.query(TrainingSolape).filter(TrainingSolape.team_a_id == tid).delete(synchronize_session=False)
-        db.query(TrainingSolape).filter(TrainingSolape.team_b_id == tid).delete(synchronize_session=False)
         db.delete(team)
-    if blocked:
-        request.session["teams_error"] = translate(lang, "teams_delete_blocked")
     db.commit()
     return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
 
