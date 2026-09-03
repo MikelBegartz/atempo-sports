@@ -186,7 +186,7 @@
       </label>
     </form>
     <form class="venue-name-form" method="post" action="/season/{{ season.id }}/venues/{{ selected.id }}/preferred" style="margin-top:0.25rem">
-      <label class="badge {% if selected.preferred_for_matches %}ok{% else %}hard{% endif %}" style="cursor:pointer">
+      <label class="badge {% if selected.preferred_for_matches %}ok{% endif %}" style="cursor:pointer;{% if not selected.preferred_for_matches %}background:#f0f0f0;color:#666;{% endif %}">
         <input type="checkbox" name="preferred_for_matches" value="1" {% if selected.preferred_for_matches %}checked{% endif %} onchange="this.form.submit()" style="margin-right:0.3rem" />
         {% if selected.preferred_for_matches %}{{ t('venue_preferred') }}{% else %}{{ t('setup_venue_preferred') }}{% endif %}
       </label>
