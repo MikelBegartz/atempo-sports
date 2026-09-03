@@ -130,8 +130,7 @@
     </div>
     <div class="venue-head-actions">
       <a class="text-action" href="/season/{{ season.id }}/teams">{{ t('venues_close') }}</a>
-      <form method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/delete" style="margin:0"
-            onsubmit="return confirm({{ teams_delete_confirm|tojson }});">
+      <form method="post" action="/season/{{ season.id }}/teams/{{ selected.id }}/delete" style="margin:0">
         <button type="submit" class="text-action-btn danger">{{ teams_delete_label }}</button>
       </form>
     </div>
