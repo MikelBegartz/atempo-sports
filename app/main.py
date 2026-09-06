@@ -1148,37 +1148,41 @@ def fed_chooser(
 
 
 @app.post("/season/{season_id}/fed/sync", response_class=HTMLResponse)
-def fed_sync_now(
+async def fed_sync_now(
     season_id: int,
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Botó "Sincronitza ara": força la sync d'aquesta temporada i
-    informa del resultat via fed_flash. Mai falla en silenci."""
+    informa del resultat. Torna a la pàgina d'on s'ha premut."""
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    form = await request.form()
+    back = str(form.get("back") or "")
     lang = get_lang(request)
     reports = sync_club_federation_matches(
         db, ctx["club"].id, season_ids=[season_id], force=True
     )
     errs = [r for r in reports if r.error]
     if errs:
-        request.session["fed_flash"] = translate(
-            lang, "sync_result_err"
-        ).format(
+        msg = translate(lang, "sync_result_err").format(
             msg=" · ".join(
                 f"{r.source.upper()} {r.idc}: {r.error}" for r in errs
             )[:180]
         )
     else:
-        request.session["fed_flash"] = translate(
-            lang, "sync_result_ok"
-        ).format(
+        msg = translate(lang, "sync_result_ok").format(
             created=sum(r.created for r in reports),
             updated=sum(r.updated for r in reports),
             removed=sum(getattr(r, "removed", 0) for r in reports),
         )
+    if back == "import":
+        request.session["import_error" if errs else "import_flash"] = msg
+        return RedirectResponse(
+            f"/season/{season_id}/import", status_code=303
+        )
+    request.session["fed_flash"] = msg
     return RedirectResponse(f"/season/{season_id}/fed", status_code=303)
 
 
