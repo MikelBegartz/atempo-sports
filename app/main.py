@@ -109,7 +109,11 @@ from app.db import (
     init_db,
 )
 from app.export_csv import export_filename, export_matches_csv, export_trainings_csv
-from app.fed_sync import sync_club_federation_matches
+from app.fed_sync import (
+    background_sync,
+    club_sync_due,
+    sync_club_federation_matches,
+)
 
 from app.import_lists import (
     PEOPLE_TEMPLATE,
@@ -489,6 +493,7 @@ def login_get(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 def login_post(
     request: Request,
+    background_tasks: BackgroundTasks,
     club_code: str = Form(""),
     club_secret: str = Form(""),
     slug: str = Form(""),  # compat
@@ -510,10 +515,9 @@ def login_post(
             status_code=401,
         )
     login_club(request, club)
-    try:
-        sync_club_federation_matches(None, club.id)
-    except Exception:
-        pass
+    # Sync federativa en background: mai bloqueja el login i els errors
+    # queden registrats al log i al camp club.last_fed_sync_summary.
+    background_tasks.add_task(background_sync, club.id)
     return RedirectResponse("/app", status_code=303)
 
 
@@ -1068,7 +1072,11 @@ def admin_reset_link(
 
 
 @app.get("/app", response_class=HTMLResponse)
-def app_home(request: Request, db: Session = Depends(get_db)):
+def app_home(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     ctx = _active_context(request, db)
     if not ctx or not ctx["season"]:
         logout_club(request)
@@ -1079,6 +1087,10 @@ def app_home(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(
             setup_next_path(season.id, status), status_code=303
         )
+    # Sync federativa també en entrar a l'app (no només al login):
+    # si fa >30 min que no s'ha fet, es llança en background.
+    if club_sync_due(db, ctx["club"].id):
+        background_tasks.add_task(background_sync, ctx["club"].id)
     data = _dashboard_data(db, season, lang=get_lang(request))
     return templates.TemplateResponse(request, "home.html", {**ctx, **data})
 
@@ -1133,6 +1145,41 @@ def fed_chooser(
             "federations": [*FED_SOURCES],
         },
     )
+
+
+@app.post("/season/{season_id}/fed/sync", response_class=HTMLResponse)
+def fed_sync_now(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Botó "Sincronitza ara": força la sync d'aquesta temporada i
+    informa del resultat via fed_flash. Mai falla en silenci."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    reports = sync_club_federation_matches(
+        db, ctx["club"].id, season_ids=[season_id], force=True
+    )
+    errs = [r for r in reports if r.error]
+    if errs:
+        request.session["fed_flash"] = translate(
+            lang, "sync_result_err"
+        ).format(
+            msg=" · ".join(
+                f"{r.source.upper()} {r.idc}: {r.error}" for r in errs
+            )[:180]
+        )
+    else:
+        request.session["fed_flash"] = translate(
+            lang, "sync_result_ok"
+        ).format(
+            created=sum(r.created for r in reports),
+            updated=sum(r.updated for r in reports),
+            removed=sum(getattr(r, "removed", 0) for r in reports),
+        )
+    return RedirectResponse(f"/season/{season_id}/fed", status_code=303)
 
 
 @app.get("/season/{season_id}/rfep", response_class=HTMLResponse)

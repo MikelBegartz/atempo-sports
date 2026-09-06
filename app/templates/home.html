@@ -26,6 +26,10 @@
   </div>
   {% endif %}
 
+  <p class="muted" style="font-size:0.8rem">
+    {{ t('sync_last') }}: {% if club.last_fed_sync_at %}{{ club.last_fed_sync_at.strftime('%d/%m/%Y %H:%M') }}{% else %}{{ t('sync_never') }}{% endif %}{% if club.last_fed_sync_summary %} — {{ club.last_fed_sync_summary }}{% endif %}
+  </p>
+
   <div class="stat-grid">
     <a class="card card-link" href="/season/{{ season.id }}/matches">
       <div class="muted">{{ t('home_matches') }}</div>

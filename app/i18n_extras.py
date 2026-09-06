@@ -7,6 +7,7 @@ from app.i18n_fill import FILL_PACKS
 from app.i18n_match_create import MATCH_CREATE_PACKS
 from app.i18n_training_batch import TRAINING_BATCH_PACKS
 from app.i18n_by_team import BY_TEAM_CONFIRM_PACKS
+from app.i18n_fed_sync import SYNC_PACKS
 
 # Paquetes por idioma. Luego se rellena lo que falte desde inglés.
 AUTH_PACKS: dict[str, dict[str, str]] = {
@@ -4767,6 +4768,9 @@ def apply_auth_packs(strings: dict[str, dict[str, str]]) -> None:
         if lang in strings:
             strings[lang].update(pack)
     for lang, pack in FILL_PACKS.items():
+        if lang in strings:
+            strings[lang].update(pack)
+    for lang, pack in SYNC_PACKS.items():
         if lang in strings:
             strings[lang].update(pack)
     # Cualquier clave que aún falte en pt/fr/it/de/en: inglés, luego catalán

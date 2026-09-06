@@ -52,6 +52,7 @@ class ImportReport:
     error: str | None = None
     source: str = ""
     idc: int | None = None
+    removed: int = 0
 
 
 def _norm(name: str) -> str:
@@ -199,6 +200,9 @@ def import_competition(
         return ImportReport(
             0, 0, 0, 0, 0, [], error=str(exc), source=source, idc=idc
         )
+
+    # IDs externs que la federació publica ara mateix per aquesta competició
+    current_ext_ids = {f"{source}:{cm.idc}:{cm.idp}" for cm in calendar}
 
     aliases = team_alias_map(
         db,
@@ -481,6 +485,96 @@ def import_competition(
             else:
                 src.label = pretty
             db.flush()
+
+            # Partits que ja no figuren al calendari federatiu:
+            # - sense canvis locals → s'eliminen (dades velles)
+            # - bloquejats o moguts a mà → es marquen per revisió
+            # Només si el calendari federatiu té contingut: una pàgina buida
+            # o mal formada no ha d'esborrar mai partits existents.
+            if only_external_names is None and calendar:
+                prefix = f"{source}:{idc}:"
+                stale = (
+                    db.query(Match)
+                    .filter(
+                        Match.season_id == season_id,
+                        Match.source == source,
+                        Match.external_id.like(f"{prefix}%"),
+                        ~Match.external_id.in_(current_ext_ids or {""}),
+                    )
+                    .all()
+                )
+                delete_ids: list[int] = []
+                for m in stale:
+                    old_md = m.match_date
+                    old_st = m.start_time
+                    old_et = m.end_time
+                    old_vid = m.venue_id
+                    tname = m.team.name if m.team else ""
+                    if m.locked or m.is_changed_from_official:
+                        fc = FedMatchChange(
+                            match_id=m.id,
+                            source=source,
+                            old_match_date=old_md,
+                            old_start_time=old_st,
+                            old_end_time=old_et,
+                            old_venue_id=old_vid,
+                            new_match_date=None,
+                            new_start_time=None,
+                            new_end_time=None,
+                            new_venue_id=None,
+                            is_locked=m.locked,
+                        )
+                        db.add(fc)
+                        new_changes.append(fc)
+                        report.skipped += 1
+                        report.rows.append(
+                            ImportRow(
+                                m.external_id or "",
+                                tname,
+                                m.opponent,
+                                m.is_home,
+                                None,
+                                None,
+                                m.jornada,
+                                "cancelled",
+                                "Ya no figura en la federación (revisar)",
+                                old_match_date=old_md,
+                                old_start_time=old_st,
+                                old_end_time=old_et,
+                                old_venue_id=old_vid,
+                                changed=True,
+                                is_locked=m.locked,
+                            )
+                        )
+                    else:
+                        delete_ids.append(m.id)
+                        report.removed += 1
+                        report.rows.append(
+                            ImportRow(
+                                m.external_id or "",
+                                tname,
+                                m.opponent,
+                                m.is_home,
+                                None,
+                                None,
+                                m.jornada,
+                                "removed",
+                                "Eliminado: ya no figura en la federación",
+                                old_match_date=old_md,
+                                old_start_time=old_st,
+                                old_end_time=old_et,
+                                old_venue_id=old_vid,
+                                changed=True,
+                            )
+                        )
+                if delete_ids:
+                    db.query(FedMatchChange).filter(
+                        FedMatchChange.match_id.in_(delete_ids)
+                    ).delete(synchronize_session=False)
+                    db.query(Match).filter(Match.id.in_(delete_ids)).delete(
+                        synchronize_session=False
+                    )
+
             conflicts = find_conflicts(db, season_id)
             if new_changes:
                 match_ids = set()

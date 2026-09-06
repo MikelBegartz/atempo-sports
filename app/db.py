@@ -58,6 +58,9 @@ class Club(Base):
     slug: Mapped[str | None] = mapped_column(String(40), unique=True)
     password_hash: Mapped[str | None] = mapped_column(String(200))
     email: Mapped[str | None] = mapped_column(String(160))
+    # Darrera sincronització federativa (diagnosi visible per l'usuari)
+    last_fed_sync_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_fed_sync_summary: Mapped[str | None] = mapped_column(String(200))
 
     seasons: Mapped[list[Season]] = relationship(back_populates="club")
     venues: Mapped[list[Venue]] = relationship(back_populates="club")
@@ -563,6 +566,8 @@ def _ensure_sqlite_columns() -> None:
         ("training_groups", "venue_id", "INTEGER"),
         ("training_groups", "is_draft", "INTEGER DEFAULT 1"),
         ("team_external_names", "competition", "VARCHAR(160) DEFAULT ''"),
+        ("clubs", "last_fed_sync_at", "DATETIME"),
+        ("clubs", "last_fed_sync_summary", "VARCHAR(200)"),
     ]
     with engine.begin() as conn:
         for table, col, typ in alters:
