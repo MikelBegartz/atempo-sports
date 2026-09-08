@@ -7,7 +7,7 @@
 {% if people %}
 <nav class="name-links" aria-label="{{ t('nav_people') }}">
   {% for p in people %}
-  <a href="#person-{{ p.id }}">{{ p.full_name }}</a>
+  <a href="#person-{{ p.id }}">{{ p.full_name|person_name }}</a>
   {% endfor %}
 </nav>
 {% endif %}
@@ -18,12 +18,13 @@
   </label>
   <datalist id="people-names">
     {% for p in people %}
-    <option value="{{ p.full_name }}"></option>
+    <option value="{{ p.full_name|person_name }}"></option>
     {% endfor %}
   </datalist>
   <div class="row">
     <label class="check"><input type="checkbox" name="is_player" value="1" checked /> {{ t('role_player') }}</label>
     <label class="check"><input type="checkbox" name="is_coach" value="1" /> {{ t('role_coach') }}</label>
+    <label class="check"><input type="checkbox" name="is_delegate" value="1" /> {{ t('people_role_delegate') }}</label>
   </div>
   <button type="submit">{{ t('people_add') }}</button>
 </form>
@@ -36,6 +37,7 @@
   <div class="row">
     <label class="check"><input type="checkbox" name="is_player" value="1" checked /> {{ t('role_player') }}</label>
     <label class="check"><input type="checkbox" name="is_coach" value="1" /> {{ t('role_coach') }}</label>
+    <label class="check"><input type="checkbox" name="is_delegate" value="1" /> {{ t('people_role_delegate') }}</label>
   </div>
   {% if teams %}
   <label>{{ t('people_paste_team_label') }}
@@ -87,7 +89,7 @@
   <form method="post" action="/season/{{ season.id }}/people/merge" class="row" style="align-items:center;gap:0.75rem;margin-top:0.4rem">
     {% for p in g %}
     <input type="hidden" name="ids" value="{{ p.id }}" />
-    <label class="check"><input type="radio" name="keep" value="{{ p.id }}" required /> {{ t('people_keep') }}: <strong>{{ p.full_name }}</strong></label>
+    <label class="check"><input type="radio" name="keep" value="{{ p.id }}" required /> {{ t('people_keep') }}: <strong>{{ p.full_name|person_name }}</strong></label>
     {% endfor %}
     <button type="submit" class="secondary">{{ t('people_merge') }}</button>
   </form>

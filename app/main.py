@@ -121,6 +121,7 @@ from app.import_lists import (
     TEAMS_TEMPLATE,
     canon_person_name,
     find_person_canon,
+    person_role_flags,
     import_people_rows,
     import_roster_rows,
     import_teams_rows,
@@ -217,6 +218,7 @@ templates.env.filters["match_local"] = match_local_name
 templates.env.filters["match_away"] = match_away_name
 templates.env.filters["match_place"] = match_place_label
 templates.env.filters["time_input"] = format_time_input
+templates.env.filters["person_name"] = canon_person_name
 
 app = FastAPI(title="AtempoSports", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -1604,18 +1606,21 @@ def people_create(
     full_name: str = Form(...),
     is_player: str | None = Form(None),
     is_coach: str | None = Form(None),
+    is_delegate: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     name = canon_person_name(full_name)
     if name:
         existing = find_person_canon(db, season_id, name)
         if not existing:
+            db_coach, db_delegate = person_role_flags(full_name)
             db.add(
                 Person(
                     season_id=season_id,
                     full_name=name,
                     is_player=bool(is_player),
-                    is_coach=bool(is_coach),
+                    is_coach=bool(is_coach) or db_coach,
+                    is_delegate=bool(is_delegate) or db_delegate,
                 )
             )
             db.commit()
@@ -1628,18 +1633,19 @@ def people_create_batch(
     names: str = Form(...),
     is_player: str | None = Form(None),
     is_coach: str | None = Form(None),
+    is_delegate: str | None = Form(None),
     team_id: str = Form(""),
     new_team_name: str = Form(""),
     new_team_branch: str = Form(""),
     db: Session = Depends(get_db),
 ):
     raw = names or ""
-    all_names: list[str] = []
+    all_names: list[tuple[str, str]] = []
     for line in raw.splitlines():
         for part in line.split(";"):
             name = canon_person_name(part)
-            if name and name.casefold() not in {n.casefold() for n in all_names}:
-                all_names.append(name)
+            if name and name.casefold() not in {n.casefold() for _, n in all_names}:
+                all_names.append((part.strip(), name))
     existing_people = {
         canon_person_name(p.full_name).casefold(): p
         for p in db.query(Person).filter(Person.season_id == season_id).all()
@@ -1668,14 +1674,16 @@ def people_create_batch(
     linked = 0
     already = 0
     team_created = 1 if target_team_id and new_team_name.strip() else 0
-    for name in all_names:
+    for raw_name, name in all_names:
         person = existing_people.get(name.casefold())
         if person is None:
+            r_coach, r_delegate = person_role_flags(raw_name)
             person = Person(
                 season_id=season_id,
                 full_name=name,
                 is_player=bool(is_player),
-                is_coach=bool(is_coach),
+                is_coach=bool(is_coach) or r_coach,
+                is_delegate=bool(is_delegate) or r_delegate,
             )
             db.add(person)
             db.flush()

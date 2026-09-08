@@ -64,11 +64,30 @@ def _norm(value: str | None) -> str:
     return (value or "").strip()
 
 
+_ROLE_WORDS = {
+    "jugador", "jugadora", "jugadores", "jugadoras", "jogador", "jogadora",
+    "jugadors", "jugadores", "jugador/a",
+    "entrenador", "entrenadora", "entrenadors", "entrenadores",
+    "entrenador/a", "treinador", "treinadora",
+    "delegado", "delegada", "delegat", "delegats", "delegades",
+    "portero", "portera", "porter", "porteros", "porteras",
+    "player", "coach", "jugadora/o",
+}
+
+
 def canon_person_name(name: str | None) -> str:
-    """Forma canònica d'un nom de persona: espais col·lapsats i ", "
-    uniforme després de cada coma. "REY,ÈRIK" == "REY, ÈRIK"."""
-    s = " ".join((name or "").split())
-    return ", ".join(p for p in (x.strip() for x in s.split(",")))
+    """Forma canònica d'un nom: sense comes, sense paraules de rol
+    (jugador/a, entrenador/a, delegat...), espais col·lapsats.
+    "ÈRIK, REY, JUGADOR" == "ÈRIK,REY" == "ÈRIK REY"."""
+    s = " ".join((name or "").replace(",", " ").split())
+    words = [w for w in s.split() if w.casefold() not in _ROLE_WORDS]
+    return " ".join(words)
+
+
+def person_role_flags(raw: str) -> tuple[bool, bool]:
+    """Detecta si el text portava rol enganxat: (entrenador, delegat)."""
+    low = (raw or "").casefold()
+    return ("entrenador" in low or "entrenadora" in low), ("delegad" in low)
 
 
 def find_person_canon(db: Session, season_id: int, name: str) -> Person | None:

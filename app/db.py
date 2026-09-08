@@ -173,6 +173,7 @@ class Person(Base):
     full_name: Mapped[str] = mapped_column(String(160), nullable=False)
     is_player: Mapped[bool] = mapped_column(Boolean, default=True)
     is_coach: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_delegate: Mapped[bool] = mapped_column(Boolean, default=False)
     notes: Mapped[str | None] = mapped_column(Text)
 
     season: Mapped[Season] = relationship(back_populates="people")
@@ -568,6 +569,7 @@ def _ensure_sqlite_columns() -> None:
         ("team_external_names", "competition", "VARCHAR(160) DEFAULT ''"),
         ("clubs", "last_fed_sync_at", "DATETIME"),
         ("clubs", "last_fed_sync_summary", "VARCHAR(200)"),
+        ("people", "is_delegate", "BOOLEAN DEFAULT 0"),
     ]
     with engine.begin() as conn:
         for table, col, typ in alters:

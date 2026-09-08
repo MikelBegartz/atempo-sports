@@ -16,6 +16,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Conserva",
         "people_merged": "Fitxes fusionades.",
         "people_paste_ph": "Un nom per línia (o separats per punt i coma)",
+        "people_role_delegate": "Delegat",
+        "people_full_name_ph": "Nom i cognoms",
     },
     "es": {
         "sync_now": "Sincronizar ahora",
@@ -30,6 +32,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Conservar",
         "people_merged": "Fichas fusionadas.",
         "people_paste_ph": "Un nombre por línea (o separados por punto y coma)",
+        "people_role_delegate": "Delegado",
+        "people_full_name_ph": "Nombre y apellidos",
     },
     "eu": {
         "sync_now": "Sinkronizatu orain",
@@ -44,6 +48,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Mantendu",
         "people_merged": "Fitxak fusionatuta.",
         "people_paste_ph": "Izen bat lerro bakoitzeko (edo puntu eta komaz bereizita)",
+        "people_role_delegate": "Ordezkari",
+        "people_full_name_ph": "Izena eta abizenak",
     },
     "gl": {
         "sync_now": "Sincronizar agora",
@@ -58,6 +64,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Conservar",
         "people_merged": "Fichas fusionadas.",
         "people_paste_ph": "Un nome por liña (ou separados por punto e coma)",
+        "people_role_delegate": "Delegado",
+        "people_full_name_ph": "Nome e apelidos",
     },
     "pt": {
         "sync_now": "Sincronizar agora",
@@ -72,6 +80,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Conservar",
         "people_merged": "Fichas fundidas.",
         "people_paste_ph": "Um nome por linha (ou separados por ponto e vírgula)",
+        "people_role_delegate": "Delegado",
+        "people_full_name_ph": "Nome e apelidos",
     },
     "fr": {
         "sync_now": "Synchroniser maintenant",
@@ -86,6 +96,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Garder",
         "people_merged": "Fiches fusionnées.",
         "people_paste_ph": "Un nom par ligne (ou séparés par point-virgule)",
+        "people_role_delegate": "Délégué",
+        "people_full_name_ph": "Nom et prénom",
     },
     "it": {
         "sync_now": "Sincronizza ora",
@@ -100,6 +112,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Conserva",
         "people_merged": "Schede unite.",
         "people_paste_ph": "Un nome per riga (o separati da punto e virgola)",
+        "people_role_delegate": "Delegato",
+        "people_full_name_ph": "Nome e cognome",
     },
     "en": {
         "sync_now": "Sync now",
@@ -114,6 +128,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Keep",
         "people_merged": "Records merged.",
         "people_paste_ph": "One name per line (or separated by semicolons)",
+        "people_role_delegate": "Delegate",
+        "people_full_name_ph": "Full name",
     },
     "de": {
         "sync_now": "Jetzt synchronisieren",
@@ -128,5 +144,7 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_keep": "Behalten",
         "people_merged": "Datensätze zusammengeführt.",
         "people_paste_ph": "Ein Name pro Zeile (oder durch Semikolon getrennt)",
+        "people_role_delegate": "Delegierter",
+        "people_full_name_ph": "Vor- und Nachname",
     },
 }

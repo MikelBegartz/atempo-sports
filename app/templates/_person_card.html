@@ -1,9 +1,9 @@
 <div class="card" style="margin-top:0.75rem" id="person-{{ p.id }}">
-  <strong><a href="#person-{{ p.id }}">{{ p.full_name }}</a></strong>
+  <strong><a href="#person-{{ p.id }}">{{ p.full_name|person_name }}</a></strong>
   <span class="muted">
     {% if p.is_player %}{{ t('people_role_player') }}{% endif %}
-    {% if p.is_player and p.is_coach %} · {% endif %}
-    {% if p.is_coach %}{{ t('people_role_coach') }}{% endif %}
+    {% if p.is_coach %}{% if p.is_player %} · {% endif %}{{ t('people_role_coach') }}{% endif %}
+    {% if p.is_delegate %}{% if p.is_player or p.is_coach %} · {% endif %}{{ t('people_role_delegate') }}{% endif %}
   </span>
 
   {% if p.unavailabilities %}
