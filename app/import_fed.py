@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.conflicts import find_conflicts, persist_conflicts
@@ -123,11 +124,16 @@ def team_alias_map(
     *,
     prefer_category: str | None = None,
     only_external_names: list[str] | None = None,
+    competition: str | None = None,
 ) -> dict[str, Team]:
     """Mapa nombre federativo → Team.
 
     Si hay dos equipos con el mismo nombre (masc/fem), prefer_category
     o only_external_names acotan el de esta competición.
+
+    `competition`: si se indica, los alias que tienen competición propia
+    solo casan si es esta. Los alias sin competición (manuales/antiguos)
+    casan siempre — compatibilidad hacia atrás.
     """
     teams = db.query(Team).filter(Team.season_id == season_id).all()
     aliases = (
@@ -136,6 +142,13 @@ def team_alias_map(
         .filter(Team.season_id == season_id, TeamExternalName.source == source)
         .all()
     )
+    if competition is not None:
+        comp_n = _norm(competition)
+        aliases = [
+            a for a in aliases
+            if not (a.competition or "").strip()
+            or _norm(a.competition) == comp_n
+        ]
     if only_external_names is not None:
         wanted = {_norm(n) for n in only_external_names}
         aliases = [a for a in aliases if _norm(a.external_name) in wanted]
@@ -210,6 +223,7 @@ def import_competition(
         source,
         prefer_category=label,
         only_external_names=only_external_names,
+        competition=label,
     )
     if not any(
         a.source == source
@@ -493,13 +507,32 @@ def import_competition(
             # o mal formada no ha d'esborrar mai partits existents.
             if only_external_names is None and calendar:
                 prefix = f"{source}:{idc}:"
+                # Equips que realment casen en aquesta competició
+                cal_names: set[str] = set()
+                for cm in calendar:
+                    if cm.local:
+                        cal_names.add(_norm(cm.local))
+                    if cm.visitante:
+                        cal_names.add(_norm(cm.visitante))
+                expected_team_ids = {
+                    aliases[n].id for n in cal_names if n in aliases
+                }
+                stale_conds = [
+                    ~Match.external_id.in_(current_ext_ids or {""})
+                ]
+                # Només si algun equip casa: si no hi ha cap coincidència,
+                # no sabem dir que els equips siguin "equivocats".
+                if expected_team_ids:
+                    stale_conds.append(
+                        ~Match.team_id.in_(expected_team_ids)
+                    )
                 stale = (
                     db.query(Match)
                     .filter(
                         Match.season_id == season_id,
                         Match.source == source,
                         Match.external_id.like(f"{prefix}%"),
-                        ~Match.external_id.in_(current_ext_ids or {""}),
+                        or_(*stale_conds),
                     )
                     .all()
                 )
@@ -510,6 +543,17 @@ def import_competition(
                     old_et = m.end_time
                     old_vid = m.venue_id
                     tname = m.team.name if m.team else ""
+                    # Si encara és al calendari però apunta a un equip que
+                    # no hi casa, és un partit importat amb àlies equivocat.
+                    wrong_team = (
+                        m.external_id in current_ext_ids
+                        and m.team_id not in expected_team_ids
+                    )
+                    detail = (
+                        "Equipo equivocado en esta competición"
+                        if wrong_team
+                        else "Ya no figura en la federación"
+                    )
                     if m.locked or m.is_changed_from_official:
                         fc = FedMatchChange(
                             match_id=m.id,
@@ -537,7 +581,7 @@ def import_competition(
                                 None,
                                 m.jornada,
                                 "cancelled",
-                                "Ya no figura en la federación (revisar)",
+                                detail + " (revisar)",
                                 old_match_date=old_md,
                                 old_start_time=old_st,
                                 old_end_time=old_et,
@@ -559,7 +603,7 @@ def import_competition(
                                 None,
                                 m.jornada,
                                 "removed",
-                                "Eliminado: ya no figura en la federación",
+                                "Eliminado: " + detail,
                                 old_match_date=old_md,
                                 old_start_time=old_st,
                                 old_end_time=old_et,
