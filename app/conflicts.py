@@ -23,6 +23,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "partit vs {opponent}",
         "training_title": "entreno",
         "person": "{name} està a {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} té dos esdeveniments a la vegada: {title_a} i {title_b} el {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada per {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "venue_multi": "{venue} ocupada per {teams} el {date} ({times})",
         "venue_share": " — compartir permès",
@@ -82,6 +83,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "partido vs {opponent}",
         "training_title": "entrenamiento",
         "person": "{name} está en {team_a} ({title_a}) y {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} tiene dos eventos a la vez: {title_a} y {title_b} el {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada por {team_a} ({title_a}) y {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "venue_share": " — compartir permitido",
         "not_before": "{team} ({title}): empieza a las {start} pero no puede antes de {not_before}",
@@ -140,6 +142,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "partido vs {opponent}",
         "training_title": "treino",
         "person": "{name} está em {team_a} ({title_a}) e {team_b} ({title_b}) em {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} tem dois eventos ao mesmo tempo: {title_a} e {title_b} em {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada por {team_a} ({title_a}) e {team_b} ({title_b}) em {date} ({time_a} / {time_b})",
         "venue_share": " — partilha permitida",
         "not_before": "{team} ({title}): começa às {start} mas não pode antes de {not_before}",
@@ -184,6 +187,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "match vs {opponent}",
         "training_title": "entraînement",
         "person": "{name} est dans {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} a deux événements en même temps : {title_a} et {title_b} le {date} ({time_a} / {time_b})",
         "venue": "{venue} occupée par {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ({time_a} / {time_b})",
         "venue_share": " — partage autorisé",
         "not_before": "{team} ({title}) : commence à {start} mais ne peut pas avant {not_before}",
@@ -228,6 +232,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "Spiel vs {opponent}",
         "training_title": "Training",
         "person": "{name} ist bei {team_a} ({title_a}) und {team_b} ({title_b}) am {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} hat zwei Termine gleichzeitig: {title_a} und {title_b} am {date} ({time_a} / {time_b})",
         "venue": "{venue} belegt von {team_a} ({title_a}) und {team_b} ({title_b}) am {date} ({time_a} / {time_b})",
         "venue_share": " — Teilen erlaubt",
         "not_before": "{team} ({title}): beginnt um {start}, kann aber nicht vor {not_before}",
@@ -272,6 +277,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "match_title": "partita vs {opponent}",
         "training_title": "allenamento",
         "person": "{name} è in {team_a} ({title_a}) e {team_b} ({title_b}) il {date} ({time_a} / {time_b})",
+        "team_overlap": "{team} ha due eventi contemporanei: {title_a} e {title_b} il {date} ({time_a} / {time_b})",
         "venue": "{venue} occupata da {team_a} ({title_a}) e {team_b} ({title_b}) il {date} ({time_a} / {time_b})",
         "venue_share": " — condivisione permessa",
         "not_before": "{team} ({title}): inizia alle {start} ma non può prima di {not_before}",
@@ -600,6 +606,48 @@ def find_conflicts(
         people_a = {p.id: p for p in people(a.team_id)}
         for b in occs[i + 1 :]:
             if a.d != b.d or not _overlaps(a.start, a.end, b.start, b.end):
+                continue
+            # Mateix equip a dos llocs a l'hora: és un conflicte d'equip,
+            # una sola línia — no un conflicte per cada jugador (i també
+            # s'ha de veure encara que l'equip no tingui gent fitxada).
+            if a.team_id == b.team_id:
+                if (
+                    a.etype == "training"
+                    and b.etype == "training"
+                    and a.training_group_id
+                    and a.training_group_id == b.training_group_id
+                ):
+                    continue
+                if (
+                    a.etype == "training"
+                    and b.etype == "training"
+                    and a.venue_id == b.venue_id
+                ):
+                    continue
+                severity = (
+                    "soft"
+                    if a.etype == "training" and b.etype == "training"
+                    else "hard"
+                )
+                mids, tids, d = _ids(a, b)
+                conflicts.append(
+                    Conflict(
+                        kind="team",
+                        severity=severity,
+                        message=_t(
+                            lang,
+                            "team_overlap",
+                            team=a.team_name,
+                            title_a=a.title,
+                            title_b=b.title,
+                            date=_format_date(lang, a.d),
+                            time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
+                            time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
+                        ),
+                        match_ids=mids, d=d,
+                        training_ids=tids,
+                    )
+                )
                 continue
             people_b = {p.id: p for p in people(b.team_id)}
             shared = set(people_a) & set(people_b)
