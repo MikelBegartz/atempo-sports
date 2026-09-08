@@ -67,7 +67,8 @@ def _norm(value: str | None) -> str:
 
 _ROLE_WORDS = {
     "jugador", "jugadora", "jugadores", "jugadoras", "jogador", "jogadora",
-    "jugadors", "jugadores", "jugador/a",
+    "jugadors", "jugadores", "jugador/a", "jugsdor", "jugsdora",
+    "jugadorr", "jugdor", "jugaador",
     "entrenador", "entrenadora", "entrenadors", "entrenadores",
     "entrenador/a", "treinador", "treinadora",
     "delegado", "delegada", "delegat", "delegats", "delegades",

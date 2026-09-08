@@ -1576,10 +1576,7 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
         people_groups.append((translate(lang, "people_no_team"), unassigned))
     # Detectar duplicats: mateixa clau (espais, comes, rol, accents,
     # majúscules — tot ignorat)
-    canon_groups: dict[str, list[Person]] = {}
-    for p in people:
-        canon_groups.setdefault(person_key(p.full_name), []).append(p)
-    dup_groups = [g for g in canon_groups.values() if len(g) > 1]
+    dup_groups = _dup_groups(db, season_id)
     paste_result = None
     q = request.query_params
     merged = int(q.get("merged") or 0)
@@ -1710,6 +1707,55 @@ def people_create_batch(
     )
 
 
+def _merge_person_into(db: Session, keep_p: Person, drop: Person) -> None:
+    """Mou membresies, indisponibilitats i referències de `drop` a
+    `keep_p`, i esborra `drop`."""
+    for m in db.query(TeamMembership).filter(TeamMembership.person_id == drop.id).all():
+        dup = (
+            db.query(TeamMembership)
+            .filter(
+                TeamMembership.team_id == m.team_id,
+                TeamMembership.person_id == keep_p.id,
+                TeamMembership.role == m.role,
+            )
+            .first()
+        )
+        if dup:
+            db.delete(m)
+        else:
+            m.person_id = keep_p.id
+    for u in db.query(PersonUnavailability).filter(PersonUnavailability.person_id == drop.id).all():
+        u.person_id = keep_p.id
+    db.query(Conflict).filter(Conflict.person_id == drop.id).update(
+        {"person_id": keep_p.id}
+    )
+    keep_p.is_player = keep_p.is_player or drop.is_player
+    keep_p.is_coach = keep_p.is_coach or drop.is_coach
+    keep_p.is_delegate = keep_p.is_delegate or drop.is_delegate
+    # Flush abans d'esborrar: si no, SQLAlchemy buida les FK mogudes.
+    db.flush()
+    db.delete(drop)
+
+
+def _dup_groups(db: Session, season_id: int) -> list[list[Person]]:
+    groups: dict[str, list[Person]] = {}
+    for p in db.query(Person).filter(Person.season_id == season_id).all():
+        groups.setdefault(person_key(p.full_name), []).append(p)
+    return [g for g in groups.values() if len(g) > 1]
+
+
+def _best_person_to_keep(db: Session, group: list[Person]) -> Person:
+    """La fitxa a conservar: més dades, nom net, id més antic."""
+    def score(p: Person) -> tuple:
+        n_refs = (
+            db.query(TeamMembership).filter(TeamMembership.person_id == p.id).count()
+            + db.query(PersonUnavailability).filter(PersonUnavailability.person_id == p.id).count()
+        )
+        clean = 1 if p.full_name == canon_person_name(p.full_name) else 0
+        return (n_refs, clean, -p.id)
+    return max(group, key=score)
+
+
 @app.post("/season/{season_id}/people/merge")
 def people_merge(
     season_id: int,
@@ -1718,8 +1764,8 @@ def people_merge(
     ids: list[int] = Form(...),
     db: Session = Depends(get_db),
 ):
-    """Fusiona duplicats de persona: conserva `keep`, mou membresies,
-    indisponibilitats i referències, i esborra la resta."""
+    """Fusiona duplicats de persona: conserva `keep`, mou tot i esborra
+    la resta."""
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
@@ -1733,31 +1779,33 @@ def people_merge(
         drop = db.get(Person, pid)
         if not drop or drop.season_id != season_id:
             continue
-        for m in db.query(TeamMembership).filter(TeamMembership.person_id == pid).all():
-            dup = (
-                db.query(TeamMembership)
-                .filter(
-                    TeamMembership.team_id == m.team_id,
-                    TeamMembership.person_id == keep,
-                    TeamMembership.role == m.role,
-                )
-                .first()
-            )
-            if dup:
-                db.delete(m)
-            else:
-                m.person_id = keep
-        for u in db.query(PersonUnavailability).filter(PersonUnavailability.person_id == pid).all():
-            u.person_id = keep
-        db.query(Conflict).filter(Conflict.person_id == pid).update(
-            {"person_id": keep}
-        )
-        keep_p.is_player = keep_p.is_player or drop.is_player
-        keep_p.is_coach = keep_p.is_coach or drop.is_coach
-        # Flush abans d'esborrar: si no, SQLAlchemy buida les FK mogudes.
-        db.flush()
-        db.delete(drop)
+        _merge_person_into(db, keep_p, drop)
         merged += 1
+    db.commit()
+    return RedirectResponse(
+        f"/season/{season_id}/people?merged={merged}", status_code=303
+    )
+
+
+@app.post("/season/{season_id}/people/merge-all")
+def people_merge_all(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Fusiona TOTS els duplicats detectats: conserva la fitxa més
+    completa (més equips/indisponibilitats, nom més net)."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    merged = 0
+    for group in _dup_groups(db, season_id):
+        keep_p = _best_person_to_keep(db, group)
+        keep_p.full_name = canon_person_name(keep_p.full_name)
+        for drop in group:
+            if drop.id != keep_p.id:
+                _merge_person_into(db, keep_p, drop)
+                merged += 1
     db.commit()
     return RedirectResponse(
         f"/season/{season_id}/people?merged={merged}", status_code=303
