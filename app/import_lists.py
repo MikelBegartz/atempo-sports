@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import unicodedata
 from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
@@ -90,13 +91,26 @@ def person_role_flags(raw: str) -> tuple[bool, bool]:
     return ("entrenador" in low or "entrenadora" in low), ("delegad" in low)
 
 
+def _strip_accents(s: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    )
+
+
+def person_key(name: str | None) -> str:
+    """Clau de deduplicació: nom canònic, sense accents ni majúscules.
+    "ÀVILA, LLUC" i "avila lluc" són la mateixa persona."""
+    return _strip_accents(canon_person_name(name)).casefold()
+
+
 def find_person_canon(db: Session, season_id: int, name: str) -> Person | None:
-    """Cerca persona per nom canònic (ignora espais i majúscules)."""
-    key = canon_person_name(name).casefold()
+    """Cerca persona per clau canònica (espais, comes, rol, accents,
+    majúscules — tot ignorat)."""
+    key = person_key(name)
     if not key:
         return None
     for p in db.query(Person).filter(Person.season_id == season_id).all():
-        if canon_person_name(p.full_name).casefold() == key:
+        if person_key(p.full_name) == key:
             return p
     return None
 

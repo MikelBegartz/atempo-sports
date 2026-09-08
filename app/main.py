@@ -121,6 +121,7 @@ from app.import_lists import (
     TEAMS_TEMPLATE,
     canon_person_name,
     find_person_canon,
+    person_key,
     person_role_flags,
     import_people_rows,
     import_roster_rows,
@@ -155,6 +156,9 @@ from app.teams_meta import (
     group_teams_by_branch,
     normalize_branch,
     team_branch,
+    team_sort_key,
+    BRANCH_BASE_FEMALE,
+    BRANCH_SENIOR_FEMALE,
 )
 from app.training_groups import (
     DEFAULT_GROUP_WEEKDAYS,
@@ -1536,12 +1540,13 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
         .all()
     )
     people.sort(key=lambda p: canon_person_name(p.full_name).casefold())
-    teams = (
-        db.query(Team)
-        .filter(Team.season_id == season_id)
-        .order_by(Team.name)
-        .all()
-    )
+    teams = db.query(Team).filter(Team.season_id == season_id).all()
+    # Orden: categoria petita → gran; el femení just després del seu
+    # equivalent mixt/masculí si n'hi ha.
+    def _team_key(t: Team) -> tuple:
+        female = team_branch(t) in (BRANCH_BASE_FEMALE, BRANCH_SENIOR_FEMALE)
+        return (team_sort_key(t)[0], 1 if female else 0, (t.name or "").casefold())
+    teams.sort(key=_team_key)
     lang = get_lang(request)
     # Agrupar per equip; al final els que no en tenen
     memberships = (
@@ -1569,10 +1574,11 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
     unassigned = [p for p in people if p.id not in assigned]
     if unassigned or not people_groups:
         people_groups.append((translate(lang, "people_no_team"), unassigned))
-    # Detectar duplicats: mateix nom canònic (espais/majúscules ignorats)
+    # Detectar duplicats: mateixa clau (espais, comes, rol, accents,
+    # majúscules — tot ignorat)
     canon_groups: dict[str, list[Person]] = {}
     for p in people:
-        canon_groups.setdefault(canon_person_name(p.full_name).casefold(), []).append(p)
+        canon_groups.setdefault(person_key(p.full_name), []).append(p)
     dup_groups = [g for g in canon_groups.values() if len(g) > 1]
     paste_result = None
     q = request.query_params
@@ -1644,10 +1650,10 @@ def people_create_batch(
     for line in raw.splitlines():
         for part in line.split(";"):
             name = canon_person_name(part)
-            if name and name.casefold() not in {n.casefold() for _, n in all_names}:
+            if name and person_key(name) not in {person_key(n) for _, n in all_names}:
                 all_names.append((part.strip(), name))
     existing_people = {
-        canon_person_name(p.full_name).casefold(): p
+        person_key(p.full_name): p
         for p in db.query(Person).filter(Person.season_id == season_id).all()
     }
     target_team_id: int | None = None
@@ -1675,7 +1681,7 @@ def people_create_batch(
     already = 0
     team_created = 1 if target_team_id and new_team_name.strip() else 0
     for raw_name, name in all_names:
-        person = existing_people.get(name.casefold())
+        person = existing_people.get(person_key(name))
         if person is None:
             r_coach, r_delegate = person_role_flags(raw_name)
             person = Person(
