@@ -64,6 +64,24 @@ def _norm(value: str | None) -> str:
     return (value or "").strip()
 
 
+def canon_person_name(name: str | None) -> str:
+    """Forma canònica d'un nom de persona: espais col·lapsats i ", "
+    uniforme després de cada coma. "REY,ÈRIK" == "REY, ÈRIK"."""
+    s = " ".join((name or "").split())
+    return ", ".join(p for p in (x.strip() for x in s.split(",")))
+
+
+def find_person_canon(db: Session, season_id: int, name: str) -> Person | None:
+    """Cerca persona per nom canònic (ignora espais i majúscules)."""
+    key = canon_person_name(name).casefold()
+    if not key:
+        return None
+    for p in db.query(Person).filter(Person.season_id == season_id).all():
+        if canon_person_name(p.full_name).casefold() == key:
+            return p
+    return None
+
+
 def _norm_role(value: str) -> str:
     key = _norm(value).casefold()
     return ROLE_MAP.get(key, "player")
@@ -129,14 +147,10 @@ def _get_or_create_person(
     role: str,
     report: ImportReport,
 ) -> Person | None:
-    name = _norm(name)
+    name = canon_person_name(name)
     if not name:
         return None
-    person = (
-        db.query(Person)
-        .filter(Person.season_id == season_id, Person.full_name == name)
-        .first()
-    )
+    person = find_person_canon(db, season_id, name)
     if person:
         # Ampliar flags si el CSV trae rol coach/player
         if role == "coach" and not person.is_coach:
@@ -254,12 +268,7 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
             is_player = False
         role = "coach" if is_coach and not is_player else "player"
         before = report.people_created
-        _get_or_create_person(db, season_id, name, role, report)
-        person = (
-            db.query(Person)
-            .filter(Person.season_id == season_id, Person.full_name == _norm(name))
-            .first()
-        )
+        person = _get_or_create_person(db, season_id, name, role, report)
         if person:
             person.is_coach = person.is_coach or is_coach
             person.is_player = person.is_player or is_player or not is_coach

@@ -1,0 +1,67 @@
+<div class="card" style="margin-top:0.75rem" id="person-{{ p.id }}">
+  <strong><a href="#person-{{ p.id }}">{{ p.full_name }}</a></strong>
+  <span class="muted">
+    {% if p.is_player %}{{ t('people_role_player') }}{% endif %}
+    {% if p.is_player and p.is_coach %} · {% endif %}
+    {% if p.is_coach %}{{ t('people_role_coach') }}{% endif %}
+  </span>
+
+  {% if p.unavailabilities %}
+  <ul class="members">
+    {% for u in p.unavailabilities %}
+    <li>
+      {% if u.specific_date %}
+        {{ u.specific_date.isoformat() }}
+      {% elif u.weekday is not none %}
+        {{ t('people_every') }} {{ weekdays[u.weekday] }}
+      {% endif %}
+      {% if u.start_time and u.end_time %}
+        {{ u.start_time|time_input }}–{{ u.end_time|time_input }}
+      {% else %}
+        ({{ t('people_all_day') }})
+      {% endif %}
+      {% if u.reason %} — {{ u.reason }}{% endif %}
+      <form method="post" action="/season/{{ season.id }}/people/unavailability/{{ u.id }}/delete" style="display:inline">
+        <button type="submit" class="secondary" style="padding:0.15rem 0.45rem;font-size:0.75rem">{{ t('people_remove') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted" style="margin:0.4rem 0">{{ t('people_no_blocks') }}</p>
+  {% endif %}
+
+  <form class="stack" method="post" action="/season/{{ season.id }}/people/{{ p.id }}/unavailability" style="margin-top:0.6rem;max-width:100%">
+    <div class="row">
+      <label>{{ t('people_type') }}
+        <select name="mode">
+          <option value="weekday">{{ t('people_weekly') }}</option>
+          <option value="date">{{ t('people_specific_date') }}</option>
+        </select>
+      </label>
+      <label>{{ t('people_weekday') }}
+        <select name="weekday">
+          <option value="">—</option>
+          {% for name in weekdays %}
+          <option value="{{ loop.index0 }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>{{ t('people_date') }}
+        <input type="date" name="specific_date" />
+      </label>
+    </div>
+    <div class="row">
+      <label>{{ t('people_from') }}
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="start_time" />
+      </label>
+      <label>{{ t('people_to') }}
+        <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="end_time" />
+      </label>
+      <label>{{ t('people_reason') }}
+        <input name="reason" placeholder="{{ t('people_reason_ph') }}" />
+      </label>
+    </div>
+    <button type="submit" class="secondary">{{ t('people_add_unavailability') }}</button>
+  </form>
+</div>

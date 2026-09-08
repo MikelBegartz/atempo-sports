@@ -119,6 +119,8 @@ from app.import_lists import (
     PEOPLE_TEMPLATE,
     ROSTER_TEMPLATE,
     TEAMS_TEMPLATE,
+    canon_person_name,
+    find_person_canon,
     import_people_rows,
     import_roster_rows,
     import_teams_rows,
@@ -1529,17 +1531,50 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
         db.query(Person)
         .options(joinedload(Person.unavailabilities))
         .filter(Person.season_id == season_id)
-        .order_by(Person.full_name)
         .all()
     )
+    people.sort(key=lambda p: canon_person_name(p.full_name).casefold())
     teams = (
         db.query(Team)
         .filter(Team.season_id == season_id)
         .order_by(Team.name)
         .all()
     )
+    lang = get_lang(request)
+    # Agrupar per equip; al final els que no en tenen
+    memberships = (
+        db.query(TeamMembership)
+        .join(Team)
+        .filter(Team.season_id == season_id)
+        .all()
+    )
+    team_person_ids: dict[int, list[int]] = {t.id: [] for t in teams}
+    for m in memberships:
+        if m.team_id in team_person_ids:
+            team_person_ids[m.team_id].append(m.person_id)
+    people_by_id = {p.id: p for p in people}
+    assigned: set[int] = set()
+    people_groups: list[tuple[str, list[Person]]] = []
+    for t in teams:
+        members = sorted(
+            (people_by_id[pid] for pid in team_person_ids[t.id] if pid in people_by_id),
+            key=lambda p: canon_person_name(p.full_name).casefold(),
+        )
+        for pid in team_person_ids[t.id]:
+            assigned.add(pid)
+        if members:
+            people_groups.append((t.name, members))
+    unassigned = [p for p in people if p.id not in assigned]
+    if unassigned or not people_groups:
+        people_groups.append((translate(lang, "people_no_team"), unassigned))
+    # Detectar duplicats: mateix nom canònic (espais/majúscules ignorats)
+    canon_groups: dict[str, list[Person]] = {}
+    for p in people:
+        canon_groups.setdefault(canon_person_name(p.full_name).casefold(), []).append(p)
+    dup_groups = [g for g in canon_groups.values() if len(g) > 1]
     paste_result = None
     q = request.query_params
+    merged = int(q.get("merged") or 0)
     if "created" in q or "skipped" in q or "linked" in q or "already" in q or "team_created" in q:
         paste_result = {
             "created": int(q.get("created") or 0),
@@ -1549,7 +1584,17 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             "team_created": int(q.get("team_created") or 0),
         }
     return templates.TemplateResponse(
-        request, "people.html", {**ctx, "people": people, "teams": teams, "paste_result": paste_result}
+        request,
+        "people.html",
+        {
+            **ctx,
+            "people": people,
+            "teams": teams,
+            "paste_result": paste_result,
+            "people_groups": people_groups,
+            "dup_groups": dup_groups,
+            "merged": merged,
+        },
     )
 
 
@@ -1561,13 +1606,9 @@ def people_create(
     is_coach: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    name = full_name.strip()
+    name = canon_person_name(full_name)
     if name:
-        existing = (
-            db.query(Person)
-            .filter(Person.season_id == season_id, Person.full_name == name)
-            .first()
-        )
+        existing = find_person_canon(db, season_id, name)
         if not existing:
             db.add(
                 Person(
@@ -1595,12 +1636,13 @@ def people_create_batch(
     raw = names or ""
     all_names: list[str] = []
     for line in raw.splitlines():
-        for part in line.split(","):
-            name = part.strip()
-            if name and name not in all_names:
+        for part in line.split(";"):
+            name = canon_person_name(part)
+            if name and name.casefold() not in {n.casefold() for n in all_names}:
                 all_names.append(name)
     existing_people = {
-        p.full_name: p for p in db.query(Person).filter(Person.season_id == season_id).all()
+        canon_person_name(p.full_name).casefold(): p
+        for p in db.query(Person).filter(Person.season_id == season_id).all()
     }
     target_team_id: int | None = None
     if new_team_name.strip():
@@ -1627,7 +1669,7 @@ def people_create_batch(
     already = 0
     team_created = 1 if target_team_id and new_team_name.strip() else 0
     for name in all_names:
-        person = existing_people.get(name)
+        person = existing_people.get(name.casefold())
         if person is None:
             person = Person(
                 season_id=season_id,
@@ -1637,7 +1679,7 @@ def people_create_batch(
             )
             db.add(person)
             db.flush()
-            existing_people[name] = person
+            existing_people[name.casefold()] = person
             created += 1
         else:
             skipped += 1
@@ -1651,6 +1693,60 @@ def people_create_batch(
     return RedirectResponse(
         f"/season/{season_id}/people?created={created}&skipped={skipped}&linked={linked}&already={already}&team_created={team_created}",
         status_code=303,
+    )
+
+
+@app.post("/season/{season_id}/people/merge")
+def people_merge(
+    season_id: int,
+    request: Request,
+    keep: int = Form(...),
+    ids: list[int] = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Fusiona duplicats de persona: conserva `keep`, mou membresies,
+    indisponibilitats i referències, i esborra la resta."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    keep_p = db.get(Person, keep)
+    if not keep_p or keep_p.season_id != season_id:
+        return RedirectResponse(f"/season/{season_id}/people", status_code=303)
+    merged = 0
+    for pid in ids:
+        if pid == keep:
+            continue
+        drop = db.get(Person, pid)
+        if not drop or drop.season_id != season_id:
+            continue
+        for m in db.query(TeamMembership).filter(TeamMembership.person_id == pid).all():
+            dup = (
+                db.query(TeamMembership)
+                .filter(
+                    TeamMembership.team_id == m.team_id,
+                    TeamMembership.person_id == keep,
+                    TeamMembership.role == m.role,
+                )
+                .first()
+            )
+            if dup:
+                db.delete(m)
+            else:
+                m.person_id = keep
+        for u in db.query(PersonUnavailability).filter(PersonUnavailability.person_id == pid).all():
+            u.person_id = keep
+        db.query(Conflict).filter(Conflict.person_id == pid).update(
+            {"person_id": keep}
+        )
+        keep_p.is_player = keep_p.is_player or drop.is_player
+        keep_p.is_coach = keep_p.is_coach or drop.is_coach
+        # Flush abans d'esborrar: si no, SQLAlchemy buida les FK mogudes.
+        db.flush()
+        db.delete(drop)
+        merged += 1
+    db.commit()
+    return RedirectResponse(
+        f"/season/{season_id}/people?merged={merged}", status_code=303
     )
 
 
