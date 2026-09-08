@@ -53,3 +53,8 @@ No usar `python -m uvicorn` des d'aquest directori, perquè altres paquets `app`
 - Sempre avisar abans d'operacions destructives (esborrar fitxers/dades, `rm -rf`, reset, reescriure històric, etc.).
 - L'usuari només plantejarà dubtes de concepte o donarà instruccions sobre què fer, no revisarà detalls de codi.
 
+## Regla d'or: mai desplegar a cegues
+- **Abans de cada `git push` cap a producció, executar:** `python scripts/smoke_pages.py`
+- L'script arrenca l'app amb una **còpia** de `data/atempo.db` (mai toca la real) i comprova que totes les pàgines principals retornen 200/303, cap 500.
+- Si falla → no es desplega fins arreglar-ho.
+
