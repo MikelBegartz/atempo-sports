@@ -1759,6 +1759,7 @@ def _teams_page(
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
     teams = (
         db.query(Team)
         .options(joinedload(Team.memberships).joinedload(TeamMembership.person))
