@@ -307,10 +307,10 @@ def import_competition(
             )
             .first()
         )
-        if not existing and team and md:
-            # Fallback: la federación puede cambiar el idp o reasignar
-            # horario. Si ya existe un partido del mismo equipo, rival,
-            # casa/fuera y fecha, lo actualizamos en vez de crear duplicado.
+        if not existing and team:
+            # Fallback: la federación puede cambiar idp, hora o fecha.
+            # En liga solo hay dos partidos contra el mismo rival: uno en
+            # casa y otro fuera. Busquemos por equipo+rival+casa/fuera.
             existing = (
                 db.query(Match)
                 .filter(
@@ -318,7 +318,6 @@ def import_competition(
                     Match.team_id == team.id,
                     Match.opponent == opponent,
                     Match.is_home == is_home,
-                    Match.match_date == md,
                 )
                 .order_by(
                     Match.external_id.is_not(None).desc(),
@@ -703,10 +702,11 @@ def dedup_matches(db: Session, season_id: int) -> int:
     matches = db.query(Match).filter(Match.season_id == season_id).all()
     deleted_ids: set[int] = set()
 
-    # Fase 1: mismo equipo, rival, casa/fuera, fecha (cualquier hora)
-    groups: dict[tuple[int, str, bool, date | None], list[Match]] = {}
+    # Fase 1: mismo equipo, rival, casa/fuera (cualquier fecha u hora).
+    # En liga solo hay dos partidos contra el mismo rival: casa y fuera.
+    groups: dict[tuple[int, str, bool], list[Match]] = {}
     for m in matches:
-        key = (m.team_id, m.opponent, m.is_home, m.match_date)
+        key = (m.team_id, m.opponent, m.is_home)
         groups.setdefault(key, []).append(m)
 
     to_delete: list[Match] = []
