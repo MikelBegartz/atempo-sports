@@ -79,31 +79,103 @@ def normalize_branch(raw: str | None) -> str:
 
 
 def infer_branch(name: str = "", category: str | None = None) -> str:
+    """Infereix la secció (base/sènior × mixt/femeni/masculí) d'un nom."""
     text = f"{category or ''} {name}".lower()
+
     is_female = any(
         x in text
         for x in (
             "femen",
             "femení",
             "femeni",
-            "minifem",
-            "mini fem",
+            "iberdrola",
             "fem 1",
             "fem1",
+            " fem",
+            "fem ",
+            "fem.",
+            "femin",
             "dona",
+            "minifem",
+            "mini fem",
         )
     )
-    is_senior = any(x in text for x in ("sènior", "senior", "absolut"))
+    # Evitar que "femeni" marqui com a masculí paraules que continguin "fem"
+    # dins d'altres (p. ex. "femení" ja queda per is_female).
+    is_male = any(
+        x in text
+        for x in (
+            "mascul",
+            "masc.",
+            " masc",
+            "masc ",
+            "ok lliga",
+            "ok liga",
+            "parlem",
+            "lliga catalana",
+            "nacional catalana",
+            "primera catalana",
+            "segona catalana",
+            "tercera catalana",
+        )
+    )
+    # Llistes amb "fem" explícit són femenines malgrat tenir "ok lliga"
+    if is_male and is_female:
+        is_male = False
+
+    is_base = any(
+        x in text
+        for x in (
+            "prebenjami",
+            "prebenjamí",
+            "benjami",
+            "benjamí",
+            "alevi",
+            "aleví",
+            "infantil",
+            "cadet",
+            "juvenil",
+            "fem 11",
+            "fem11",
+            "fem 13",
+            "fem13",
+            "fem 15",
+            "fem15",
+            "fem 17",
+            "fem17",
+            "fem 19",
+            "fem19",
+        )
+    )
+    is_senior = any(
+        x in text
+        for x in (
+            "sènior",
+            "senior",
+            "absolut",
+            "1ª",
+            "primera",
+            "ok lliga",
+            "ok liga",
+            "lliga catalana",
+            "nacional catalana",
+            "parlem",
+        )
+    )
     is_mixed = any(x in text for x in ("mixte", "mixt", "mixed", "mixto"))
 
-    if is_senior and is_female:
+    if is_female and is_senior:
         return BRANCH_SENIOR_FEMALE
-    if is_senior:
+    if is_male and is_senior:
         return BRANCH_SENIOR_MALE
     if is_female:
         return BRANCH_BASE_FEMALE
+    if is_male:
+        return BRANCH_BASE_MIXED if is_base else BRANCH_SENIOR_MALE
     if is_mixed:
         return BRANCH_BASE_MIXED
+    if is_senior:
+        return BRANCH_SENIOR_MALE
     # Por defecto: base mixta (prebenjamí, benjamí, aleví…)
     return BRANCH_BASE_MIXED
 

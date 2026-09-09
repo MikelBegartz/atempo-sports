@@ -22,6 +22,12 @@ from app.db import (
 )
 from app.calendar_week import match_duration_min
 from app.sidgad import FEDERATIONS, SidgadClient, parse_calendar, parse_competition_list
+from app.teams_meta import (
+    BRANCH_BASE_FEMALE,
+    BRANCH_SENIOR_FEMALE,
+    infer_branch,
+    team_branch,
+)
 
 
 @lru_cache(maxsize=128)
@@ -67,6 +73,17 @@ class ImportReport:
     source: str = ""
     idc: int | None = None
     removed: int = 0
+
+
+def _branch_compatible(team: Team, comp_branch: str) -> bool:
+    """Evita assignar partits masculins a equips femenins o viceversa."""
+    female_branches = {BRANCH_BASE_FEMALE, BRANCH_SENIOR_FEMALE}
+    tb = team_branch(team)
+    if tb in female_branches and comp_branch not in female_branches:
+        return False
+    if comp_branch in female_branches and tb not in female_branches:
+        return False
+    return True
 
 
 def _norm(name: str) -> str:
@@ -285,12 +302,7 @@ def import_competition(
         idc=idc,
     )
     new_changes: list[FedMatchChange] = []
-
-    if not aliases:
-        report.error = (
-            "No hay equipos en la temporada. Crea equipos y alias federativos primero."
-        )
-        return report
+    seen_match_ids: set[int] = set()
 
     season = db.get(Season, season_id)
     club_id = season.club_id if season else None
@@ -319,6 +331,35 @@ def import_competition(
 
         if not team or opponent is None:
             continue
+
+        ext_id = f"{source}:{cm.idc}:{cm.idp}"
+
+        # Última comprovació de seguretat: no assignar partits d'un
+        # equip masculí a un equip femení (o al revés) per error d'àlies.
+        comp_branch = infer_branch(name=official_name or label or "")
+        if not _branch_compatible(team, comp_branch):
+            if apply:
+                # Si ja existia un partit importat d'aquesta jornada i ara
+                # és incompatible (p. ex. OK Lliga masc a OK LLIGA FEM),
+                # l'esborrem.
+                bad_match = (
+                    db.query(Match)
+                    .filter(
+                        Match.season_id == season_id,
+                        Match.source == source,
+                        Match.external_id == ext_id,
+                    )
+                    .first()
+                )
+                if (
+                    bad_match
+                    and not bad_match.locked
+                    and not bad_match.is_changed_from_official
+                ):
+                    db.delete(bad_match)
+                    report.removed += 1
+            continue
+
         opponent = (opponent or "").strip() or "?"
 
         # Si l'àlies usat no té competició marcada, l'etiquetem amb la
@@ -346,7 +387,6 @@ def import_competition(
                     alias_to_tag.competition = target_comp
 
         report.matched += 1
-        ext_id = f"{source}:{cm.idc}:{cm.idp}"
         md = _parse_fecha(cm.fecha, cm.gamedate)
         st = _parse_hora(cm.hora)
         et = None
@@ -605,14 +645,13 @@ def import_competition(
                     aliases[n].id for n in cal_names if n in aliases
                 }
                 stale_conds = [
-                    ~Match.external_id.in_(current_ext_ids or {""})
+                    ~Match.external_id.in_(current_ext_ids or {""}),
+                    # Si un partit encara és al calendari però cap àlies de
+                    # la competició actual apunta al seu equip, vol dir que
+                    # aquell partit està assignat a l'equip equivocat (p. ex.
+                    # OK Lliga masc a OK Lliga fem) i s'ha d'eliminar.
+                    ~Match.team_id.in_(expected_team_ids or {-1}),
                 ]
-                # Només si algun equip casa: si no hi ha cap coincidència,
-                # no sabem dir que els equips siguin "equivocats".
-                if expected_team_ids:
-                    stale_conds.append(
-                        ~Match.team_id.in_(expected_team_ids)
-                    )
                 stale = (
                     db.query(Match)
                     .filter(
