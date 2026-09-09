@@ -457,6 +457,9 @@ def import_competition(
                 or old_vid != venue_id
                 or (existing.place_name or None) != place
                 or existing.jornada != cm.jornada
+                or existing.team_id != team.id
+                or existing.opponent != opponent
+                or existing.is_home != is_home
             )
             if existing.locked and changed:
                 if apply:
