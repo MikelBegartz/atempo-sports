@@ -307,6 +307,28 @@ def import_competition(
             )
             .first()
         )
+        if not existing and team and md:
+            # Fallback: la federación puede cambiar el idp o reasignar
+            # horario. Si ya existe un partido del mismo equipo, rival,
+            # casa/fuera y fecha, lo actualizamos en vez de crear duplicado.
+            existing = (
+                db.query(Match)
+                .filter(
+                    Match.season_id == season_id,
+                    Match.team_id == team.id,
+                    Match.opponent == opponent,
+                    Match.is_home == is_home,
+                    Match.match_date == md,
+                )
+                .order_by(
+                    Match.external_id.is_not(None).desc(),
+                    Match.id.desc(),
+                )
+                .first()
+            )
+            if existing:
+                existing.source = source
+                existing.external_id = ext_id
 
         if existing:
             old_md = existing.match_date
@@ -619,6 +641,10 @@ def import_competition(
                         synchronize_session=False
                     )
 
+            # Si un partido ha cambiado de idp u hora, fusionar duplicados
+            # del mismo equipo+rival+fecha antes de recalcular conflictos.
+            dedup_matches(db, season_id)
+
             conflicts = find_conflicts(db, season_id)
             if new_changes:
                 match_ids = set()
@@ -672,21 +698,52 @@ def import_fecapa_competition(
 
 
 def dedup_matches(db: Session, season_id: int) -> int:
-    """Elimina partidos duplicados (mismo equipo, rival, casa/fuera, fecha y hora)."""
+    """Elimina partidos duplicados (mismo equipo, rival, casa/fuera, fecha)
+    y también fusiona partidos cuya federación haya cambiado de hora/idp."""
     matches = db.query(Match).filter(Match.season_id == season_id).all()
-    groups: dict[
-        tuple[int, str, bool, date | None, time | None], list[Match]
-    ] = {}
+    deleted_ids: set[int] = set()
+
+    # Fase 1: mismo equipo, rival, casa/fuera, fecha (cualquier hora)
+    groups: dict[tuple[int, str, bool, date | None], list[Match]] = {}
     for m in matches:
-        key = (m.team_id, m.opponent, m.is_home, m.match_date, m.start_time)
+        key = (m.team_id, m.opponent, m.is_home, m.match_date)
         groups.setdefault(key, []).append(m)
 
     to_delete: list[Match] = []
     for group in groups.values():
         if len(group) < 2:
             continue
-        group.sort(key=lambda m: (-int(m.locked), m.external_id is None, m.id))
-        to_delete.extend(group[1:])
+        # Se queda con: bloqueado > con external_id (federación) > id más alto
+        group.sort(
+            key=lambda m: (
+                -int(m.locked),
+                m.external_id is not None,
+                m.id,
+            ),
+            reverse=True,
+        )
+        keep = group[0]
+        for m in group[1:]:
+            if m.locked and keep.locked:
+                # Ambos bloqueados: no tocar, que el usuario decida
+                continue
+            # Si el descarte tiene datos más recientes de federación,
+            # actualizar el conservado con ellos antes de borrar.
+            if m.external_id and (not keep.external_id or m.id > keep.id):
+                keep.source = m.source or keep.source
+                keep.external_id = m.external_id or keep.external_id
+                keep.start_time = m.start_time
+                keep.end_time = m.end_time
+                keep.venue_id = m.venue_id
+                keep.place_name = m.place_name
+                keep.jornada = m.jornada
+                if m.match_date:
+                    keep.match_date = m.match_date
+                    keep.set_official(
+                        m.match_date, m.start_time, m.end_time, m.venue_id
+                    )
+            to_delete.append(m)
+            deleted_ids.add(m.id)
 
     if not to_delete:
         return 0
