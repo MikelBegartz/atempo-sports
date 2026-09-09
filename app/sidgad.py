@@ -163,7 +163,7 @@ def parse_competition_list(html: str, *, latest_only: bool = True) -> list[tuple
             seen.add(idc)
             rows.append((idc, m.group(2).strip(), 0))
 
-    max_temp = max((t for _, _, t in rows), default=0)
+    max_temp = max((t for _, _, t in rows if t < 1000), default=0)
     if latest_only and max_temp:
         rows = [r for r in rows if r[2] == max_temp]
 

@@ -179,7 +179,7 @@ def team_alias_map(
             legacy.setdefault(key, []).append(a)
 
     out: dict[str, Team] = {}
-    def pick(bucket: dict[str, list[TeamExternalName]]) -> None:
+    def pick(bucket: dict[str, list[TeamExternalName]], *, allow_ambiguous: bool = True) -> None:
         for key, lst in bucket.items():
             if len(lst) == 1:
                 out[key] = lst[0].team
@@ -192,12 +192,19 @@ def team_alias_map(
                     if _norm(a.team.category or "") == pref:
                         out[key] = a.team
                         break
-            if key not in out:
-                # Si no hay preferencia clara, quedarse con el primero
-                out[key] = lst[0].team
+            if key in out:
+                continue
+            if not allow_ambiguous:
+                # Vinculación antigua sin competición y ambigua: no arriesgar
+                # asignar a un equipo del sexo/categoría contrario.
+                continue
+            # Si no hay preferencia clara, quedarse con el primero
+            out[key] = lst[0].team
 
     pick(scoped)
-    pick(legacy)
+    # Alias sin competición: solo se usan si no hay scopado y son
+    # inequívocos (un solo equipo para ese nombre federativo)
+    pick(legacy, allow_ambiguous=False)
     return out
 
 
@@ -296,20 +303,47 @@ def import_competition(
         team = None
         opponent = None
         is_home = True
+        matched_external_name = None
         if local_n in aliases:
             team = aliases[local_n]
             opponent = cm.visitante
             is_home = True
+            matched_external_name = cm.local
         elif visit_n in aliases:
             team = aliases[visit_n]
             opponent = cm.local
             is_home = False
+            matched_external_name = cm.visitante
         else:
             continue
 
         if not team or opponent is None:
             continue
         opponent = (opponent or "").strip() or "?"
+
+        # Si l'àlies usat no té competició marcada, l'etiquetem amb la
+        # competició oficial d'aquesta importació per evitar futures
+        # fugides entre OK Lliga masc/fem o categories.
+        if apply and matched_external_name:
+            target_comp = official_name or label
+            if target_comp:
+                alias_to_tag = (
+                    db.query(TeamExternalName)
+                    .filter(
+                        TeamExternalName.team_id == team.id,
+                        TeamExternalName.source == source,
+                        TeamExternalName.external_name == matched_external_name,
+                    )
+                    .filter(
+                        or_(
+                            TeamExternalName.competition.is_(None),
+                            TeamExternalName.competition == "",
+                        )
+                    )
+                    .first()
+                )
+                if alias_to_tag:
+                    alias_to_tag.competition = target_comp
 
         report.matched += 1
         ext_id = f"{source}:{cm.idc}:{cm.idp}"
