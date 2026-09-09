@@ -24,6 +24,7 @@ from app.calendar_week import match_duration_min
 from app.sidgad import FEDERATIONS, SidgadClient, parse_calendar, parse_competition_list
 from app.teams_meta import (
     BRANCH_BASE_FEMALE,
+    BRANCH_BASE_MIXED,
     BRANCH_SENIOR_FEMALE,
     infer_branch,
     team_branch,
@@ -78,7 +79,12 @@ class ImportReport:
 def _branch_compatible(team: Team, comp_branch: str) -> bool:
     """Evita assignar partits masculins a equips femenins o viceversa."""
     female_branches = {BRANCH_BASE_FEMALE, BRANCH_SENIOR_FEMALE}
-    tb = team_branch(team)
+    # Prioritat al nom/categoria perquè `branch` emmagatzemat pot venir
+    # d'una vinculació anterior equivocada (p. ex. OK LLIGA FEM amb
+    # branch masc per haver estat creat des d'una font masculina).
+    tb = infer_branch(team.name, team.category)
+    if tb == BRANCH_BASE_MIXED:
+        tb = team_branch(team)
     if tb in female_branches and comp_branch not in female_branches:
         return False
     if comp_branch in female_branches and tb not in female_branches:
@@ -168,12 +174,16 @@ def team_alias_map(
     con competición concreta para ese nombre.
     """
     comp_names = {_norm(c) for c in (competition, label) if c}
+    comp_branch = infer_branch(name=(competition or label or ""))
     aliases = (
         db.query(TeamExternalName)
         .join(Team)
         .filter(Team.season_id == season_id, TeamExternalName.source == source)
         .all()
     )
+    # Rebutja àlies que vulguin assignar una competició masc a un equip fem
+    # (o al revés), encara que el camp `competition` de l'àlies coincideixi.
+    aliases = [a for a in aliases if _branch_compatible(a.team, comp_branch)]
     if only_external_names is not None:
         wanted = {_norm(n) for n in only_external_names}
         aliases = [a for a in aliases if _norm(a.external_name) in wanted]
