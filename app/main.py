@@ -139,7 +139,7 @@ from app.overlaps import (
     group_overlaps_by_horizon,
 )
 from app.fvp import import_fvp_matches, search_fvp_club_hits
-from app.import_fed import dedup_matches
+from app.import_fed import dedup_matches, list_federation_competitions
 from app.link_rfep import (
     FED_SOURCES,
     ensure_team_for_fed,
@@ -6014,6 +6014,72 @@ def import_page(
             "error": error,
             "import_flash": request.session.pop("import_flash", None),
             "import_error": request.session.pop("import_error", None),
+        },
+    )
+
+
+@app.get("/season/{season_id}/import/diag", response_class=HTMLResponse)
+def fed_diag_page(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    sources = (
+        db.query(CompetitionSource)
+        .filter(CompetitionSource.season_id == season_id)
+        .all()
+    )
+    aliases = (
+        db.query(TeamExternalName)
+        .join(Team)
+        .filter(Team.season_id == season_id)
+        .options(joinedload(TeamExternalName.team))
+        .all()
+    )
+    matches = (
+        db.query(Match)
+        .options(joinedload(Match.team))
+        .filter(
+            Match.season_id == season_id,
+            Match.opponent.ilike("%NOIA%"),
+        )
+        .order_by(Match.match_date)
+        .all()
+    )
+    official_names: dict[str, str] = {}
+    for s in sources:
+        key = f"{s.source}:{s.external_id}"
+        if key not in official_names:
+            try:
+                for idc, name in list_federation_competitions(s.source):
+                    official_names[f"{s.source}:{idc}"] = name
+            except Exception:
+                pass
+        official_names.setdefault(key, s.label)
+    parsed_ids: dict[int, dict] = {}
+    for m in matches:
+        parts = (m.external_id or "").split(":")
+        if len(parts) >= 3:
+            src, idc, idp = parts[0], parts[1], ":".join(parts[2:])
+            parsed_ids[m.id] = {
+                "idc": idc,
+                "idp": idp,
+                "official": official_names.get(f"{src}:{idc}", "—"),
+            }
+    return templates.TemplateResponse(
+        request,
+        "fed_diag.html",
+        {
+            **ctx,
+            "season_id": season_id,
+            "sources": sources,
+            "aliases": aliases,
+            "matches": matches,
+            "official_names": official_names,
+            "parsed_ids": parsed_ids,
         },
     )
 

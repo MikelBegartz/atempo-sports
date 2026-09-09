@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · Diagnòstic federació{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>Diagnòstic de vinculacions federatives</h1>
+    <p class="muted">Aquesta pàgina mostra exactament d'on surten els partits i quins àlies es fan servir. Serveix per detectar vinculacions a la competició equivocada.</p>
+  </div>
+</div>
+
+<h2 style="margin-top:1.5rem">Fonts de competició (CompetitionSource)</h2>
+<div class="entity-list" style="margin-bottom:1.5rem">
+  {% for s in sources %}
+  <div class="entity-entry" style="display:block">
+    <div><strong>{{ s.label }}</strong> <span class="badge" style="text-transform:uppercase">{{ s.source }}</span></div>
+    <div class="muted" style="font-size:0.85rem">
+      idc: <code>{{ s.external_id }}</code> ·
+      nom oficial: <code>{{ official_names.get(s.source ~ ':' ~ s.external_id, '—') }}</code>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">No hi ha fonts de competició vinculades.</p>
+  {% endfor %}
+</div>
+
+<h2>Àlies federatius (TeamExternalName)</h2>
+<div class="entity-list" style="margin-bottom:1.5rem">
+  {% for a in aliases %}
+  <div class="entity-entry" style="display:block">
+    <div><strong>{{ a.team.name }}</strong> <span class="muted">(cat: {{ a.team.category or '—' }})</span></div>
+    <div class="muted" style="font-size:0.85rem">
+      source: <code>{{ a.source }}</code> ·
+      nom federatiu: <code>{{ a.external_name }}</code> ·
+      competició de l'àlies: <code>{{ a.competition or '—' }}</code>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">No hi ha àlies federatius.</p>
+  {% endfor %}
+</div>
+
+<h2>Partits amb rival <em>CE NOIA FREIXENET</em> o similars</h2>
+<div class="entity-list" style="margin-bottom:1.5rem">
+  {% for m in matches %}
+  <div class="entity-entry" style="display:block">
+    <div>
+      <strong>{{ m.team.name }}</strong> vs {{ m.opponent }}
+      {% if m.is_home %}<span class="badge">casa</span>{% else %}<span class="badge">fora</span>{% endif %}
+    </div>
+    <div class="muted" style="font-size:0.85rem">
+      {{ m.match_date.strftime('%d/%m/%Y') if m.match_date else '—' }} {{ m.start_time if m.start_time else '' }} ·
+      source: <code>{{ m.source }}</code> ·
+      external_id: <code>{{ m.external_id }}</code> ·
+      pista/lloc: {{ m.place_name or '—' }}
+    </div>
+    {% set parsed = parsed_ids.get(m.id) %}
+    {% if parsed %}
+    <div class="muted" style="font-size:0.85rem">
+      idc: <code>{{ parsed.idc }}</code> ·
+      idp: <code>{{ parsed.idp }}</code> ·
+      competició oficial del partit: <code>{{ parsed.official }}</code>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="muted">No hi ha partits amb aquest rival.</p>
+  {% endfor %}
+</div>
+
+<div style="margin-top:1.5rem">
+  <a class="button secondary" href="/season/{{ season_id }}/import">Tornar a Importar</a>
+</div>
+{% endblock %}
