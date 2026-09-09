@@ -9,7 +9,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy.orm import Session, joinedload
 
 from app.conflicts import find_conflicts
-from app.db import Match, Training
+from app.db import CompetitionSource, Match, Training
 from app.names import match_away_name, match_local_name, match_place_label
 
 
@@ -159,6 +159,21 @@ def _end_default(
     ).time()
 
 
+def _match_source_label(
+    match: Match,
+    source_map: dict[str, CompetitionSource],
+) -> str | None:
+    """Retorna el nom de la competició federativa d'on ve el partit."""
+    if not match.source or not match.external_id:
+        return match.team.category if match.team else None
+    parts = match.external_id.split(":")
+    if len(parts) < 2:
+        return match.team.category if match.team else None
+    key = f"{match.source}:{parts[1]}"
+    cs = source_map.get(key)
+    return cs.label if cs else (match.team.category if match.team else None)
+
+
 def _match_status(
     match: Match,
     hard_ids: set[int],
@@ -182,6 +197,13 @@ def build_four_weeks(
     week_blocks = [build_week_block(monday + timedelta(days=7 * i), today) for i in range(4)]
     days = [d for w in week_blocks for d in w.days]
     start, end = days[0], days[-1]
+
+    source_map = {
+        f"{cs.source}:{cs.external_id}": cs
+        for cs in db.query(CompetitionSource)
+        .filter(CompetitionSource.season_id == season_id)
+        .all()
+    }
 
     conflicts = find_conflicts(db, season_id)
     hard_ids: set[int] = set()
@@ -235,7 +257,7 @@ def build_four_weeks(
                 venue=match_place_label(m),
                 href=f"/season/{season_id}/matches?m={m.id}#fitxa",
                 status=_match_status(m, hard_ids, soft_ids),
-                competition=m.team.category,
+                competition=_match_source_label(m, source_map),
                 home=local,
                 away=visit,
             )
@@ -311,6 +333,13 @@ def build_match_draft(
         .all()
     )
 
+    source_map = {
+        f"{cs.source}:{cs.external_id}": cs
+        for cs in db.query(CompetitionSource)
+        .filter(CompetitionSource.season_id == season_id)
+        .all()
+    }
+
     conflicts = find_conflicts(db, season_id)
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
@@ -333,7 +362,7 @@ def build_match_draft(
             "id": m.id,
             "home": match_local_name(m),
             "away": match_away_name(m),
-            "competition": m.team.category or "",
+            "competition": _match_source_label(m, source_map) or "",
             "venue": match_place_label(m) or "",
             "start": m.start_time,
             "end": end_t,
@@ -368,6 +397,13 @@ def build_global_draft(
     week_blocks = [build_week_block(monday + timedelta(days=7 * i), today) for i in range(4)]
     days = [d for w in week_blocks for d in w.days]
     start, end = days[0], days[-1]
+
+    source_map = {
+        f"{cs.source}:{cs.external_id}": cs
+        for cs in db.query(CompetitionSource)
+        .filter(CompetitionSource.season_id == season_id)
+        .all()
+    }
 
     conflicts = find_conflicts(db, season_id)
     hard_ids: set[int] = set()
@@ -417,7 +453,7 @@ def build_global_draft(
                     "home": match_local_name(m),
                     "away": match_away_name(m),
                     "team": m.team.name if m.team else "",
-                    "competition": m.team.category or "",
+                    "competition": _match_source_label(m, source_map) or "",
                     "venue": match_place_label(m) or "",
                     "date": m.match_date,
                     "start": None,
@@ -436,7 +472,7 @@ def build_global_draft(
             "home": match_local_name(m),
             "away": match_away_name(m),
             "team": m.team.name if m.team else "",
-            "competition": m.team.category or "",
+            "competition": _match_source_label(m, source_map) or "",
             "venue": match_place_label(m) or "",
             "date": m.match_date,
             "start": m.start_time,
