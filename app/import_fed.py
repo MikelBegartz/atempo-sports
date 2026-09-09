@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from functools import lru_cache
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -21,6 +22,18 @@ from app.db import (
 )
 from app.calendar_week import match_duration_min
 from app.sidgad import FEDERATIONS, SidgadClient, parse_calendar, parse_competition_list
+
+
+@lru_cache(maxsize=128)
+def _official_competition_name(source: str, idc: int) -> str | None:
+    """Devuelve el nombre oficial de la competición según la federación."""
+    try:
+        for cid, name in list_federation_competitions(source):
+            if cid == idc:
+                return name
+    except Exception:
+        pass
+    return None
 
 
 @dataclass
@@ -125,49 +138,66 @@ def team_alias_map(
     prefer_category: str | None = None,
     only_external_names: list[str] | None = None,
     competition: str | None = None,
+    label: str | None = None,
 ) -> dict[str, Team]:
-    """Mapa nombre federativo → Team.
+    """Mapa nombre federativo → Team, estrictamente por vinculaciones.
 
     Si hay dos equipos con el mismo nombre (masc/fem), prefer_category
     o only_external_names acotan el de esta competición.
 
-    `competition`: si se indica, los alias que tienen competición propia
-    solo casan si es esta. Los alias sin competición (manuales/antiguos)
-    casan siempre — compatibilidad hacia atrás.
+    `competition`: nombre oficial de la competición. Los alias que tienen
+    competición propia solo casan si coincide con esta (o con `label`).
+    Los alias sin competición (antiguos) solo se usan si no hay ninguno
+    con competición concreta para ese nombre.
     """
-    teams = db.query(Team).filter(Team.season_id == season_id).all()
+    comp_names = {_norm(c) for c in (competition, label) if c}
     aliases = (
         db.query(TeamExternalName)
         .join(Team)
         .filter(Team.season_id == season_id, TeamExternalName.source == source)
         .all()
     )
-    if competition is not None:
-        comp_n = _norm(competition)
-        aliases = [
-            a for a in aliases
-            if not (a.competition or "").strip()
-            or _norm(a.competition) == comp_n
-        ]
     if only_external_names is not None:
         wanted = {_norm(n) for n in only_external_names}
         aliases = [a for a in aliases if _norm(a.external_name) in wanted]
 
-    out: dict[str, Team] = {}
+    # 1) Alias con competición concreta y que coincida con esta competición
+    scoped: dict[str, list[TeamExternalName]] = {}
     for a in aliases:
-        key = _norm(a.external_name)
-        if key not in out:
-            out[key] = a.team
+        if not (a.competition or "").strip():
             continue
-        if prefer_category:
-            if a.team.category == prefer_category:
-                out[key] = a.team
-            elif out[key].category != prefer_category:
-                # Ambos sin categoría preferida: no pisar
-                pass
-    if only_external_names is None:
-        for t in teams:
-            out.setdefault(_norm(t.name), t)
+        if _norm(a.competition) in comp_names:
+            scoped.setdefault(_norm(a.external_name), []).append(a)
+
+    # 2) Alias sin competición (legacy): solo si no hay scopado para ese nombre
+    legacy: dict[str, list[TeamExternalName]] = {}
+    for a in aliases:
+        if (a.competition or "").strip():
+            continue
+        key = _norm(a.external_name)
+        if key not in scoped:
+            legacy.setdefault(key, []).append(a)
+
+    out: dict[str, Team] = {}
+    def pick(bucket: dict[str, list[TeamExternalName]]) -> None:
+        for key, lst in bucket.items():
+            if len(lst) == 1:
+                out[key] = lst[0].team
+                continue
+            # Si hay colisión, preferir el equipo cuya categoría interna
+            # coincide con la competición actual
+            if prefer_category:
+                pref = _norm(prefer_category)
+                for a in lst:
+                    if _norm(a.team.category or "") == pref:
+                        out[key] = a.team
+                        break
+            if key not in out:
+                # Si no hay preferencia clara, quedarse con el primero
+                out[key] = lst[0].team
+
+    pick(scoped)
+    pick(legacy)
     return out
 
 
@@ -217,13 +247,15 @@ def import_competition(
     # IDs externs que la federació publica ara mateix per aquesta competició
     current_ext_ids = {f"{source}:{cm.idc}:{cm.idp}" for cm in calendar}
 
+    official_name = _official_competition_name(source, idc) or label
     aliases = team_alias_map(
         db,
         season_id,
         source,
-        prefer_category=label,
+        prefer_category=official_name,
         only_external_names=only_external_names,
-        competition=label,
+        competition=official_name,
+        label=label,
     )
     if not any(
         a.source == source
