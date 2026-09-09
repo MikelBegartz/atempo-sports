@@ -175,7 +175,9 @@
       </select>
     </label>
     {% endif %}
-    <input type="hidden" name="category" value="{{ selected.category or '' }}" />
+    <label>{{ t('setup_category') }}
+      <input type="text" name="category" value="{{ selected.category or '' }}" placeholder="{{ t('teams_category_placeholder') }}" style="width:100%;max-width:24rem" />
+    </label>
     <button type="submit" class="secondary">{{ t('teams_save') }}</button>
   </form>
 
