@@ -20,7 +20,7 @@ from app.db import (
 
 _MSGS: dict[str, dict[str, str]] = {
     "ca": {
-        "match_title": "partit vs {opponent}",
+        "match_title": "partit {home} – {away}",
         "training_title": "entreno",
         "person": "{name} està a {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "team_overlap": "{team} té dos esdeveniments a la vegada: {title_a} i {title_b} el {date} ({time_a} / {time_b})",
@@ -80,7 +80,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "date_fmt": "{weekday} {day} de {month}",
     },
     "es": {
-        "match_title": "partido vs {opponent}",
+        "match_title": "partido {home} – {away}",
         "training_title": "entrenamiento",
         "person": "{name} está en {team_a} ({title_a}) y {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "team_overlap": "{team} tiene dos eventos a la vez: {title_a} y {title_b} el {date} ({time_a} / {time_b})",
@@ -139,7 +139,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "date_fmt": "{weekday} {day} de {month}",
     },
     "pt": {
-        "match_title": "partido vs {opponent}",
+        "match_title": "partido {home} – {away}",
         "training_title": "treino",
         "person": "{name} está em {team_a} ({title_a}) e {team_b} ({title_b}) em {date} ({time_a} / {time_b})",
         "team_overlap": "{team} tem dois eventos ao mesmo tempo: {title_a} e {title_b} em {date} ({time_a} / {time_b})",
@@ -184,7 +184,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "date_fmt": "{weekday}, {day} de {month}",
     },
     "fr": {
-        "match_title": "match vs {opponent}",
+        "match_title": "match {home} – {away}",
         "training_title": "entraînement",
         "person": "{name} est dans {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ({time_a} / {time_b})",
         "team_overlap": "{team} a deux événements en même temps : {title_a} et {title_b} le {date} ({time_a} / {time_b})",
@@ -229,7 +229,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "date_fmt": "{weekday} {day} {month}",
     },
     "de": {
-        "match_title": "Spiel vs {opponent}",
+        "match_title": "Spiel {home} – {away}",
         "training_title": "Training",
         "person": "{name} ist bei {team_a} ({title_a}) und {team_b} ({title_b}) am {date} ({time_a} / {time_b})",
         "team_overlap": "{team} hat zwei Termine gleichzeitig: {title_a} und {title_b} am {date} ({time_a} / {time_b})",
@@ -274,7 +274,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "date_fmt": "{weekday}, {day}. {month}",
     },
     "it": {
-        "match_title": "partita vs {opponent}",
+        "match_title": "partita {home} – {away}",
         "training_title": "allenamento",
         "person": "{name} è in {team_a} ({title_a}) e {team_b} ({title_b}) il {date} ({time_a} / {time_b})",
         "team_overlap": "{team} ha due eventi contemporanei: {title_a} e {title_b} il {date} ({time_a} / {time_b})",
@@ -481,19 +481,22 @@ def _match_to_occ(m: Match, override: dict | None, lang: str) -> _Occ | None:
     if et is None:
         et = (datetime.combine(md, st) + timedelta(minutes=90)).time()
     share = bool(m.venue.allows_share_default) if m.venue else False
+    is_home = m.is_home if m.is_home is not None else True
+    home = m.team.name if is_home else (m.opponent or "?")
+    away = (m.opponent or "?") if is_home else m.team.name
     return _Occ(
         etype="match",
         eid=m.id,
         team_id=m.team_id,
         team_name=m.team.name,
-        title=_t(lang, "match_title", opponent=m.opponent),
+        title=_t(lang, "match_title", home=home, away=away),
         d=md,
         start=st,
         end=et,
         venue_id=vid if m.is_home else None,
         share=share,
         team=m.team,
-        is_home=m.is_home if m.is_home is not None else True,
+        is_home=is_home,
         opponent=m.opponent or None,
     )
 
