@@ -81,6 +81,7 @@ from app.conflicts import (
     conflict_key,
     find_conflicts,
     hard_conflicts,
+    mark_ignored,
     people_for_team,
     persist_conflicts,
 )
@@ -3040,8 +3041,12 @@ def _matches_page(
     match_conflicts = []
     clean_alternatives = []
     if selected:
-        all_conflicts = find_conflicts(db, season_id)
-        match_conflicts = [c for c in all_conflicts if selected.id in c.match_ids]
+        all_conflicts = mark_ignored(db, season_id, find_conflicts(db, season_id))
+        match_conflicts = [
+            c
+            for c in all_conflicts
+            if selected.id in c.match_ids and not c.ignored
+        ]
         if not selected.locked and not selected.team.immovable:
             alt_frame = ChangeFrame(
                 window_start=focus,
@@ -5993,7 +5998,11 @@ def conflicts_auto_one(
 
 @app.post("/season/{season_id}/conflicts/auto-all")
 def conflicts_auto_all(season_id: int, db: Session = Depends(get_db)):
-    conflicts = find_conflicts(db, season_id)
+    conflicts = [
+        c
+        for c in mark_ignored(db, season_id, find_conflicts(db, season_id))
+        if not c.ignored
+    ]
     mids: list[int] = []
     for c in conflicts:
         if c.severity != "hard":

@@ -8,7 +8,7 @@ from datetime import date, datetime, time, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.conflicts import find_conflicts
+from app.conflicts import find_conflicts, mark_ignored
 from app.db import CompetitionSource, Match, Training
 from app.names import match_away_name, match_local_name, match_place_label
 
@@ -205,7 +205,11 @@ def build_four_weeks(
         .all()
     }
 
-    conflicts = find_conflicts(db, season_id)
+    conflicts = [
+        c
+        for c in mark_ignored(db, season_id, find_conflicts(db, season_id))
+        if not c.ignored
+    ]
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
     for c in conflicts:
@@ -340,7 +344,11 @@ def build_match_draft(
         .all()
     }
 
-    conflicts = find_conflicts(db, season_id)
+    conflicts = [
+        c
+        for c in mark_ignored(db, season_id, find_conflicts(db, season_id))
+        if not c.ignored
+    ]
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
     for c in conflicts:
@@ -405,7 +413,11 @@ def build_global_draft(
         .all()
     }
 
-    conflicts = find_conflicts(db, season_id)
+    conflicts = [
+        c
+        for c in mark_ignored(db, season_id, find_conflicts(db, season_id))
+        if not c.ignored
+    ]
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
     for c in conflicts:

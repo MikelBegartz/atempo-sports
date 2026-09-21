@@ -1101,6 +1101,37 @@ def _is_ignored_on(row: ConflictDB, d: date | None) -> bool:
     return any(i.ignored_date == d for i in row.ignored_dates)
 
 
+def mark_ignored(
+    db: Session, season_id: int, conflicts: list[Conflict]
+) -> list[Conflict]:
+    """Marca `c.ignored` segons la BD sense reescriure res.
+
+    `find_conflicts` torna objectes nous amb ignored=False; els que
+    pinten el calendari/la fitxa han de respectar els ignorats.
+    """
+    rows = {
+        c.conflict_key: c
+        for c in db.query(ConflictDB)
+        .filter(ConflictDB.season_id == season_id)
+        .all()
+    }
+    if not rows:
+        return conflicts
+    match_team = {
+        m.id: m.team_id
+        for m in db.query(Match).filter(Match.season_id == season_id)
+    }
+    training_team = {
+        t.id: t.team_id
+        for t in db.query(Training).filter(Training.season_id == season_id)
+    }
+    for c in conflicts:
+        row = rows.get(conflict_key(c, match_team, training_team))
+        if row:
+            c.ignored = _is_ignored_on(row, c.d)
+    return conflicts
+
+
 def persist_conflicts(
     db: Session,
     season_id: int,
