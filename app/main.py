@@ -139,7 +139,11 @@ from app.overlaps import (
     group_overlaps_by_horizon,
 )
 from app.fvp import import_fvp_matches, search_fvp_club_hits
-from app.import_fed import dedup_matches, list_federation_competitions
+from app.import_fed import (
+    dedup_matches,
+    import_competition,
+    list_federation_competitions,
+)
 from app.link_rfep import (
     FED_SOURCES,
     ensure_team_for_fed,
@@ -6018,15 +6022,12 @@ def import_page(
     )
 
 
-@app.get("/season/{season_id}/import/diag", response_class=HTMLResponse)
-def fed_diag_page(
-    season_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-):
+def _fed_diag_context(
+    request: Request, db: Session, season_id: int
+) -> dict | None:
     ctx = _active_context(request, db, season_id)
     if not ctx or not ctx.get("season"):
-        return RedirectResponse("/app", status_code=303)
+        return None
     sources = (
         db.query(CompetitionSource)
         .filter(CompetitionSource.season_id == season_id)
@@ -6042,11 +6043,8 @@ def fed_diag_page(
     matches = (
         db.query(Match)
         .options(joinedload(Match.team))
-        .filter(
-            Match.season_id == season_id,
-            Match.opponent.ilike("%NOIA%"),
-        )
-        .order_by(Match.match_date)
+        .filter(Match.season_id == season_id)
+        .order_by(Match.match_date, Match.id)
         .all()
     )
     official_names: dict[str, str] = {}
@@ -6069,19 +6067,76 @@ def fed_diag_page(
                 "idp": idp,
                 "official": official_names.get(f"{src}:{idc}", "—"),
             }
-    return templates.TemplateResponse(
-        request,
-        "fed_diag.html",
-        {
-            **ctx,
-            "season_id": season_id,
-            "sources": sources,
-            "aliases": aliases,
-            "matches": matches,
-            "official_names": official_names,
-            "parsed_ids": parsed_ids,
-        },
+    match_groups: list[dict] = []
+    group_idx: dict[str, dict] = {}
+    for m in matches:
+        parts = (m.external_id or "").split(":")
+        if len(parts) >= 3:
+            gkey = f"{parts[0]}:{parts[1]}"
+            glabel = official_names.get(gkey, gkey)
+        else:
+            gkey = "_manual"
+            glabel = "Manual / sense font"
+        g = group_idx.get(gkey)
+        if not g:
+            g = {"key": gkey, "label": glabel, "matches": []}
+            group_idx[gkey] = g
+            match_groups.append(g)
+        g["matches"].append(m)
+    match_groups.sort(key=lambda g: g["key"])
+    return {
+        **ctx,
+        "season_id": season_id,
+        "sources": sources,
+        "aliases": aliases,
+        "matches": matches,
+        "match_groups": match_groups,
+        "official_names": official_names,
+        "parsed_ids": parsed_ids,
+        "report": None,
+    }
+
+
+@app.get("/season/{season_id}/import/diag", response_class=HTMLResponse)
+def fed_diag_page(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    data = _fed_diag_context(request, db, season_id)
+    if data is None:
+        return RedirectResponse("/app", status_code=303)
+    return templates.TemplateResponse(request, "fed_diag.html", data)
+
+
+@app.post("/season/{season_id}/import/diag/resync", response_class=HTMLResponse)
+def fed_diag_resync(
+    season_id: int,
+    request: Request,
+    source: str = Form(...),
+    idc: int = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Reimporta una competició concreta i mostra el report fila a fila."""
+    data = _fed_diag_context(request, db, season_id)
+    if data is None:
+        return RedirectResponse("/app", status_code=303)
+    src_row = (
+        db.query(CompetitionSource)
+        .filter(
+            CompetitionSource.season_id == season_id,
+            CompetitionSource.source == source,
+            CompetitionSource.external_id == str(idc),
+        )
+        .first()
     )
+    report = import_competition(
+        db, season_id, source, idc, apply=True, label=src_row.label if src_row else None
+    )
+    db.commit()
+    data = _fed_diag_context(request, db, season_id) or data
+    data["report"] = report
+    return templates.TemplateResponse(request, "fed_diag.html", data)
 
 
 @app.post("/season/{season_id}/import/alias")

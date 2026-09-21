@@ -17,6 +17,11 @@
       idc: <code>{{ s.external_id }}</code> ·
       nom oficial: <code>{{ official_names.get(s.source ~ ':' ~ s.external_id, '—') }}</code>
     </div>
+    <form method="post" action="/season/{{ season_id }}/import/diag/resync" style="margin-top:0.35rem">
+      <input type="hidden" name="source" value="{{ s.source }}" />
+      <input type="hidden" name="idc" value="{{ s.external_id }}" />
+      <button type="submit" class="button secondary">Reimporta aquesta competició</button>
+    </form>
   </div>
   {% else %}
   <p class="muted">No hi ha fonts de competició vinculades.</p>
@@ -39,33 +44,60 @@
   {% endfor %}
 </div>
 
-<h2>Partits amb rival <em>CE NOIA FREIXENET</em> o similars</h2>
-<div class="entity-list" style="margin-bottom:1.5rem">
-  {% for m in matches %}
+<h2>Partits de la temporada ({{ matches|length }})</h2>
+{% for g in match_groups %}
+<h3 style="margin-top:1rem">{{ g.label }} <span class="muted">({{ g.matches|length }})</span></h3>
+<div class="entity-list" style="margin-bottom:1rem">
+  {% for m in g.matches %}
   <div class="entity-entry" style="display:block">
     <div>
-      <strong>{{ m.team.name }}</strong> vs {{ m.opponent }}
+      <strong>{{ m.team.name if m.team else '?' }}</strong> vs {{ m.opponent }}
       {% if m.is_home %}<span class="badge">casa</span>{% else %}<span class="badge">fora</span>{% endif %}
+      {% if m.locked %}<span class="badge">bloquejat</span>{% endif %}
     </div>
     <div class="muted" style="font-size:0.85rem">
-      {{ m.match_date.strftime('%d/%m/%Y') if m.match_date else '—' }} {{ m.start_time if m.start_time else '' }} ·
+      {{ m.match_date.strftime('%d/%m/%Y') if m.match_date else 'SENSE DATA' }} {{ m.start_time if m.start_time else '' }} ·
       source: <code>{{ m.source }}</code> ·
       external_id: <code>{{ m.external_id }}</code> ·
       pista/lloc: {{ m.place_name or '—' }}
     </div>
-    {% set parsed = parsed_ids.get(m.id) %}
-    {% if parsed %}
-    <div class="muted" style="font-size:0.85rem">
-      idc: <code>{{ parsed.idc }}</code> ·
-      idp: <code>{{ parsed.idp }}</code> ·
-      competició oficial del partit: <code>{{ parsed.official }}</code>
-    </div>
-    {% endif %}
   </div>
-  {% else %}
-  <p class="muted">No hi ha partits amb aquest rival.</p>
   {% endfor %}
 </div>
+{% else %}
+<p class="muted">No hi ha cap partit a la temporada.</p>
+{% endfor %}
+
+{% if report %}
+<h2>Resultat de la reimportació</h2>
+<p>
+  descarregats: <strong>{{ report.fetched }}</strong> ·
+  coincidents: <strong>{{ report.matched }}</strong> ·
+  creats: <strong>{{ report.created }}</strong> ·
+  actualitzats: <strong>{{ report.updated }}</strong> ·
+  eliminats: <strong>{{ report.removed }}</strong> ·
+  omesos: <strong>{{ report.skipped }}</strong>
+</p>
+{% if report.error %}<p class="badge" style="background:#8b0000;color:#fff">ERROR: {{ report.error }}</p>{% endif %}
+<div class="entity-list" style="margin-bottom:1.5rem">
+  {% for r in report.rows %}
+  <div class="entity-entry" style="display:block">
+    <div>
+      <span class="badge">{{ r.action }}</span>
+      <strong>{{ r.team_name }}</strong> vs {{ r.opponent }}
+      {% if r.is_home %}<span class="badge">casa</span>{% else %}<span class="badge">fora</span>{% endif %}
+    </div>
+    <div class="muted" style="font-size:0.85rem">
+      {{ r.match_date.strftime('%d/%m/%Y') if r.match_date else '—' }} {{ r.start_time if r.start_time else '' }} ·
+      jornada {{ r.jornada or '—' }} ·
+      ext: <code>{{ r.external_id }}</code>
+      {% if r.detail %} · {{ r.detail }}{% endif %}
+      {% if r.old_match_date %} · abans: {{ r.old_match_date.strftime('%d/%m/%Y') }} {{ r.old_start_time or '' }}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div style="margin-top:1.5rem">
   <a class="button secondary" href="/season/{{ season_id }}/import">Tornar a Importar</a>
