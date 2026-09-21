@@ -128,6 +128,9 @@ def sync_club_federation_matches(
                         label=src.label,
                     )
                 except Exception as exc:  # noqa: BLE001
+                    # Rollback: una excepció a mig import deixa la sessió
+                    # inservible i faria fallar les fonts següents.
+                    db.rollback()
                     logger.exception(
                         "fed_sync aixecat: club=%s season=%s source=%s idc=%s",
                         club_id,

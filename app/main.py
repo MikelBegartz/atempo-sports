@@ -2166,12 +2166,17 @@ async def teams_link_update(
     if not club or club.season_id != season_id or club.source in FED_SOURCES:
         return RedirectResponse(f"/season/{season_id}/teams/link", status_code=303)
     picks = form.getlist("pick")
+    new_links: dict[tuple[str, int, str], list[str]] = {}
     for raw in picks:
         parts = str(raw).split("||", 3)
         if len(parts) != 4:
             continue
-        source, _idc, external_name, competition = [p.strip() for p in parts]
+        source, idc_s, external_name, competition = [p.strip() for p in parts]
         if source not in FED_SOURCES:
+            continue
+        try:
+            idc = int(idc_s)
+        except ValueError:
             continue
         exists = (
             db.query(TeamExternalName)
@@ -2192,7 +2197,25 @@ async def teams_link_update(
                     competition=competition,
                 )
             )
+            new_links.setdefault((source, idc, competition), []).append(
+                external_name
+            )
     db.commit()
+    # Vincular sense importar deixava l'àlies mort: la competició no es
+    # registrava com a font i la sync mai hi baixava partits.
+    for (source, idc, competition), names in new_links.items():
+        try:
+            import_competition(
+                db,
+                season_id,
+                source,
+                idc,
+                apply=True,
+                label=competition,
+                only_external_names=names,
+            )
+        except Exception:  # noqa: BLE001
+            db.rollback()
     return RedirectResponse(
         f"/season/{season_id}/teams/link?club_id={club.id}&q={q}",
         status_code=303,

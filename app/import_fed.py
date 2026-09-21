@@ -426,7 +426,9 @@ def import_competition(
         if not existing and team:
             # Fallback: la federación puede cambiar idp, hora o fecha.
             # En liga solo hay dos partidos contra el mismo rival: uno en
-            # casa y otro fuera. Busquemos por equipo+rival+casa/fuera.
+            # casa y otro fuera. Busquemos por equipo+rival+casa/fuera,
+            # pero SOLO dentro de esta competición (o partits manuals):
+            # el mateix rival pot sortir a OK Lliga i Lliga Catalana.
             existing = (
                 db.query(Match)
                 .filter(
@@ -434,6 +436,10 @@ def import_competition(
                     Match.team_id == team.id,
                     Match.opponent == opponent,
                     Match.is_home == is_home,
+                    or_(
+                        Match.external_id.like(f"{source}:{idc}:%"),
+                        Match.external_id.is_(None),
+                    ),
                 )
                 .order_by(
                     Match.external_id.is_not(None).desc(),
@@ -784,6 +790,10 @@ def import_competition(
             training_team = {t.id: t.team_id for t in trainings}
             persist_conflicts(db, season_id, conflicts, match_team, training_team)
         except Exception as exc:  # noqa: BLE001
+            # Si el bloc ha fallat a mig camí (p. ex. un flush), la sessió
+            # queda inservible: fer rollback per no enverinar les
+            # importacions següents que comparteixen la mateixa sessió.
+            db.rollback()
             report.error = str(exc)
 
     if report.matched == 0 and not report.error:
@@ -820,12 +830,33 @@ def dedup_matches(db: Session, season_id: int) -> int:
     matches = db.query(Match).filter(Match.season_id == season_id).all()
     deleted_ids: set[int] = set()
 
-    # Fase 1: mismo equipo, rival, casa/fuera (cualquier fecha u hora).
-    # En liga solo hay dos partidos contra el mismo rival: casa y fuera.
-    groups: dict[tuple[int, str, bool], list[Match]] = {}
+    # Fase 1: mismo equipo, rival, casa/fuera DENTRO de la misma
+    # competición (cualquier fecha u hora). El mismo rival puede salir
+    # en dos competiciones (p. ex. OK Lliga i Lliga Catalana): son
+    # partidos distintos y NO se han de fusionar.
+    groups: dict[tuple, list[Match]] = {}
     for m in matches:
-        key = (m.team_id, m.opponent, m.is_home)
+        comp_key = None
+        if m.external_id:
+            parts = m.external_id.split(":")
+            if len(parts) >= 2:
+                comp_key = ":".join(parts[:2])
+        key = (m.team_id, m.opponent, m.is_home, comp_key)
         groups.setdefault(key, []).append(m)
+
+    # Partits manuals (sense external_id): fusiona'ls amb el grup
+    # federatiu equivalent només si n'hi ha un d'únic; si el mateix
+    # rival surt a dues competicions, no sabem a quina pertany i és
+    # més segur no tocar-lo.
+    manual_groups = [k for k in groups if k[3] is None]
+    for mk in manual_groups:
+        candidates = [
+            k
+            for k in groups
+            if k[3] is not None and k[:3] == mk[:3]
+        ]
+        if len(candidates) == 1:
+            groups[candidates[0]].extend(groups.pop(mk))
 
     to_delete: list[Match] = []
     for group in groups.values():
@@ -834,7 +865,7 @@ def dedup_matches(db: Session, season_id: int) -> int:
         # Se queda con: bloqueado > con external_id (federación) > id más alto
         group.sort(
             key=lambda m: (
-                -int(m.locked),
+                int(bool(m.locked)),
                 m.external_id is not None,
                 m.id,
             ),
