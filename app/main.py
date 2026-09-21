@@ -5444,6 +5444,8 @@ async def conflict_ignore(
                 if not exists:
                     db.add(ConflictIgnored(conflict_id=row.id, ignored_date=day))
     db.commit()
+    if str(form.get("back") or "") == "list":
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
     return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 

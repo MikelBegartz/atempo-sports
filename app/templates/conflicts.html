@@ -40,11 +40,17 @@
   {% for c in items %}
   <div class="conflict {{ c.severity }}" data-search="{{ c.message | lower }}">
     <a href="/season/{{ season.id }}/conflict/{{ c.key }}" style="display:block;text-decoration:none;color:inherit;font-weight:600;margin-bottom:0.35rem">{{ c.message }}</a>
-    {% if c.match_ids %}
     <div class="conflict-actions">
+      {% if c.match_ids %}
       <a href="/season/{{ season.id }}/matches?m={{ c.match_ids[0] }}&conflict={{ c.key }}#fitxa">{{ t('conflict_view_match') }}</a>
+      {% endif %}
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ c.key }}/ignore" style="display:inline;margin:0">
+        <input type="hidden" name="scope" value="day" />
+        <input type="hidden" name="day" value="{{ c.d.isoformat() if c.d else '' }}" />
+        <input type="hidden" name="back" value="list" />
+        <button type="submit" class="secondary" style="padding:0.15rem 0.55rem;font-size:0.8rem">{{ t('conflict_action_ignore') }}</button>
+      </form>
     </div>
-    {% endif %}
     {% if c.severity == 'soft' and c.training_ids|length == 2 %}
     <div class="conflict-merge-prompt" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--line)">
       <p class="muted">{{ t('conflict_merge_prompt') }}</p>
