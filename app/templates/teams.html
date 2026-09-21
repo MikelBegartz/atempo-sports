@@ -42,6 +42,9 @@
     <label>{{ t('teams_not_before') }}
       <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" />
     </label>
+    <label>{{ t('teams_min_margin') }}
+      <input type="number" min="0" step="15" placeholder="60" name="min_margin_min" value="" style="max-width:6rem" />
+    </label>
     {% if venues %}
     <label>{{ t('teams_home_venue') }}
       <select name="home_venue_id">
@@ -163,6 +166,9 @@
       </label>
       <label>{{ t('teams_not_before') }}
         <input type="text" pattern="(?:[01]?[0-9]|2[0-4]):[0-5][0-9]" placeholder="HH:MM" name="not_before" value="{{ selected.not_before|time_input if selected.not_before else '' }}" />
+      </label>
+      <label>{{ t('teams_min_margin') }}
+        <input type="number" min="0" step="15" placeholder="60" name="min_margin_min" value="{{ selected.min_margin_min if selected.min_margin_min is not none else '' }}" style="max-width:6rem" />
       </label>
     </div>
     {% if venues %}

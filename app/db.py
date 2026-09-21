@@ -228,6 +228,9 @@ class Team(Base):
     home_venue_id: Mapped[int | None] = mapped_column(ForeignKey("venues.id"))
     # Override d'hores/setmana (None = usar default de temporada)
     training_hours_week: Mapped[float | None] = mapped_column(Float)
+    # Minuts de marge lliure que cal abans d'un esdeveniment d'aquest
+    # equip quan hi ha desplaçament (p. ex. OK Lliga: 180 = quedar 2h abans)
+    min_margin_min: Mapped[int | None] = mapped_column(Integer)
 
     season: Mapped[Season] = relationship(back_populates="teams")
     memberships: Mapped[list[TeamMembership]] = relationship(back_populates="team")
@@ -570,6 +573,7 @@ def _ensure_sqlite_columns() -> None:
         ("clubs", "last_fed_sync_at", "DATETIME"),
         ("clubs", "last_fed_sync_summary", "VARCHAR(200)"),
         ("people", "is_delegate", "BOOLEAN DEFAULT 0"),
+        ("teams", "min_margin_min", "INTEGER"),
     ]
     with engine.begin() as conn:
         for table, col, typ in alters:

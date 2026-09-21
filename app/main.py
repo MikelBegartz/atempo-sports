@@ -2009,6 +2009,7 @@ def teams_create(
     branch: str = Form("base_mixed"),
     category: str = Form(""),
     not_before: str = Form(""),
+    min_margin_min: str = Form(""),
     home_venue_id: str = Form(""),
     next: str = Form(""),
     db: Session = Depends(get_db),
@@ -2016,6 +2017,10 @@ def teams_create(
     n = name.strip()
     if n:
         nb = time_from_input(not_before) if not_before else None
+        try:
+            margin = int(min_margin_min.strip()) if min_margin_min.strip() else None
+        except ValueError:
+            margin = None
         hvid = int(home_venue_id) if home_venue_id.strip() else None
         if hvid is None:
             season = db.get(Season, season_id)
@@ -2037,6 +2042,7 @@ def teams_create(
             category=category.strip() or None,
             branch=normalize_branch(branch),
             not_before=nb,
+            min_margin_min=margin,
             home_venue_id=hvid,
         )
         db.add(team)
@@ -2231,6 +2237,7 @@ def teams_update(
     branch: str = Form("base_mixed"),
     category: str = Form(""),
     not_before: str = Form(""),
+    min_margin_min: str = Form(""),
     home_venue_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -2244,10 +2251,15 @@ def teams_update(
     n = name.strip()
     if n:
         hvid = int(home_venue_id) if home_venue_id.strip() else None
+        try:
+            margin = int(min_margin_min.strip()) if min_margin_min.strip() else None
+        except ValueError:
+            margin = None
         team.name = n
         team.branch = normalize_branch(branch)
         team.category = category.strip() or None
         team.not_before = time_from_input(not_before) if not_before else None
+        team.min_margin_min = margin
         team.home_venue_id = hvid
         db.commit()
     return RedirectResponse(f"/season/{season_id}/teams?t={team_id}", status_code=303)

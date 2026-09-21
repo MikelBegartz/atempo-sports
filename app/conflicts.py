@@ -34,6 +34,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} no té disponibilitat el {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fora d'horari disponible per a {team} ({title}) {time}",
         "coach_gap": "Atenció: {name} té {gap} min entre {team_a} ({title_a}) i {team_b} ({title_b}) el {date}. Assegura't que és temps suficient o ho movem a conflicte.",
+        "coach_gap_hard": "Conflicte: {name} només té {gap} min entre {team_a} ({title_a}) i {team_b} ({title_b}) el {date}; amb desplaçament calen almenys {need} min.",
         "home_no_venue": "{team} ({title}): partit a casa sense pista assignada",
         "home_no_venue_insufficient": "{team} ({title}): massa partits a casa a la mateixa hora ({n} partits, {courts} pistes)",
         "weekday_0": "dl",
@@ -93,6 +94,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} no tiene disponibilidad el {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fuera de horario disponible para {team} ({title}) {time}",
         "coach_gap": "Atención: {name} tiene {gap} min entre {team_a} ({title_a}) y {team_b} ({title_b}) el {date}. Asegúrate de que es tiempo suficiente o lo movemos a conflicto.",
+        "coach_gap_hard": "Conflicto: {name} solo tiene {gap} min entre {team_a} ({title_a}) y {team_b} ({title_b}) el {date}; con desplazamiento hacen falta al menos {need} min.",
         "home_no_venue": "{team} ({title}): partido en casa sin pista asignada",
         "home_no_venue_insufficient": "{team} ({title}): demasiados partidos en casa a la misma hora ({n} partidos, {courts} pistas)",
         "weekday_0": "lun",
@@ -152,6 +154,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} não tem disponibilidade em {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fora do horário disponível para {team} ({title}) {time}",
         "coach_gap": "Atenção: {name} tem {gap} min entre {team_a} ({title_a}) e {team_b} ({title_b}) em {date}. Certifica-te de que é tempo suficiente ou movemos para conflito.",
+        "coach_gap_hard": "Conflito: {name} só tem {gap} min entre {team_a} ({title_a}) e {team_b} ({title_b}) em {date}; com deslocação são precisos pelo menos {need} min.",
         "weekday_0": "seg",
         "weekday_1": "ter",
         "weekday_2": "qua",
@@ -197,6 +200,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} pas de disponibilité le {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} hors horaire disponible pour {team} ({title}) {time}",
         "coach_gap": "Attention : {name} a {gap} min entre {team_a} ({title_a}) et {team_b} ({title_b}) le {date}. Assure-toi que c'est suffisant ou on le passe en conflit.",
+        "coach_gap_hard": "Conflit : {name} n'a que {gap} min entre {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ; avec déplacement il faut au moins {need} min.",
         "weekday_0": "lun",
         "weekday_1": "mar",
         "weekday_2": "mer",
@@ -242,6 +246,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} keine Verfügbarkeit am {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} außerhalb der Öffnungszeiten verfügbar für {team} ({title}) {time}",
         "coach_gap": "Achtung: {name} hat {gap} Min zwischen {team_a} ({title_a}) und {team_b} ({title_b}) am {date}. Stelle sicher, dass es reicht, oder wir verschieben es in Konflikt.",
+        "coach_gap_hard": "Konflikt: {name} hat nur {gap} Min zwischen {team_a} ({title_a}) und {team_b} ({title_b}) am {date}; mit Anfahrt sind mindestens {need} Min nötig.",
         "weekday_0": "Mo",
         "weekday_1": "Di",
         "weekday_2": "Mi",
@@ -287,6 +292,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "venue_no_avail": "{venue} nessuna disponibilità il {weekday} ({team} · {title})",
         "venue_out_of_hours": "{venue} fuori orario disponibile per {team} ({title}) {time}",
         "coach_gap": "Attenzione: {name} ha {gap} min tra {team_a} ({title_a}) e {team_b} ({title_b}) il {date}. Assicurati che sia tempo sufficiente o lo spostiamo in conflitto.",
+        "coach_gap_hard": "Conflitto: {name} ha solo {gap} min tra {team_a} ({title_a}) e {team_b} ({title_b}) il {date}; con spostamento servono almeno {need} min.",
         "weekday_0": "lun",
         "weekday_1": "mar",
         "weekday_2": "mer",
@@ -994,14 +1000,12 @@ def find_conflicts(
         # tots dos fora: només és desplaçament si són rivals diferents
         return a.opponent != b.opponent
 
-    coach_events: dict[int, list[tuple[_Occ, Person]]] = {}
+    person_events: dict[int, list[tuple[_Occ, Person]]] = {}
     for o in occs:
         for p in people(o.team_id):
-            if not p.is_coach:
-                continue
-            coach_events.setdefault(p.id, []).append((o, p))
+            person_events.setdefault(p.id, []).append((o, p))
 
-    for _pid, items in coach_events.items():
+    for _pid, items in person_events.items():
         items.sort(key=lambda x: (x[0].d, x[0].start, x[0].end))
         by_day: dict[date, list[tuple[_Occ, Person]]] = {}
         for o, p in items:
@@ -1013,23 +1017,30 @@ def find_conflicts(
                 a, p = day_items[i]
                 b, _ = day_items[i + 1]
                 gap = _minutes_between(a.end, b.start)
-                if gap is None:
+                # gap < 0 = solape: ja es reporta com a conflicte dur adalt
+                if gap is None or gap < 0:
                     continue
                 if not _needs_travel(a, b):
                     continue
-                # Qualsevol hueco positiu entre esdeveniments del mateix
-                # entrenador si hi ha desplaçament (15 min d'Arenys a
-                # Maçanet és impossible i abans no es detectava).
+                # Marge que cal deixar lliure abans de l'esdeveniment b
+                # (desplaçament + quedada prèvia). Defecte: 60 min.
+                need = (
+                    b.team.min_margin_min
+                    if b.team and b.team.min_margin_min is not None
+                    else 60
+                )
                 mids, tids, d = _ids(a, b)
+                hard = gap < need
                 conflicts.append(
                     Conflict(
                         kind="person",
-                        severity="soft",
+                        severity="hard" if hard else "soft",
                         message=_t(
                             lang,
-                            "coach_gap",
+                            "coach_gap_hard" if hard else "coach_gap",
                             name=p.full_name,
                             gap=gap,
+                            need=need,
                             team_a=a.team_name,
                             title_a=a.title,
                             team_b=b.team_name,
