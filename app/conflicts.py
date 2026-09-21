@@ -1013,11 +1013,13 @@ def find_conflicts(
                 a, p = day_items[i]
                 b, _ = day_items[i + 1]
                 gap = _minutes_between(a.end, b.start)
-                if gap is None or gap <= 30:
+                if gap is None:
                     continue
                 if not _needs_travel(a, b):
                     continue
-                # hueco > 30 min entre sesiones del mismo entrenador con desplaçament
+                # Qualsevol hueco positiu entre esdeveniments del mateix
+                # entrenador si hi ha desplaçament (15 min d'Arenys a
+                # Maçanet és impossible i abans no es detectava).
                 mids, tids, d = _ids(a, b)
                 conflicts.append(
                     Conflict(
