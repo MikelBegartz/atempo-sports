@@ -12,10 +12,16 @@
   .mm-cell { background:#fff; min-height:4.6rem; padding:0.25rem 0.35rem; font-size:0.72rem; }
   .mm-cell.off { background:var(--card); opacity:0.55; }
   .mm-num { font-weight:700; font-size:0.8rem; display:block; margin-bottom:2px; }
-  .mm-ev { margin-top:2px; padding:1px 4px; border-radius:3px; border-left:3px solid var(--muted); background:var(--card); overflow:hidden; line-height:1.25; }
-  .mm-ev.home { border-left-color:var(--accent); background:var(--accent-soft); }
+  .mm-ev { margin-top:2px; padding:1px 4px; border-radius:3px; border-left:3px solid var(--muted); background:var(--accent-soft); overflow:hidden; line-height:1.25; }
+  .mm-ev.home { border-left-color:var(--accent); }
   .mm-ev.soft { border-left-color:var(--warn); background:var(--warn-bg); }
   .mm-ev.hard { border-left-color:var(--danger); background:var(--danger-bg); }
+  .mm-legend { display:flex; gap:1rem; font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; }
+  .mm-legend span { display:inline-flex; align-items:center; gap:0.3rem; }
+  .mm-dot { width:0.8rem; height:0.8rem; border-radius:3px; display:inline-block; }
+  .mm-dot.ok { background:var(--accent-soft); border:1px solid var(--accent); }
+  .mm-dot.soft { background:var(--warn-bg); border:1px solid var(--warn); }
+  .mm-dot.hard { background:var(--danger-bg); border:1px solid var(--danger); }
   tr.mm-soft td { background:var(--warn-bg); }
   tr.mm-hard td { background:var(--danger-bg); }
   .mm-ev .mm-ev-t { font-weight:600; }
@@ -42,8 +48,13 @@
 </div>
 
 {% if matches %}
-<div class="mm-grid">
-  {% for wd in weekday_short_names %}
+<div class="mm-legend">
+  <span><i class="mm-dot ok"></i>{{ t('mm_leg_ok') }}</span>
+  <span><i class="mm-dot soft"></i>{{ t('mm_leg_soft') }}</span>
+  <span><i class="mm-dot hard"></i>{{ t('mm_leg_hard') }}</span>
+</div>
+<div class="mm-grid" style="grid-template-columns:repeat({{ month_wds|length }},1fr)">
+  {% for wd in month_wds %}
   <div class="mm-grid-head">{{ wd }}</div>
   {% endfor %}
   {% for week in month_weeks %}

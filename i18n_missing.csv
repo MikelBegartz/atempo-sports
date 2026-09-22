@@ -797,6 +797,9 @@ mm_empty,Cap partit aquest mes.,Ez dago partidurik hilabete honetan.,Ningún par
 mm_today,Mes actual,Uneko hilabetea,Mes actual,Mes actual,Mês atual,Mois actuel,Mese attuale,Current month,Aktueller Monat
 mm_col_match,Partit,Partida,Partido,Partido,Jogo,Match,Partita,Match,Spiel
 mm_col_place,Pista / lloc,Pista / lekua,Pista / lugar,Pista / lugar,Pista / local,Piste / lieu,Pista / luogo,Rink / place,Halle / Ort
+mm_leg_ok,Sense conflicte,Gatazikarik gabe,Sen conflito,Sin conflicto,Sem conflito,Sans conflit,Senza conflitto,No conflict,Kein Konflikt
+mm_leg_soft,Avís,Abisua,Aviso,Aviso,Aviso,Avertissement,Avviso,Warning,Warnung
+mm_leg_hard,Conflicte dur,Gatazka gogorra,Conflito duro,Conflicto duro,Conflito forte,Conflit fort,Conflitto forte,Hard conflict,Harter Konflikt
 col_venue,Pista,Argibidea,Camiño,Pista,Pista,Piste,Pista,Rink,Piste
 home_local,Local,Tokikoa,Casa,Local,Casa,Domicile,Casa,Home,Heim
 home_away,Visitant,Bisitaria,Fóra,Visitante,Fora,Extérieur,Trasferta,Away,Auswärts

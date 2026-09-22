@@ -3139,18 +3139,25 @@ def matches_month(
         .order_by(Match.match_date, Match.start_time.nulls_last())
         .all()
     )
-    # Reixeta de mes (setmanes dilluns-diumenge) per a la vista visual
+    # Reixeta compacta: només els dies de la setmana amb partits al mes
+    # i només les setmanes que en tenen algun.
     cal = calmod.Calendar(firstweekday=0)
     by_day: dict[date, list[Match]] = {}
     for m in matches:
         by_day.setdefault(m.match_date, []).append(m)
-    month_weeks = [
-        [
-            {"d": d, "in_month": d.month == first.month, "matches": by_day.get(d, [])}
-            for d in week
+    active_wd = sorted({d.weekday() for d in by_day})
+    month_weeks: list[list[dict]] = []
+    for week in cal.monthdatescalendar(first.year, first.month):
+        row = [
+            {
+                "d": week[wd],
+                "in_month": week[wd].month == first.month,
+                "matches": by_day.get(week[wd], []),
+            }
+            for wd in active_wd
         ]
-        for week in cal.monthdatescalendar(first.year, first.month)
-    ]
+        if any(cell["matches"] for cell in row):
+            month_weeks.append(row)
     # Estat de conflicte per partit (mateix càlcul que el calendari)
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
@@ -3174,6 +3181,7 @@ def matches_month(
             "next_month": next_first.strftime("%Y-%m"),
             "is_current_month": first == date(today.year, today.month, 1),
             "weekday_short_names": weekdays_short(lang),
+            "month_wds": [weekdays_short(lang)[wd] for wd in active_wd],
         },
     )
 
