@@ -197,6 +197,7 @@
           <option value="player" {% if m.role == 'player' %}selected{% endif %}>{{ t('role_player') }}</option>
           <option value="coach" {% if m.role == 'coach' %}selected{% endif %}>{{ t('role_coach') }}</option>
           <option value="reinforce" {% if m.role == 'reinforce' %}selected{% endif %}>{{ t('role_reinforce') }}</option>
+          <option value="delegate" {% if m.role == 'delegate' %}selected{% endif %}>{{ t('people_role_delegate') }}</option>
         </select>
       </form>
       <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/delete" style="display:inline;margin:0">
@@ -218,6 +219,7 @@
           <option value="player">{{ t('role_player') }}</option>
           <option value="coach">{{ t('role_coach') }}</option>
           <option value="reinforce">{{ t('role_reinforce') }}</option>
+          <option value="delegate">{{ t('people_role_delegate') }}</option>
         </select>
       </label>
       <button type="submit" class="secondary">{{ t('setup_link_person') }}</button>

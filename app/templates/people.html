@@ -97,6 +97,10 @@
 <div class="setup-banner" style="margin-top:0.75rem">{{ t('people_merged') }}</div>
 {% endif %}
 
+{% if purged %}
+<div class="setup-banner" style="margin-top:0.75rem">{{ t('people_purged').format(n=purged) }}</div>
+{% endif %}
+
 {% if dup_groups %}
 <div class="card" style="margin-top:0.75rem;border-left:4px solid #b91c1c">
   <strong>{{ t('people_dupes_title') }}</strong>
@@ -113,6 +117,16 @@
     <button type="submit" class="secondary">{{ t('people_merge') }}</button>
   </form>
   {% endfor %}
+</div>
+{% endif %}
+
+{% if unassigned_count %}
+<div class="setup-banner" style="margin-top:0.75rem">
+  {{ t('people_unassigned_hint').format(n=unassigned_count) }}
+  <form method="post" action="/season/{{ season.id }}/people/delete-unassigned" style="display:inline"
+        onsubmit="return confirm({{ t('people_delete_unassigned_confirm')|tojson }})">
+    <button type="submit" class="secondary">{{ t('people_delete_unassigned') }}</button>
+  </form>
 </div>
 {% endif %}
 

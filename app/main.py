@@ -1617,7 +1617,49 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             "people_groups": people_groups,
             "dup_groups": dup_groups,
             "merged": merged,
+            "unassigned_count": len(unassigned),
+            "purged": int(q.get("purged") or 0),
         },
+    )
+
+
+@app.post("/season/{season_id}/people/delete-unassigned")
+def people_delete_unassigned(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    linked_ids = {
+        m.person_id
+        for m in db.query(TeamMembership)
+        .join(Team)
+        .filter(Team.season_id == season_id)
+        .all()
+    }
+    orphan_ids = [
+        p.id
+        for p in db.query(Person).filter(Person.season_id == season_id).all()
+        if p.id not in linked_ids
+    ]
+    n = 0
+    if orphan_ids:
+        db.query(PersonUnavailability).filter(
+            PersonUnavailability.person_id.in_(orphan_ids)
+        ).delete(synchronize_session=False)
+        db.query(Conflict).filter(Conflict.person_id.in_(orphan_ids)).delete(
+            synchronize_session=False
+        )
+        n = (
+            db.query(Person)
+            .filter(Person.id.in_(orphan_ids))
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+    return RedirectResponse(
+        f"/season/{season_id}/people?purged={n}", status_code=303
     )
 
 
@@ -2503,7 +2545,7 @@ def team_add_member(
     next: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    if role not in {"player", "reinforce", "coach"}:
+    if role not in {"player", "reinforce", "coach", "delegate"}:
         role = "player"
 
     team = (

@@ -61,6 +61,13 @@ ROLE_MAP = {
     "rinforzo": "reinforce",
     "renfort": "reinforce",
     "verstärkung": "reinforce",
+    "delegate": "delegate",
+    "delegat": "delegate",
+    "delegada": "delegate",
+    "delegado": "delegate",
+    "delegato": "delegate",
+    "délégué": "delegate",
+    "delegierter": "delegate",
 }
 
 
@@ -195,8 +202,9 @@ def parse_csv_text(raw: str, kind: str = "roster") -> list[dict[str, str]]:
 
 
 def decode_upload_text(content: bytes) -> str:
-    """Decodifica un CSV/texto probando UTF-8 (con BOM) y luego cp1252 (Excel ES)."""
-    for enc in ("utf-8-sig", "cp1252"):
+    """Decodifica un CSV/texto probando UTF-8 (con BOM), cp1252 (Excel ES)
+    i mac_roman (exportacions des de Mac)."""
+    for enc in ("utf-8-sig", "cp1252", "mac_roman"):
         try:
             return content.decode(enc)
         except UnicodeDecodeError:
@@ -224,12 +232,18 @@ def _sheet_table(ws) -> list[list[str]]:
     return table
 
 
+# Capçaleres que defineixen una fila de capçalera. Les flags ('jugador',
+# 'player') i els noms de columna d'entrenador no hi entren: un valor de
+# dades "JUGADOR"/"ENTRENADOR" en una columna de rol no és capçalera.
+DETECT_HEADERS = PERSON_HEADERS | TEAM_HEADERS | ROLE_HEADERS
+
+
 def _find_header_row(table: list[list[str]]) -> int | None:
     """Busca en las primeras filas la que más celdas coincide con cabeceras
     conocidas. Devuelve su índice o None si ninguna sirve."""
     best_i, best_score = None, 0
     for i, row in enumerate(table[:15]):
-        score = sum(1 for c in row if _norm(c).casefold() in ALL_HEADERS)
+        score = sum(1 for c in row if _norm(c).casefold() in DETECT_HEADERS)
         if score > best_score:
             best_i, best_score = i, score
     return best_i
@@ -250,6 +264,60 @@ def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str,
         return sum(
             1 for v in vals if any(w in v.casefold() for w in TEAM_WORDS)
         )
+
+    # Columna de rol: la majoria de valors són paraules de rol
+    # (JUGADOR / ENTRENADOR / DELEGAT ...)
+    role_i, role_best = None, 0
+    for c in range(ncols):
+        vals = [v for v in col(c) if v]
+        score = sum(
+            1 for v in vals
+            if v.casefold() in ROLE_MAP or v.casefold() in _ROLE_WORDS
+        )
+        if vals and score > role_best and score * 2 >= len(vals):
+            role_i, role_best = c, score
+
+    team_i, team_key = None, (0, 0)
+    for c in range(ncols):
+        if c == role_i:
+            continue
+        vals = [v for v in col(c) if v]
+        score = _teamish(vals)
+        distinct = len({v.casefold() for v in vals})
+        if score > 0 and (score, distinct) > team_key:
+            team_i, team_key = c, (score, distinct)
+    # Amb columna de rol però cap d'equip reconeixible: l'equip és la
+    # columna que més es repeteix (menys valors distints)
+    if role_i is not None and team_i is None:
+        cand = [c for c in range(ncols) if c != role_i and any(col(c))]
+        if cand:
+            team_i = min(
+                cand,
+                key=lambda c: len({v.casefold() for v in col(c) if v}),
+            )
+
+    # Format EQUIP | NOM | COGNOM | ROL: uneix les columnes de text que no
+    # són equip ni rol ni codis (amb dígits)
+    if role_i is not None:
+        name_cols = [
+            c for c in range(ncols)
+            if c not in (team_i, role_i)
+            and any(v and not any(ch.isdigit() for ch in v) for v in col(c))
+        ]
+        if not name_cols:
+            return []
+        rows: list[dict[str, str]] = []
+        for r in table:
+            name = " ".join(
+                _norm(r[c]) for c in name_cols if c < len(r) and _norm(r[c])
+            )
+            rows.append({
+                "equipo": _norm(r[team_i])
+                if (team_i is not None and team_i < len(r)) else sheet_title,
+                "persona": name,
+                "rol": _norm(r[role_i]) if role_i < len(r) else "",
+            })
+        return rows
 
     name_i, name_score = None, 0
     for c in range(ncols):
@@ -402,17 +470,20 @@ def _get_or_create_person(
         return None
     person = find_person_canon(db, season_id, name)
     if person:
-        # Ampliar flags si el CSV trae rol coach/player
+        # Ampliar flags si el CSV trae rol coach/player/delegate
         if role == "coach" and not person.is_coach:
             person.is_coach = True
-        if role == "player" and not person.is_player:
+        if role in {"player", "reinforce"} and not person.is_player:
             person.is_player = True
+        if role == "delegate" and not person.is_delegate:
+            person.is_delegate = True
         return person
     person = Person(
         season_id=season_id,
         full_name=name,
-        is_player=role != "coach",
+        is_player=role in {"player", "reinforce"},
         is_coach=role == "coach",
+        is_delegate=role == "delegate",
     )
     db.add(person)
     db.flush()
@@ -431,6 +502,22 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
     """Plantilla: equipo;persona;rol (rol opcional). També entén capçaleres
     NOM I COGNOM / EQUIP / ENTRENADOR (l'entrenador es vincula com a coach)."""
     report = ImportReport()
+    seen_links: set[tuple[int, int, str]] = set()
+
+    def link_exists(team_id: int, person_id: int, role: str) -> bool:
+        if (team_id, person_id, role) in seen_links:
+            return True
+        return (
+            db.query(TeamMembership)
+            .filter(
+                TeamMembership.team_id == team_id,
+                TeamMembership.person_id == person_id,
+                TeamMembership.role == role,
+            )
+            .first()
+            is not None
+        )
+
     for i, row in enumerate(rows, start=2):
         team_name = _first(row, TEAM_HEADERS)
         person_name = _first(row, PERSON_HEADERS)
@@ -453,33 +540,16 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
         if not team or not person:
             report.skipped += 1
             continue
-        exists = (
-            db.query(TeamMembership)
-            .filter(
-                TeamMembership.team_id == team.id,
-                TeamMembership.person_id == person.id,
-                TeamMembership.role == role,
-            )
-            .first()
-        )
-        if exists:
+        if link_exists(team.id, person.id, role):
             report.skipped += 1
         else:
             db.add(TeamMembership(team_id=team.id, person_id=person.id, role=role))
+            seen_links.add((team.id, person.id, role))
             report.links_created += 1
         if coach_name:
             coach = _get_or_create_person(db, season_id, coach_name, "coach", report)
             if coach:
-                exists_c = (
-                    db.query(TeamMembership)
-                    .filter(
-                        TeamMembership.team_id == team.id,
-                        TeamMembership.person_id == coach.id,
-                        TeamMembership.role == "coach",
-                    )
-                    .first()
-                )
-                if exists_c:
+                if link_exists(team.id, coach.id, "coach"):
                     report.skipped += 1
                 else:
                     db.add(
@@ -487,6 +557,7 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
                             team_id=team.id, person_id=coach.id, role="coach"
                         )
                     )
+                    seen_links.add((team.id, coach.id, "coach"))
                     report.links_created += 1
     db.commit()
     return report
@@ -513,6 +584,7 @@ def import_teams_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -
 
 def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -> ImportReport:
     report = ImportReport()
+    seen_links: set[tuple[int, int, str]] = set()
     for i, row in enumerate(rows, start=2):
         name = _first(row, PERSON_HEADERS)
         if not _norm(name):
@@ -522,13 +594,25 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
         is_player = _truthy(row.get("jugador") or row.get("player") or "1")
         if is_coach and not (row.get("jugador") or row.get("player")):
             is_player = False
-        role = "coach" if is_coach and not is_player else "player"
+        explicit = _first(row, ROLE_HEADERS)
+        role = _norm_role(explicit) if explicit else (
+            "coach" if is_coach and not is_player else "player"
+        )
         team_name = _first(row, TEAM_HEADERS)
         before = report.people_created
         person = _get_or_create_person(db, season_id, name, role, report)
         if person:
-            person.is_coach = person.is_coach or is_coach
-            person.is_player = person.is_player or is_player or not is_coach
+            if explicit:
+                person.is_coach = person.is_coach or role == "coach"
+                person.is_player = (
+                    person.is_player or role in {"player", "reinforce"}
+                )
+                person.is_delegate = person.is_delegate or role == "delegate"
+            else:
+                person.is_coach = person.is_coach or is_coach
+                person.is_player = (
+                    person.is_player or is_player or not is_coach
+                )
         linked_now = False
         if team_name and person:
             team = _get_or_create_team(
@@ -536,7 +620,8 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
                 row.get("categoria") or row.get("category"), report,
             )
             if team:
-                exists = (
+                key = (team.id, person.id, role)
+                exists = key in seen_links or (
                     db.query(TeamMembership)
                     .filter(
                         TeamMembership.team_id == team.id,
@@ -544,6 +629,7 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
                         TeamMembership.role == role,
                     )
                     .first()
+                    is not None
                 )
                 if not exists:
                     db.add(
@@ -551,6 +637,7 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
                             team_id=team.id, person_id=person.id, role=role
                         )
                     )
+                    seen_links.add(key)
                     report.links_created += 1
                     linked_now = True
         if report.people_created == before and not linked_now:
