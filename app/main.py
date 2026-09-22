@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar as calmod
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -3138,6 +3139,18 @@ def matches_month(
         .order_by(Match.match_date, Match.start_time.nulls_last())
         .all()
     )
+    # Reixeta de mes (setmanes dilluns-diumenge) per a la vista visual
+    cal = calmod.Calendar(firstweekday=0)
+    by_day: dict[date, list[Match]] = {}
+    for m in matches:
+        by_day.setdefault(m.match_date, []).append(m)
+    month_weeks = [
+        [
+            {"d": d, "in_month": d.month == first.month, "matches": by_day.get(d, [])}
+            for d in week
+        ]
+        for week in cal.monthdatescalendar(first.year, first.month)
+    ]
     lang = get_lang(request)
     return templates.TemplateResponse(
         request,
@@ -3145,6 +3158,7 @@ def matches_month(
         {
             **ctx,
             "matches": matches,
+            "month_weeks": month_weeks,
             "month_label": f"{month_name(lang, first.month)} {first.year}",
             "prev_month": prev_first.strftime("%Y-%m"),
             "next_month": next_first.strftime("%Y-%m"),
