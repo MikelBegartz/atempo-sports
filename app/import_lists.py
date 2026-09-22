@@ -1,4 +1,4 @@
-"""Importación sencilla de listas: equipos, personas y plantillas (CSV)."""
+"""Importación sencilla de listas: equipos, personas y plantillas (CSV/Excel)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.db import Person, Team, TeamMembership
 from app.teams_meta import infer_branch
+
+XLSX_MAGIC = b"PK\x03\x04"
+XLS_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
 
 ROLE_MAP = {
@@ -55,10 +58,14 @@ class ImportReport:
 
 
 def _detect_delimiter(sample: str) -> str:
-    first = (sample.splitlines() or [""])[0]
-    if first.count(";") >= first.count(","):
-        return ";"
-    return ","
+    """Detecta el separador mirando las primeras líneas (; , o tabulador)."""
+    lines = [l for l in sample.splitlines() if l.strip()][:5]
+    counts = {";": 0, ",": 0, "\t": 0}
+    for line in lines:
+        for d in counts:
+            counts[d] += line.count(d)
+    best = max(counts, key=lambda d: counts[d])
+    return best if counts[best] > 0 else ";"
 
 
 def _norm(value: str | None) -> str:
@@ -125,6 +132,21 @@ def _truthy(value: str) -> bool:
     return _norm(value).casefold() in {"1", "true", "yes", "si", "sí", "x", "s"}
 
 
+def _rows_from_table(header: list[str], data_rows: list[list[str]]) -> list[dict[str, str]]:
+    """Normaliza cabeceras (minúsculas, sin espacios) y devuelve dicts por fila."""
+    field_map = [_norm(h).casefold() for h in header]
+    rows: list[dict[str, str]] = []
+    for raw_row in data_rows:
+        clean = {}
+        for i, key in enumerate(field_map):
+            if not key:
+                continue
+            clean[key] = _norm(raw_row[i] if i < len(raw_row) else "")
+        if any(clean.values()):
+            rows.append(clean)
+    return rows
+
+
 def parse_csv_text(raw: str) -> list[dict[str, str]]:
     text = (raw or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
@@ -133,21 +155,68 @@ def parse_csv_text(raw: str) -> list[dict[str, str]]:
     if text.startswith("\ufeff"):
         text = text[1:]
     delim = _detect_delimiter(text)
-    reader = csv.DictReader(io.StringIO(text), delimiter=delim)
-    if not reader.fieldnames:
+    reader = csv.reader(io.StringIO(text), delimiter=delim)
+    table = [list(r) for r in reader]
+    if not table:
         return []
-    # Normalizar cabeceras
-    field_map = {h: _norm(h).casefold() for h in reader.fieldnames if h}
-    rows: list[dict[str, str]] = []
-    for row in reader:
-        clean = {}
-        for orig, val in row.items():
-            if orig is None:
-                continue
-            clean[field_map.get(orig, _norm(orig).casefold())] = _norm(val)
-        if any(clean.values()):
-            rows.append(clean)
-    return rows
+    return _rows_from_table(table[0], table[1:])
+
+
+def decode_upload_text(content: bytes) -> str:
+    """Decodifica un CSV/texto probando UTF-8 (con BOM) y luego cp1252 (Excel ES)."""
+    for enc in ("utf-8-sig", "cp1252"):
+        try:
+            return content.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return content.decode("utf-8", errors="replace")
+
+
+def _cell_text(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def rows_from_excel(content: bytes) -> list[dict[str, str]]:
+    """Lee la primera hoja de un .xlsx/.xlsm: fila 1 = cabeceras."""
+    try:
+        from openpyxl import load_workbook
+    except ImportError as e:
+        raise ValueError("excel_unsupported") from e
+    try:
+        wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    except Exception as e:
+        raise ValueError("excel_unreadable") from e
+    ws = wb.worksheets[0] if wb.worksheets else None
+    if ws is None:
+        return []
+    table: list[list[str]] = []
+    for row in ws.iter_rows(values_only=True):
+        table.append([_cell_text(c) for c in row])
+    wb.close()
+    # Saltar filas vacías iniciales
+    while table and not any(v.strip() for v in table[0]):
+        table.pop(0)
+    if not table:
+        return []
+    return _rows_from_table(table[0], table[1:])
+
+
+def rows_from_upload(filename: str, content: bytes) -> list[dict[str, str]]:
+    """Elige parser según el contenido del fichero (Excel binario o texto/CSV)."""
+    if content[:4] == XLSX_MAGIC:
+        return rows_from_excel(content)
+    if content[:8] == XLS_MAGIC:
+        raise ValueError("excel_xls_old")
+    name = (filename or "").casefold()
+    if name.endswith((".xlsx", ".xlsm")):
+        return rows_from_excel(content)
+    if name.endswith(".xls"):
+        raise ValueError("excel_xls_old")
+    return parse_csv_text(decode_upload_text(content))
 
 
 def _get_or_create_team(db: Session, season_id: int, name: str, category: str | None, report: ImportReport) -> Team | None:
@@ -211,6 +280,7 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
         team_name = (
             row.get("equipo")
             or row.get("team")
+            or row.get("equip")
             or row.get("equipa")
             or row.get("squadra")
             or row.get("équipe")
@@ -222,6 +292,7 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
             or row.get("nombre")
             or row.get("name")
             or row.get("nome")
+            or row.get("nom")
             or ""
         )
         role = _norm_role(
@@ -266,7 +337,7 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
 def import_teams_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -> ImportReport:
     report = ImportReport()
     for i, row in enumerate(rows, start=2):
-        name = row.get("equipo") or row.get("team") or row.get("nombre") or row.get("name") or ""
+        name = row.get("equipo") or row.get("team") or row.get("equip") or row.get("nombre") or row.get("name") or row.get("nom") or ""
         category = row.get("categoria") or row.get("category") or ""
         if not _norm(name):
             report.skipped += 1
@@ -291,6 +362,7 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
             or row.get("nombre")
             or row.get("name")
             or row.get("nome")
+            or row.get("nom")
             or ""
         )
         if not _norm(name):

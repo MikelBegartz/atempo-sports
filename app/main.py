@@ -120,6 +120,7 @@ from app.import_lists import (
     PEOPLE_TEMPLATE,
     ROSTER_TEMPLATE,
     TEAMS_TEMPLATE,
+    ImportReport,
     canon_person_name,
     find_person_canon,
     person_key,
@@ -128,6 +129,7 @@ from app.import_lists import (
     import_roster_rows,
     import_teams_rows,
     parse_csv_text,
+    rows_from_upload,
 )
 from app.guide_content import get_guide
 from app.help_content import get_help
@@ -1487,13 +1489,24 @@ async def data_import_run(
     if not ctx or not ctx.get("season"):
         return RedirectResponse("/app", status_code=303)
 
-    raw = (paste or "").strip()
+    lang = get_lang(request)
+    rows: list[dict[str, str]] = []
+    parse_error: str | None = None
     if file and file.filename:
         content = await file.read()
-        raw = content.decode("utf-8-sig", errors="replace")
+        try:
+            rows = rows_from_upload(file.filename, content)
+        except ValueError as e:
+            parse_error = str(e)
+    else:
+        rows = parse_csv_text((paste or "").strip())
 
-    rows = parse_csv_text(raw)
-    if kind == "teams":
+    if parse_error or (file and file.filename and not rows):
+        report = ImportReport()
+        report.errors.append(
+            translate(lang, f"data_err_{parse_error or 'no_rows'}")
+        )
+    elif kind == "teams":
         report = import_teams_rows(db, season_id, rows)
     elif kind == "people":
         report = import_people_rows(db, season_id, rows)
