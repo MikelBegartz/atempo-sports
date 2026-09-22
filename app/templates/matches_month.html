@@ -37,8 +37,8 @@
     <p class="muted">{{ club.name }} · {{ season.name }}</p>
   </div>
   <div class="page-head-actions mm-no-print">
-    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month?month={{ prev_month }}">←</a>
     {% if not is_current_month %}
+    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month?month={{ prev_month }}">←</a>
     <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month">{{ t('mm_today') }}</a>
     {% endif %}
     <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month?month={{ next_month }}">→</a>

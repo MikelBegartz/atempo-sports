@@ -3128,12 +3128,15 @@ def matches_month(
     prev_first = (first - timedelta(days=1)).replace(day=1)
     next_first = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
     last = next_first - timedelta(days=1)
+    is_current = first == date(today.year, today.month, 1)
+    # Mes actual: els dies passats són història, es mostra des d'avui
+    lower = today if is_current else first
     matches = (
         db.query(Match)
         .options(joinedload(Match.team), joinedload(Match.venue))
         .filter(
             Match.season_id == season_id,
-            Match.match_date >= first,
+            Match.match_date >= lower,
             Match.match_date <= last,
         )
         .order_by(Match.match_date, Match.start_time.nulls_last())
@@ -3151,7 +3154,8 @@ def matches_month(
         row = [
             {
                 "d": week[wd],
-                "in_month": week[wd].month == first.month,
+                "in_month": week[wd].month == first.month
+                and not (is_current and week[wd] < today),
                 "matches": by_day.get(week[wd], []),
             }
             for wd in active_wd
@@ -3179,7 +3183,7 @@ def matches_month(
             "month_label": f"{month_name(lang, first.month)} {first.year}",
             "prev_month": prev_first.strftime("%Y-%m"),
             "next_month": next_first.strftime("%Y-%m"),
-            "is_current_month": first == date(today.year, today.month, 1),
+            "is_current_month": is_current,
             "weekday_short_names": weekdays_short(lang),
             "month_wds": [weekdays_short(lang)[wd] for wd in active_wd],
         },
