@@ -89,11 +89,16 @@
         <strong class="entity-name" style="display:block;margin-bottom:0.4rem">{{ team_name }}</strong>
         {% for h in items %}
         <label class="entity-entry" style="cursor:pointer;align-items:flex-start;gap:0.6rem;padding:0.35rem 0;border:none">
-          <input type="checkbox" name="pick" value="{{ h.pick_value }}" checked style="margin-top:0.2rem" />
+          <input type="checkbox" name="pick" value="{{ h.pick_value }}" {% if not h.linked_to or h.linked_to == active_club.name %}checked{% endif %} style="margin-top:0.2rem" />
           <span style="flex:1">
             <span class="muted">
               <span class="badge" style="font-size:0.75rem;text-transform:uppercase">{{ h.source }}</span>
               {{ h.competition }}
+              {% if h.linked_to and h.linked_to != active_club.name %}
+              <span class="badge soft" style="font-size:0.75rem">{{ t('teams_link_linked') }} {{ h.linked_to }}</span>
+              {% elif h.linked_to %}
+              <span class="badge ok" style="font-size:0.75rem">{{ t('teams_link_linked_self') }}</span>
+              {% endif %}
             </span>
           </span>
         </label>

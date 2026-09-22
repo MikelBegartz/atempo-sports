@@ -2125,8 +2125,8 @@ def teams_link(
     club_teams = [
         t for t in teams if not t.source or t.source not in FED_SOURCES
     ]
-    existing_names = {
-        (e.source, e.external_name, e.competition)
+    linked_map = {
+        (e.source, e.external_name, e.competition): t.name
         for t in club_teams
         for e in t.external_names
     }
@@ -2138,7 +2138,12 @@ def teams_link(
             hits = search_all_federations(q)
         except Exception as exc:  # noqa: BLE001
             error = str(exc)
-    hits = [h for h in hits if (h.source, h.team.full_name, h.competition) not in existing_names]
+    # No descartar els àlies ja vinculats: si estan a l'equip equivocat
+    # cal poder-los moure des d'aquí.
+    for h in hits:
+        h.linked_to = linked_map.get(
+            (h.source, h.team.full_name, h.competition)
+        )
     hit_groups = group_hits_by_team(hits)
     return templates.TemplateResponse(
         request,
@@ -2195,7 +2200,35 @@ async def teams_link_update(
             )
             .first()
         )
-        if not exists:
+        if exists:
+            continue
+        # Àlies penjat d'un altre equip de la temporada? Es mou aquí i
+        # s'hi reassignen els seus partits d'aquella competició.
+        other = (
+            db.query(TeamExternalName)
+            .join(Team, TeamExternalName.team_id == Team.id)
+            .filter(
+                Team.season_id == season_id,
+                TeamExternalName.source == source,
+                TeamExternalName.external_name == external_name,
+                TeamExternalName.competition == competition,
+            )
+            .first()
+        )
+        if other:
+            old_team_id = other.team_id
+            other.team_id = club.id
+            db.flush()
+            db.query(Match).filter(
+                Match.season_id == season_id,
+                Match.team_id == old_team_id,
+                Match.source == source,
+                Match.external_id.like(f"{source}:{idc}:%"),
+            ).update({"team_id": club.id}, synchronize_session=False)
+            new_links.setdefault((source, idc, competition), []).append(
+                external_name
+            )
+        else:
             db.add(
                 TeamExternalName(
                     team_id=club.id,
