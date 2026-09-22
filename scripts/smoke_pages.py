@@ -37,6 +37,8 @@ PAGES = [
     "/season/{sid}/people",
     "/season/{sid}/venues",
     "/season/{sid}/matches",
+    "/season/{sid}/matches/month",
+    "/season/{sid}/matches/month?month=2026-10",
     "/season/{sid}/calendar",
     "/season/{sid}/trainings",
     "/season/{sid}/data",

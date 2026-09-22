@@ -779,6 +779,24 @@ col_opponent,Rival,Aurkaria,Contrincante,Rival,Adversário,Adversaire,Avversario
 col_home,Local,Tokikoa,Casa,Local,Casa,Domicile,Casa,Home,Heim
 col_away,Visitant,Bisitaria,Fóra,Visitante,Fora,Extérieur,Trasferta,Away,Auswärts
 col_hv,L/V,Astelehenetik ostiralera,C/F,L/V,C/F,D/E,C/T,H/A,H/A
+mon_1,gener,urtarrila,xaneiro,enero,janeiro,janvier,gennaio,January,Januar
+mon_2,febrer,otsaila,febreiro,febrero,fevereiro,février,febbraio,February,Februar
+mon_3,març,martxoa,marzo,marzo,março,mars,marzo,March,März
+mon_4,abril,apirila,abril,abril,abril,avril,aprile,April,April
+mon_5,maig,maiatza,maio,mayo,maio,mai,maggio,May,Mai
+mon_6,juny,ekaina,xuño,junio,junho,juin,giugno,June,Juni
+mon_7,juliol,uztaila,xullo,julio,julho,juillet,luglio,July,Juli
+mon_8,agost,abuztua,agosto,agosto,agosto,août,agosto,August,August
+mon_9,setembre,iraila,setembro,septiembre,setembro,septembre,settembre,September,September
+mon_10,octubre,urria,outubro,octubre,outubro,octobre,ottobre,October,Oktober
+mon_11,novembre,azaroa,novembro,noviembre,novembro,novembre,novembre,November,November
+mon_12,desembre,abendua,decembro,diciembre,dezembro,décembre,dicembre,December,Dezember
+mm_link,Vista mensual,Hileko ikuspegia,Vista mensual,Vista mensual,Vista mensal,Vue mensuelle,Vista mensile,Monthly view,Monatsansicht
+mm_copy,Copia com a text,Kopiatu testu gisa,Copiar como texto,Copiar como texto,Copiar como texto,Copier en texte,Copia come testo,Copy as text,Als Text kopieren
+mm_empty,Cap partit aquest mes.,Ez dago partidurik hilabete honetan.,Ningún partido este mes.,Ningún partido este mes.,Nenhum jogo este mês.,Aucun match ce mois-ci.,Nessuna partita questo mese.,No matches this month.,Keine Spiele in diesem Monat.
+mm_today,Mes actual,Uneko hilabetea,Mes actual,Mes actual,Mês atual,Mois actuel,Mese attuale,Current month,Aktueller Monat
+mm_col_match,Partit,Partida,Partido,Partido,Jogo,Match,Partita,Match,Spiel
+mm_col_place,Pista / lloc,Pista / lekua,Pista / lugar,Pista / lugar,Pista / local,Piste / lieu,Pista / luogo,Rink / place,Halle / Ort
 col_venue,Pista,Argibidea,Camiño,Pista,Pista,Piste,Pista,Rink,Piste
 home_local,Local,Tokikoa,Casa,Local,Casa,Domicile,Casa,Home,Heim
 home_away,Visitant,Bisitaria,Fóra,Visitante,Fora,Extérieur,Trasferta,Away,Auswärts

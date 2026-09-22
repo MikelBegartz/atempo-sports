@@ -131,7 +131,7 @@ from app.import_lists import (
 )
 from app.guide_content import get_guide
 from app.help_content import get_help
-from app.i18n import get_lang, i18n_context, set_lang, translate, weekdays, weekdays_short
+from app.i18n import get_lang, i18n_context, month_name, set_lang, translate, weekdays, weekdays_short
 from app.landing_content import get_landing
 from app.overlaps import (
     HORIZON_ORDER,
@@ -3102,6 +3102,54 @@ def _matches_page(
             "all_matches": all_matches,
             "matches_flash": request.session.pop("matches_flash", None),
             "is_admin": is_admin(request),
+        },
+    )
+
+
+@app.get("/season/{season_id}/matches/month", response_class=HTMLResponse)
+def matches_month(
+    season_id: int,
+    request: Request,
+    month: str = "",
+    db: Session = Depends(get_db),
+):
+    """Vista mensual compacta: pensada per a captura/impressió i compartir."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    today = date.today()
+    try:
+        y, mo = (int(x) for x in month.split("-"))
+        first = date(y, mo, 1)
+    except (ValueError, AttributeError):
+        first = date(today.year, today.month, 1)
+    prev_first = (first - timedelta(days=1)).replace(day=1)
+    next_first = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+    last = next_first - timedelta(days=1)
+    matches = (
+        db.query(Match)
+        .options(joinedload(Match.team), joinedload(Match.venue))
+        .filter(
+            Match.season_id == season_id,
+            Match.match_date >= first,
+            Match.match_date <= last,
+        )
+        .order_by(Match.match_date, Match.start_time.nulls_last())
+        .all()
+    )
+    lang = get_lang(request)
+    return templates.TemplateResponse(
+        request,
+        "matches_month.html",
+        {
+            **ctx,
+            "matches": matches,
+            "month_label": f"{month_name(lang, first.month)} {first.year}",
+            "prev_month": prev_first.strftime("%Y-%m"),
+            "next_month": next_first.strftime("%Y-%m"),
+            "is_current_month": first == date(today.year, today.month, 1),
+            "weekday_short_names": weekdays_short(lang),
         },
     )
 

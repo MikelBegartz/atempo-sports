@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ month_label }}{% endblock %}
+{% block content %}
+<style>
+  .mm-table { width:100%; border-collapse:collapse; font-size:0.95rem; }
+  .mm-table th, .mm-table td { padding:0.3rem 0.55rem; border-bottom:1px solid #e5e0d8; text-align:left; vertical-align:top; }
+  .mm-table th { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; opacity:0.65; }
+  .mm-day { font-weight:600; white-space:nowrap; }
+  .mm-time { white-space:nowrap; }
+  @media print {
+    header.top, .mm-no-print, .setup-banner { display:none !important; }
+    main { padding:0 !important; max-width:none !important; }
+    body { background:#fff; }
+  }
+</style>
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ month_label }}</h1>
+    <p class="muted">{{ club.name }} · {{ season.name }}</p>
+  </div>
+  <div class="page-head-actions mm-no-print">
+    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month?month={{ prev_month }}">←</a>
+    {% if not is_current_month %}
+    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month">{{ t('mm_today') }}</a>
+    {% endif %}
+    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches/month?month={{ next_month }}">→</a>
+    <button type="button" class="secondary" onclick="copyToClipboard('mm-copy-src')">{{ t('mm_copy') }}</button>
+    <a class="draft-horizon-link" href="/season/{{ season.id }}/matches">{{ t('nav_matches') }}</a>
+  </div>
+</div>
+
+{% if matches %}
+<table class="mm-table">
+  <thead>
+    <tr>
+      <th>{{ t('col_date') }}</th>
+      <th>{{ t('col_time') }}</th>
+      <th>{{ t('col_team') }}</th>
+      <th>{{ t('mm_col_match') }}</th>
+      <th>{{ t('mm_col_place') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in matches %}
+    <tr>
+      <td class="mm-day">{{ weekday_short_names[m.match_date.weekday()] }} {{ m.match_date.strftime('%d/%m') }}</td>
+      <td class="mm-time">{% if m.start_time %}{{ m.start_time.strftime('%H:%M') }}{% if m.end_time %}–{{ m.end_time.strftime('%H:%M') }}{% endif %}{% else %}—{% endif %}</td>
+      <td>{{ m.team.name if m.team else '—' }}</td>
+      <td>{{ m|match_local }} – {{ m|match_away }}</td>
+      <td>{{ m|match_place }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<textarea id="mm-copy-src" readonly style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">{{ club.name }} · {{ season.name }} — {{ month_label }}
+{% for m in matches %}{{ weekday_short_names[m.match_date.weekday()] }} {{ m.match_date.strftime('%d/%m') }} {% if m.start_time %}{{ m.start_time.strftime('%H:%M') }}{% else %}--:--{% endif %} · {{ m|match_local }} – {{ m|match_away }} · {{ m|match_place }}
+{% endfor %}</textarea>
+{% else %}
+<p class="muted">{{ t('mm_empty') }}</p>
+{% endif %}
+{% endblock %}
