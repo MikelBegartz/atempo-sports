@@ -14,6 +14,10 @@
   .mm-num { font-weight:700; font-size:0.8rem; display:block; margin-bottom:2px; }
   .mm-ev { margin-top:2px; padding:1px 4px; border-radius:3px; border-left:3px solid var(--muted); background:var(--card); overflow:hidden; line-height:1.25; }
   .mm-ev.home { border-left-color:var(--accent); background:var(--accent-soft); }
+  .mm-ev.soft { border-left-color:var(--warn); background:var(--warn-bg); }
+  .mm-ev.hard { border-left-color:var(--danger); background:var(--danger-bg); }
+  tr.mm-soft td { background:var(--warn-bg); }
+  tr.mm-hard td { background:var(--danger-bg); }
   .mm-ev .mm-ev-t { font-weight:600; }
   @media print {
     header.top, .mm-no-print, .setup-banner, .mm-table { display:none !important; }
@@ -47,7 +51,7 @@
     <div class="mm-cell{% if not cell.in_month %} off{% endif %}">
       <span class="mm-num">{{ cell.d.day }}</span>
       {% for m in cell.matches %}
-      <div class="mm-ev{% if m.is_home %} home{% endif %}">
+      <div class="mm-ev{% if m.id in hard_ids %} hard{% elif m.id in soft_ids %} soft{% elif m.is_home %} home{% endif %}">
         <span class="mm-ev-t">{% if m.start_time %}{{ m.start_time.strftime('%H:%M') }}{% endif %}</span>
         {{ m|match_local }} – {{ m|match_away }}
       </div>
@@ -69,7 +73,7 @@
   </thead>
   <tbody>
     {% for m in matches %}
-    <tr>
+    <tr{% if m.id in hard_ids %} class="mm-hard"{% elif m.id in soft_ids %} class="mm-soft"{% endif %}>
       <td class="mm-day">{{ weekday_short_names[m.match_date.weekday()] }} {{ m.match_date.strftime('%d/%m') }}</td>
       <td class="mm-time">{% if m.start_time %}{{ m.start_time.strftime('%H:%M') }}{% if m.end_time %}–{{ m.end_time.strftime('%H:%M') }}{% endif %}{% else %}—{% endif %}</td>
       <td>{{ m.team.name if m.team else '—' }}</td>

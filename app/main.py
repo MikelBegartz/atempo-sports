@@ -3151,6 +3151,14 @@ def matches_month(
         ]
         for week in cal.monthdatescalendar(first.year, first.month)
     ]
+    # Estat de conflicte per partit (mateix càlcul que el calendari)
+    hard_ids: set[int] = set()
+    soft_ids: set[int] = set()
+    for c in mark_ignored(db, season_id, find_conflicts(db, season_id)):
+        if c.ignored:
+            continue
+        (hard_ids if c.severity == "hard" else soft_ids).update(c.match_ids)
+    soft_ids -= hard_ids
     lang = get_lang(request)
     return templates.TemplateResponse(
         request,
@@ -3159,6 +3167,8 @@ def matches_month(
             **ctx,
             "matches": matches,
             "month_weeks": month_weeks,
+            "hard_ids": hard_ids,
+            "soft_ids": soft_ids,
             "month_label": f"{month_name(lang, first.month)} {first.year}",
             "prev_month": prev_first.strftime("%Y-%m"),
             "next_month": next_first.strftime("%Y-%m"),
