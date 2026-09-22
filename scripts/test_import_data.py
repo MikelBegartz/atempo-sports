@@ -134,14 +134,23 @@ def main() -> int:
         print("4) XLSX multi-full:", r_fed.status_code, rep(r_fed.text))
         ok &= r_fed.status_code == 200 and "+2" in r_fed.text
 
-        # 5) .xls antic -> error entenedor
+        # 5) Formulari "Persones" amb columna equipo -> vincula a l'equip
+        r5 = s.post(
+            f"{base}/season/{sid}/data",
+            data={"kind": "people",
+                  "paste": "nombre;equipo\nTEST Núria Soler;TEST_Sènior\n"},
+        )
+        print("5) Persones+equip:", r5.status_code, rep(r5.text))
+        ok &= r5.status_code == 200 and "+1" in r5.text
+
+        # 6) .xls antic -> error entenedor
         r4 = s.post(
             f"{base}/season/{sid}/data",
             data={"kind": "roster"},
             files={"file": ("vell.xls", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"0" * 50,
                             "application/vnd.ms-excel")},
         )
-        print("5) XLS antic:", r4.status_code, "| avís visible:", ".xls" in r4.text and ("xlsx" in r4.text or "CSV" in r4.text))
+        print("6) XLS antic:", r4.status_code, "| avís visible:", ".xls" in r4.text and ("xlsx" in r4.text or "CSV" in r4.text))
         ok &= ".xls" in r4.text
 
         con = sqlite3.connect(tmp / "atempo.db")
@@ -155,7 +164,7 @@ def main() -> int:
         print("Teams:", names)
         print("Persons:", people)
         print("Links:", links)
-        ok &= len(names) == 5 and len(people) == 7 and links == 7
+        ok &= len(names) == 5 and len(people) == 8 and links == 8
         print("\nRESULTAT:", "TOT OK" if ok else "FALLOWS")
         return 0 if ok else 1
     finally:

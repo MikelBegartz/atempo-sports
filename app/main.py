@@ -1495,11 +1495,11 @@ async def data_import_run(
     if file and file.filename:
         content = await file.read()
         try:
-            rows = rows_from_upload(file.filename, content)
+            rows = rows_from_upload(file.filename, content, kind)
         except ValueError as e:
             parse_error = str(e)
     else:
-        rows = parse_csv_text((paste or "").strip())
+        rows = parse_csv_text((paste or "").strip(), kind)
 
     if parse_error or (file and file.filename and not rows):
         report = ImportReport()
@@ -1628,23 +1628,47 @@ def people_create(
     is_player: str | None = Form(None),
     is_coach: str | None = Form(None),
     is_delegate: str | None = Form(None),
+    team_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
     name = canon_person_name(full_name)
     if name:
-        existing = find_person_canon(db, season_id, name)
-        if not existing:
+        person = find_person_canon(db, season_id, name)
+        if not person:
             db_coach, db_delegate = person_role_flags(full_name)
-            db.add(
-                Person(
-                    season_id=season_id,
-                    full_name=name,
-                    is_player=bool(is_player),
-                    is_coach=bool(is_coach) or db_coach,
-                    is_delegate=bool(is_delegate) or db_delegate,
-                )
+            person = Person(
+                season_id=season_id,
+                full_name=name,
+                is_player=bool(is_player),
+                is_coach=bool(is_coach) or db_coach,
+                is_delegate=bool(is_delegate) or db_delegate,
             )
-            db.commit()
+            db.add(person)
+            db.flush()
+        if team_id:
+            team = (
+                db.query(Team)
+                .filter(Team.id == int(team_id), Team.season_id == season_id)
+                .first()
+            )
+            if team:
+                mrole = "coach" if is_coach and not is_player else "player"
+                exists = (
+                    db.query(TeamMembership)
+                    .filter(
+                        TeamMembership.team_id == team.id,
+                        TeamMembership.person_id == person.id,
+                        TeamMembership.role == mrole,
+                    )
+                    .first()
+                )
+                if not exists:
+                    db.add(
+                        TeamMembership(
+                            team_id=team.id, person_id=person.id, role=mrole
+                        )
+                    )
+        db.commit()
     return RedirectResponse(f"/season/{season_id}/people", status_code=303)
 
 

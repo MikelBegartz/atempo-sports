@@ -32,6 +32,16 @@
     <label class="check"><input type="checkbox" name="is_coach" value="1" /> {{ t('role_coach') }}</label>
     <label class="check"><input type="checkbox" name="is_delegate" value="1" /> {{ t('people_role_delegate') }}</label>
   </div>
+  {% if teams %}
+  <label>{{ t('people_paste_team_label') }}
+    <select name="team_id">
+      <option value="">—</option>
+      {% for t in teams %}
+      <option value="{{ t.id }}">{{ t.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
   <button type="submit">{{ t('people_add') }}</button>
 </form>
 

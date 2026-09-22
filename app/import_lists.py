@@ -169,7 +169,8 @@ def _rows_from_table(header: list[str], data_rows: list[list[str]]) -> list[dict
     return rows
 
 
-def parse_csv_text(raw: str) -> list[dict[str, str]]:
+def parse_csv_table(raw: str) -> list[list[str]]:
+    """Texto pegado/CSV → tabla de celdas (separador ; , o tabulador)."""
     text = (raw or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
         return []
@@ -178,10 +179,19 @@ def parse_csv_text(raw: str) -> list[dict[str, str]]:
         text = text[1:]
     delim = _detect_delimiter(text)
     reader = csv.reader(io.StringIO(text), delimiter=delim)
-    table = [list(r) for r in reader]
+    return [list(r) for r in reader]
+
+
+def parse_csv_text(raw: str, kind: str = "roster") -> list[dict[str, str]]:
+    """Si hay fila de cabeceras reconocida la usa; si no, modo posicional
+    según el formulario (teams/people/roster)."""
+    table = parse_csv_table(raw)
     if not table:
         return []
-    return _rows_from_table(table[0], table[1:])
+    hi = _find_header_row(table)
+    if hi is None:
+        return headerless_kind_rows(kind, table)
+    return _rows_from_table(table[hi], table[hi + 1:])
 
 
 def decode_upload_text(content: bytes) -> str:
@@ -236,6 +246,11 @@ def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str,
     def col(c: int) -> list[str]:
         return [_norm(r[c]) if c < len(r) else "" for r in table]
 
+    def _teamish(vals: list[str]) -> int:
+        return sum(
+            1 for v in vals if any(w in v.casefold() for w in TEAM_WORDS)
+        )
+
     name_i, name_score = None, 0
     for c in range(ncols):
         vals = col(c)
@@ -246,9 +261,13 @@ def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str,
                 if len(v.split()) >= 2
                 and v.replace(" ", "").replace("'", "").replace("-", "").isalpha()
             )
+        score -= 3 * _teamish(vals)
         if score > name_score:
             name_i, name_score = c, score
-    if name_i is None or name_score == 0:
+    if name_i is None:
+        # Cap columna amb cara de nom: queda't la que menys sembli un equip
+        name_i = min(range(ncols), key=lambda c: _teamish(col(c)))
+    if name_i is None or name_score <= 0 and not any(col(name_i)):
         return []
 
     team_i, team_key = None, (0, 0)
@@ -256,7 +275,7 @@ def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str,
         if c == name_i:
             continue
         vals = [v for v in col(c) if v]
-        score = sum(1 for v in vals if any(w in v.casefold() for w in TEAM_WORDS))
+        score = _teamish(vals)
         distinct = len({v.casefold() for v in vals})
         if score > 0 and (score, distinct) > team_key:
             team_i, team_key = c, (score, distinct)
@@ -269,7 +288,33 @@ def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str,
     return rows
 
 
-def rows_from_excel(content: bytes) -> list[dict[str, str]]:
+def headerless_kind_rows(
+    kind: str, table: list[list[str]], sheet_title: str = ""
+) -> list[dict[str, str]]:
+    """Sense capçalera reconeixible: mapeig posicional segons el formulari.
+    - teams: cada fila = un equip
+    - people/roster: detecció de columna de noms i d'equip"""
+    rows = _headerless_rows(sheet_title, table)
+    if kind == "teams":
+        out = [
+            {"equipo": r.get("equipo") or r.get("persona") or ""}
+            for r in rows
+        ]
+        if not any(r["equipo"] for r in out):
+            out = [
+                {"equipo": next((c for c in r if c.strip()), "")}
+                for r in table
+            ]
+        return out
+    if not rows and kind == "people":
+        rows = [
+            {"persona": next((c for c in r if c.strip()), "")}
+            for r in table
+        ]
+    return rows
+
+
+def rows_from_excel(content: bytes, kind: str = "roster") -> list[dict[str, str]]:
     """Lee todas las hojas de un .xlsx/.xlsm. En cada hoja busca la fila de
     cabeceras (equipo/persona/rol, NOM I COGNOM/EQUIP/ENTRENADOR, etc.) y, si
     no hay, usa detección posicional para listados sin cabecera."""
@@ -288,25 +333,25 @@ def rows_from_excel(content: bytes) -> list[dict[str, str]]:
             continue
         hi = _find_header_row(table)
         if hi is None:
-            rows.extend(_headerless_rows(ws.title or "", table))
+            rows.extend(headerless_kind_rows(kind, table, ws.title or ""))
         else:
             rows.extend(_rows_from_table(table[hi], table[hi + 1:]))
     wb.close()
     return rows
 
 
-def rows_from_upload(filename: str, content: bytes) -> list[dict[str, str]]:
+def rows_from_upload(filename: str, content: bytes, kind: str = "roster") -> list[dict[str, str]]:
     """Elige parser según el contenido del fichero (Excel binario o texto/CSV)."""
     if content[:4] == XLSX_MAGIC:
-        return rows_from_excel(content)
+        return rows_from_excel(content, kind)
     if content[:8] == XLS_MAGIC:
         raise ValueError("excel_xls_old")
     name = (filename or "").casefold()
     if name.endswith((".xlsx", ".xlsm")):
-        return rows_from_excel(content)
+        return rows_from_excel(content, kind)
     if name.endswith(".xls"):
         raise ValueError("excel_xls_old")
-    return parse_csv_text(decode_upload_text(content))
+    return parse_csv_text(decode_upload_text(content), kind)
 
 
 def _team_key(name: str | None) -> str:
@@ -478,14 +523,39 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
         if is_coach and not (row.get("jugador") or row.get("player")):
             is_player = False
         role = "coach" if is_coach and not is_player else "player"
+        team_name = _first(row, TEAM_HEADERS)
         before = report.people_created
         person = _get_or_create_person(db, season_id, name, role, report)
         if person:
             person.is_coach = person.is_coach or is_coach
             person.is_player = person.is_player or is_player or not is_coach
-        if report.people_created == before:
+        linked_now = False
+        if team_name and person:
+            team = _get_or_create_team(
+                db, season_id, team_name,
+                row.get("categoria") or row.get("category"), report,
+            )
+            if team:
+                exists = (
+                    db.query(TeamMembership)
+                    .filter(
+                        TeamMembership.team_id == team.id,
+                        TeamMembership.person_id == person.id,
+                        TeamMembership.role == role,
+                    )
+                    .first()
+                )
+                if not exists:
+                    db.add(
+                        TeamMembership(
+                            team_id=team.id, person_id=person.id, role=role
+                        )
+                    )
+                    report.links_created += 1
+                    linked_now = True
+        if report.people_created == before and not linked_now:
             report.skipped += 1
-    if report.people_created:
+    if report.people_created or report.links_created or report.teams_created:
         db.commit()
     else:
         db.rollback()
@@ -494,4 +564,4 @@ def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
 
 ROSTER_TEMPLATE = "equipo;persona;rol\nSenior A;Joan Garcia;jugador\nSenior A;Anna Coach;entrenador\nSenior B;Pere Lopez;jugador\n"
 TEAMS_TEMPLATE = "equipo;categoria\nSenior A;Senior\nSenior B;Senior\n"
-PEOPLE_TEMPLATE = "nombre;jugador;entrenador\nJoan Garcia;1;0\nAnna Coach;0;1\n"
+PEOPLE_TEMPLATE = "nombre;jugador;entrenador;equipo\nJoan Garcia;1;0;Senior A\nAnna Coach;0;1;Senior A\n"
