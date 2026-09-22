@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import calendar as calmod
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -3127,7 +3126,8 @@ def matches_month(
         first = date(today.year, today.month, 1)
     prev_first = (first - timedelta(days=1)).replace(day=1)
     next_first = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
-    last = next_first - timedelta(days=1)
+    # La finestra cobreix el mes demanat + el mes següent sencer
+    end_last = (next_first.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
     is_current = first == date(today.year, today.month, 1)
     # Mes actual: els dies passats són història, es mostra des d'avui
     lower = today if is_current else first
@@ -3137,31 +3137,32 @@ def matches_month(
         .filter(
             Match.season_id == season_id,
             Match.match_date >= lower,
-            Match.match_date <= last,
+            Match.match_date <= end_last,
         )
         .order_by(Match.match_date, Match.start_time.nulls_last())
         .all()
     )
-    # Reixeta compacta: només els dies de la setmana amb partits al mes
-    # i només les setmanes que en tenen algun.
-    cal = calmod.Calendar(firstweekday=0)
+    # Reixeta compacta: només els dies de la setmana amb partits a la
+    # finestra i només les setmanes que en tenen algun.
     by_day: dict[date, list[Match]] = {}
     for m in matches:
         by_day.setdefault(m.match_date, []).append(m)
     active_wd = sorted({d.weekday() for d in by_day})
     month_weeks: list[list[dict]] = []
-    for week in cal.monthdatescalendar(first.year, first.month):
+    ws = first - timedelta(days=first.weekday())
+    while ws <= end_last:
         row = [
             {
-                "d": week[wd],
-                "in_month": week[wd].month == first.month
-                and not (is_current and week[wd] < today),
-                "matches": by_day.get(week[wd], []),
+                "d": ws + timedelta(days=wd),
+                "in_month": first <= ws + timedelta(days=wd) <= end_last
+                and not (is_current and ws + timedelta(days=wd) < today),
+                "matches": by_day.get(ws + timedelta(days=wd), []),
             }
             for wd in active_wd
         ]
         if any(cell["matches"] for cell in row):
             month_weeks.append(row)
+        ws += timedelta(days=7)
     # Estat de conflicte per partit (mateix càlcul que el calendari)
     hard_ids: set[int] = set()
     soft_ids: set[int] = set()
@@ -3180,7 +3181,11 @@ def matches_month(
             "month_weeks": month_weeks,
             "hard_ids": hard_ids,
             "soft_ids": soft_ids,
-            "month_label": f"{month_name(lang, first.month)} {first.year}",
+            "month_label": (
+                f"{month_name(lang, first.month)} – {month_name(lang, next_first.month)} {end_last.year}"
+                if first.year == end_last.year
+                else f"{month_name(lang, first.month)} {first.year} – {month_name(lang, next_first.month)} {end_last.year}"
+            ),
             "prev_month": prev_first.strftime("%Y-%m"),
             "next_month": next_first.strftime("%Y-%m"),
             "is_current_month": is_current,
