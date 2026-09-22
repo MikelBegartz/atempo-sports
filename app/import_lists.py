@@ -15,6 +15,28 @@ from app.teams_meta import infer_branch
 XLSX_MAGIC = b"PK\x03\x04"
 XLS_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
+# Capçaleres conegudes (normalitzades: minúscules, sense espais extrems)
+PERSON_HEADERS = {
+    "persona", "person", "nombre", "name", "nome", "nom",
+    "nom i cognom", "nom i cognoms", "nom complet",
+    "jugadors", "jugadores",
+}
+TEAM_HEADERS = {"equipo", "team", "equip", "equips", "equipa", "squadra", "équipe", "teams"}
+COACH_HEADERS = {
+    "entrenador", "entrenadora", "entrenadors", "entrenadores",
+    "treinador", "treinadora", "coach",
+}
+ROLE_HEADERS = {"rol", "role", "função", "ruolo"}
+OTHER_HEADERS = {"jugador", "player", "categoria", "category", "dorsal"}
+ALL_HEADERS = PERSON_HEADERS | TEAM_HEADERS | COACH_HEADERS | ROLE_HEADERS | OTHER_HEADERS
+
+# Paraules típiques en noms d'equip (per a fulls sense capçalera)
+TEAM_WORDS = {
+    "benjamí", "benjami", "prebenjamí", "prebenjami", "aleví", "alevi",
+    "infantil", "juvenil", "senior", "sènior", "cadet", "iniciació",
+    "iniciacio", "femení", "femeni", "masculí", "masculi", "promeses",
+}
+
 
 ROLE_MAP = {
     "player": "player",
@@ -180,8 +202,77 @@ def _cell_text(value) -> str:
     return str(value)
 
 
+def _sheet_table(ws) -> list[list[str]]:
+    """Devuelve la hoja como tabla de texto, sin filas vacías iniciales/finales."""
+    table: list[list[str]] = []
+    for row in ws.iter_rows(values_only=True):
+        table.append([_cell_text(c) for c in row])
+    while table and not any(v.strip() for v in table[0]):
+        table.pop(0)
+    while table and not any(v.strip() for v in table[-1]):
+        table.pop()
+    return table
+
+
+def _find_header_row(table: list[list[str]]) -> int | None:
+    """Busca en las primeras filas la que más celdas coincide con cabeceras
+    conocidas. Devuelve su índice o None si ninguna sirve."""
+    best_i, best_score = None, 0
+    for i, row in enumerate(table[:15]):
+        score = sum(1 for c in row if _norm(c).casefold() in ALL_HEADERS)
+        if score > best_score:
+            best_i, best_score = i, score
+    return best_i
+
+
+def _headerless_rows(sheet_title: str, table: list[list[str]]) -> list[dict[str, str]]:
+    """Hoja sin cabeceras (listado tipo federación): detecta la columna de
+    nombres (la que más comas tiene, estilo 'COGNOMS, NOM') y la de equipo
+    (la que más palabras de categoría contiene)."""
+    if not table:
+        return []
+    ncols = max(len(r) for r in table)
+
+    def col(c: int) -> list[str]:
+        return [_norm(r[c]) if c < len(r) else "" for r in table]
+
+    name_i, name_score = None, 0
+    for c in range(ncols):
+        vals = col(c)
+        score = sum(1 for v in vals if "," in v)
+        if score == 0:
+            score = sum(
+                1 for v in vals
+                if len(v.split()) >= 2
+                and v.replace(" ", "").replace("'", "").replace("-", "").isalpha()
+            )
+        if score > name_score:
+            name_i, name_score = c, score
+    if name_i is None or name_score == 0:
+        return []
+
+    team_i, team_key = None, (0, 0)
+    for c in range(ncols):
+        if c == name_i:
+            continue
+        vals = [v for v in col(c) if v]
+        score = sum(1 for v in vals if any(w in v.casefold() for w in TEAM_WORDS))
+        distinct = len({v.casefold() for v in vals})
+        if score > 0 and (score, distinct) > team_key:
+            team_i, team_key = c, (score, distinct)
+
+    rows: list[dict[str, str]] = []
+    for r in table:
+        name = _norm(r[name_i]) if name_i < len(r) else ""
+        team = _norm(r[team_i]) if (team_i is not None and team_i < len(r)) else ""
+        rows.append({"equipo": team or sheet_title, "persona": name})
+    return rows
+
+
 def rows_from_excel(content: bytes) -> list[dict[str, str]]:
-    """Lee la primera hoja de un .xlsx/.xlsm: fila 1 = cabeceras."""
+    """Lee todas las hojas de un .xlsx/.xlsm. En cada hoja busca la fila de
+    cabeceras (equipo/persona/rol, NOM I COGNOM/EQUIP/ENTRENADOR, etc.) y, si
+    no hay, usa detección posicional para listados sin cabecera."""
     try:
         from openpyxl import load_workbook
     except ImportError as e:
@@ -190,19 +281,18 @@ def rows_from_excel(content: bytes) -> list[dict[str, str]]:
         wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
     except Exception as e:
         raise ValueError("excel_unreadable") from e
-    ws = wb.worksheets[0] if wb.worksheets else None
-    if ws is None:
-        return []
-    table: list[list[str]] = []
-    for row in ws.iter_rows(values_only=True):
-        table.append([_cell_text(c) for c in row])
+    rows: list[dict[str, str]] = []
+    for ws in wb.worksheets:
+        table = _sheet_table(ws)
+        if not table:
+            continue
+        hi = _find_header_row(table)
+        if hi is None:
+            rows.extend(_headerless_rows(ws.title or "", table))
+        else:
+            rows.extend(_rows_from_table(table[hi], table[hi + 1:]))
     wb.close()
-    # Saltar filas vacías iniciales
-    while table and not any(v.strip() for v in table[0]):
-        table.pop(0)
-    if not table:
-        return []
-    return _rows_from_table(table[0], table[1:])
+    return rows
 
 
 def rows_from_upload(filename: str, content: bytes) -> list[dict[str, str]]:
@@ -219,6 +309,12 @@ def rows_from_upload(filename: str, content: bytes) -> list[dict[str, str]]:
     return parse_csv_text(decode_upload_text(content))
 
 
+def _team_key(name: str | None) -> str:
+    """Clau de deduplicació d'equips: sense accents ni majúscules.
+    'PREBENJAMI B' i 'PREBENJAMÍ B' són el mateix equip."""
+    return _strip_accents(" ".join((name or "").split())).casefold()
+
+
 def _get_or_create_team(db: Session, season_id: int, name: str, category: str | None, report: ImportReport) -> Team | None:
     name = _norm(name)
     if not name:
@@ -228,6 +324,12 @@ def _get_or_create_team(db: Session, season_id: int, name: str, category: str | 
         .filter(Team.season_id == season_id, Team.name == name)
         .first()
     )
+    if not team:
+        key = _team_key(name)
+        for t in db.query(Team).filter(Team.season_id == season_id).all():
+            if _team_key(t.name) == key:
+                team = t
+                break
     if team:
         return team
     cat = _norm(category) or None
@@ -273,35 +375,25 @@ def _get_or_create_person(
     return person
 
 
+def _first(row: dict[str, str], keys) -> str:
+    for k in keys:
+        if row.get(k):
+            return row[k]
+    return ""
+
+
 def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -> ImportReport:
-    """CSV plantilla: equipo;persona;rol  (rol opcional)."""
+    """Plantilla: equipo;persona;rol (rol opcional). També entén capçaleres
+    NOM I COGNOM / EQUIP / ENTRENADOR (l'entrenador es vincula com a coach)."""
     report = ImportReport()
     for i, row in enumerate(rows, start=2):
-        team_name = (
-            row.get("equipo")
-            or row.get("team")
-            or row.get("equip")
-            or row.get("equipa")
-            or row.get("squadra")
-            or row.get("équipe")
-            or ""
-        )
-        person_name = (
-            row.get("persona")
-            or row.get("person")
-            or row.get("nombre")
-            or row.get("name")
-            or row.get("nome")
-            or row.get("nom")
-            or ""
-        )
-        role = _norm_role(
-            row.get("rol")
-            or row.get("role")
-            or row.get("função")
-            or row.get("ruolo")
-            or "player"
-        )
+        team_name = _first(row, TEAM_HEADERS)
+        person_name = _first(row, PERSON_HEADERS)
+        role = _norm_role(_first(row, ROLE_HEADERS) or "player")
+        coach_name = _norm(_first(row, COACH_HEADERS))
+        # "entrenador" puede ser columna-flag (1/x/sí) en vez de un nombre
+        if _truthy(coach_name) or coach_name.casefold() in ROLE_MAP:
+            coach_name = ""
         if not team_name or not person_name:
             report.skipped += 1
             continue
@@ -327,9 +419,30 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
         )
         if exists:
             report.skipped += 1
-            continue
-        db.add(TeamMembership(team_id=team.id, person_id=person.id, role=role))
-        report.links_created += 1
+        else:
+            db.add(TeamMembership(team_id=team.id, person_id=person.id, role=role))
+            report.links_created += 1
+        if coach_name:
+            coach = _get_or_create_person(db, season_id, coach_name, "coach", report)
+            if coach:
+                exists_c = (
+                    db.query(TeamMembership)
+                    .filter(
+                        TeamMembership.team_id == team.id,
+                        TeamMembership.person_id == coach.id,
+                        TeamMembership.role == "coach",
+                    )
+                    .first()
+                )
+                if exists_c:
+                    report.skipped += 1
+                else:
+                    db.add(
+                        TeamMembership(
+                            team_id=team.id, person_id=coach.id, role="coach"
+                        )
+                    )
+                    report.links_created += 1
     db.commit()
     return report
 
@@ -337,7 +450,7 @@ def import_roster_rows(db: Session, season_id: int, rows: list[dict[str, str]]) 
 def import_teams_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -> ImportReport:
     report = ImportReport()
     for i, row in enumerate(rows, start=2):
-        name = row.get("equipo") or row.get("team") or row.get("equip") or row.get("nombre") or row.get("name") or row.get("nom") or ""
+        name = _first(row, TEAM_HEADERS | {"nombre", "name", "nom"})
         category = row.get("categoria") or row.get("category") or ""
         if not _norm(name):
             report.skipped += 1
@@ -356,15 +469,7 @@ def import_teams_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -
 def import_people_rows(db: Session, season_id: int, rows: list[dict[str, str]]) -> ImportReport:
     report = ImportReport()
     for i, row in enumerate(rows, start=2):
-        name = (
-            row.get("persona")
-            or row.get("person")
-            or row.get("nombre")
-            or row.get("name")
-            or row.get("nome")
-            or row.get("nom")
-            or ""
-        )
+        name = _first(row, PERSON_HEADERS)
         if not _norm(name):
             report.skipped += 1
             continue

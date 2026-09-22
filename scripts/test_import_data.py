@@ -107,14 +107,41 @@ def main() -> int:
         print("3) TSV enganxat:", r3.status_code, rep(r3.text))
         ok &= r3.status_code == 200 and "+1" in r3.text
 
-        # 4) .xls antic -> error entenedor
+        # 4) XLSX multi-full estil llistat de club: capçalera a fila 3 amb
+        #    NOM I COGNOM / EQUIP / ENTRENADOR + full sense capçalera
+        wb2 = Workbook()
+        ws2 = wb2.active
+        ws2.title = "INICIACIÓ"
+        for _ in range(4):
+            ws2.append([None] * 8)
+        ws2.append([None, "TEST TESTÀ, LAIA", None, "42381417F", None,
+                    "LTS000001", "TEST_INICIACIÓ ÚNIC", "COMPETICIÓ X"])
+        ws3 = wb2.create_sheet("BENJAMÍ")
+        ws3.append([None] * 8)
+        ws3.append([None, "NOM I COGNOM", "DATA NAIEXEMENT", "ANY INICI OK",
+                    "DNI", "EQUIP", "ENTRENADOR", "TECNIFICACIONS"])
+        ws3.append([None] * 8)
+        ws3.append([None, "TEST RIBAS, POL", "2016-01-01", "24/25",
+                    "46171735V", "TEST_BENJAMÍ C", "TEST LORENZO", "6"])
+        buf2 = io.BytesIO()
+        wb2.save(buf2)
+        r_fed = s.post(
+            f"{base}/season/{sid}/data",
+            data={"kind": "roster"},
+            files={"file": ("dades_jugadors.xlsx", buf2.getvalue(),
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+        print("4) XLSX multi-full:", r_fed.status_code, rep(r_fed.text))
+        ok &= r_fed.status_code == 200 and "+2" in r_fed.text
+
+        # 5) .xls antic -> error entenedor
         r4 = s.post(
             f"{base}/season/{sid}/data",
             data={"kind": "roster"},
             files={"file": ("vell.xls", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"0" * 50,
                             "application/vnd.ms-excel")},
         )
-        print("4) XLS antic:", r4.status_code, "| avís visible:", ".xls" in r4.text and ("xlsx" in r4.text or "CSV" in r4.text))
+        print("5) XLS antic:", r4.status_code, "| avís visible:", ".xls" in r4.text and ("xlsx" in r4.text or "CSV" in r4.text))
         ok &= ".xls" in r4.text
 
         con = sqlite3.connect(tmp / "atempo.db")
@@ -128,7 +155,7 @@ def main() -> int:
         print("Teams:", names)
         print("Persons:", people)
         print("Links:", links)
-        ok &= len(names) == 3 and len(people) == 4 and links == 4
+        ok &= len(names) == 5 and len(people) == 7 and links == 7
         print("\nRESULTAT:", "TOT OK" if ok else "FALLOWS")
         return 0 if ok else 1
     finally:
