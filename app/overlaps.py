@@ -24,6 +24,7 @@ class TeamOverlap:
     same_day: bool
     shared_people: list[str] = field(default_factory=list)
     reinforce_people: list[str] = field(default_factory=list)
+    full_overlap_team: str | None = None
 
     @property
     def severity(self) -> str:
@@ -120,6 +121,14 @@ def find_team_overlaps(
                 reinforce.append(name)
             else:
                 shared.append(name)
+        # Si tota la plantilla d'un equip és a l'altre, ho resumim en una
+        # línia en lloc de llistar cada persona.
+        shared_ids = set(pa) & set(pb)
+        full_overlap_team = None
+        if pa and shared_ids == set(pa):
+            full_overlap_team = a.team.name
+        elif pb and shared_ids == set(pb):
+            full_overlap_team = b.team.name
 
         day = a.match_date if a.match_date <= (b.match_date or a.match_date) else b.match_date
         out.append(
@@ -130,6 +139,7 @@ def find_team_overlaps(
                 same_day=same_day,
                 shared_people=sorted(set(shared)),
                 reinforce_people=sorted(set(reinforce)),
+                full_overlap_team=full_overlap_team,
             )
         )
 

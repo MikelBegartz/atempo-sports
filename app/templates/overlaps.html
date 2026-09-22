@@ -50,7 +50,7 @@
     <p class="muted" style="margin:0.25rem 0 0">{{ t('overlaps_reinforce') }}: {{ o.reinforce_people|join(', ') }}</p>
     {% endif %}
     {% if o.shared_people %}
-    <p class="muted" style="margin:0.25rem 0 0">{{ t('overlaps_shared') }}: {{ o.shared_people|join(', ') }}</p>
+    <p class="muted" style="margin:0.25rem 0 0">{% if o.full_overlap_team %}{{ t('overlaps_shared_full') }}: {{ o.full_overlap_team }}{% else %}{{ t('overlaps_shared') }}: {{ o.shared_people|join(', ') }}{% endif %}</p>
     {% endif %}
     <div class="conflict-actions">
       <a href="/season/{{ season.id }}/matches?m={{ o.match_a.id }}#fitxa">{{ o.match_a.team.name }} → {{ t('conflicts_manual') }}</a>

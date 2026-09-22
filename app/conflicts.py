@@ -24,6 +24,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "entreno",
         "person": "{name} està a {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "team_overlap": "{team} té dos esdeveniments a la vegada: {title_a} i {title_b} el {date} ({time_a} / {time_b})",
+        "team_shared_all": "Tot l'equip {team} també juga a {other}: {title_a} i {title_b} el {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada per {team_a} ({title_a}) i {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "venue_multi": "{venue} ocupada per {teams} el {date} ({times})",
         "venue_share": " — compartir permès",
@@ -85,6 +86,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "entrenamiento",
         "person": "{name} está en {team_a} ({title_a}) y {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "team_overlap": "{team} tiene dos eventos a la vez: {title_a} y {title_b} el {date} ({time_a} / {time_b})",
+        "team_shared_all": "Todo el equipo {team} también juega en {other}: {title_a} y {title_b} el {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada por {team_a} ({title_a}) y {team_b} ({title_b}) el {date} ({time_a} / {time_b})",
         "venue_share": " — compartir permitido",
         "not_before": "{team} ({title}): empieza a las {start} pero no puede antes de {not_before}",
@@ -145,6 +147,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "treino",
         "person": "{name} está em {team_a} ({title_a}) e {team_b} ({title_b}) em {date} ({time_a} / {time_b})",
         "team_overlap": "{team} tem dois eventos ao mesmo tempo: {title_a} e {title_b} em {date} ({time_a} / {time_b})",
+        "team_shared_all": "Toda a equipa {team} também joga em {other}: {title_a} e {title_b} em {date} ({time_a} / {time_b})",
         "venue": "{venue} ocupada por {team_a} ({title_a}) e {team_b} ({title_b}) em {date} ({time_a} / {time_b})",
         "venue_share": " — partilha permitida",
         "not_before": "{team} ({title}): começa às {start} mas não pode antes de {not_before}",
@@ -191,6 +194,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "entraînement",
         "person": "{name} est dans {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ({time_a} / {time_b})",
         "team_overlap": "{team} a deux événements en même temps : {title_a} et {title_b} le {date} ({time_a} / {time_b})",
+        "team_shared_all": "Toute l'équipe {team} joue aussi en {other} : {title_a} et {title_b} le {date} ({time_a} / {time_b})",
         "venue": "{venue} occupée par {team_a} ({title_a}) et {team_b} ({title_b}) le {date} ({time_a} / {time_b})",
         "venue_share": " — partage autorisé",
         "not_before": "{team} ({title}) : commence à {start} mais ne peut pas avant {not_before}",
@@ -237,6 +241,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "Training",
         "person": "{name} ist bei {team_a} ({title_a}) und {team_b} ({title_b}) am {date} ({time_a} / {time_b})",
         "team_overlap": "{team} hat zwei Termine gleichzeitig: {title_a} und {title_b} am {date} ({time_a} / {time_b})",
+        "team_shared_all": "Das ganze Team {team} spielt auch bei {other}: {title_a} und {title_b} am {date} ({time_a} / {time_b})",
         "venue": "{venue} belegt von {team_a} ({title_a}) und {team_b} ({title_b}) am {date} ({time_a} / {time_b})",
         "venue_share": " — Teilen erlaubt",
         "not_before": "{team} ({title}): beginnt um {start}, kann aber nicht vor {not_before}",
@@ -283,6 +288,7 @@ _MSGS: dict[str, dict[str, str]] = {
         "training_title": "allenamento",
         "person": "{name} è in {team_a} ({title_a}) e {team_b} ({title_b}) il {date} ({time_a} / {time_b})",
         "team_overlap": "{team} ha due eventi contemporanei: {title_a} e {title_b} il {date} ({time_a} / {time_b})",
+        "team_shared_all": "Tutta la squadra {team} gioca anche in {other}: {title_a} e {title_b} il {date} ({time_a} / {time_b})",
         "venue": "{venue} occupata da {team_a} ({title_a}) e {team_b} ({title_b}) il {date} ({time_a} / {time_b})",
         "venue_share": " — condivisione permessa",
         "not_before": "{team} ({title}): inizia alle {start} ma non può prima di {not_before}",
@@ -682,6 +688,32 @@ def find_conflicts(
                 if a.etype == "training" and b.etype == "training"
                 else "hard"
             )
+            # Si tota la plantilla d'un equip també és a l'altre, una sola
+            # línia — no un conflicte per cada persona.
+            full_a = bool(people_a) and shared == set(people_a)
+            full_b = bool(people_b) and shared == set(people_b)
+            if full_a or full_b:
+                mids, tids, d = _ids(a, b)
+                conflicts.append(
+                    Conflict(
+                        kind="team",
+                        severity=severity,
+                        message=_t(
+                            lang,
+                            "team_shared_all",
+                            team=a.team_name if full_a else b.team_name,
+                            other=b.team_name if full_a else a.team_name,
+                            title_a=a.title,
+                            title_b=b.title,
+                            date=_format_date(lang, a.d),
+                            time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
+                            time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
+                        ),
+                        match_ids=mids, d=d,
+                        training_ids=tids,
+                    )
+                )
+                continue
             for pid in shared:
                 p = people_a[pid]
                 mids, tids, d = _ids(a, b)

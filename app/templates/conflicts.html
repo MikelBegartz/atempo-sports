@@ -29,9 +29,18 @@
   {% endfor %}
 </div>
 
-<div class="conflicts-search" style="margin:0.5rem 0 1rem">
+<div class="conflicts-search" style="margin:0.5rem 0 0.75rem">
   <input type="search" id="conflicts-search" placeholder="{{ t('conflicts_search_placeholder') }}" style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--line);border-radius:8px" />
 </div>
+
+{% if conflicts_count %}
+<form id="conflicts-bulk" method="post" action="/season/{{ season.id }}/conflicts/ignore-bulk" style="display:flex;align-items:center;gap:0.75rem;margin:0 0 0.75rem;flex-wrap:wrap">
+  <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.9rem">
+    <input type="checkbox" id="conflicts-check-all" /> {{ t('conflicts_select_all') }}
+  </label>
+  <button type="submit" class="secondary" id="conflicts-bulk-btn" disabled title="{{ t('conflicts_bulk_hint') }}">{{ t('conflicts_ignore_selected') }} (<span id="conflicts-bulk-count">0</span>)</button>
+</form>
+{% endif %}
 
 {% for bucket in horizon_order %}
 {% set items = conflicts_by_horizon.get(bucket, []) %}
@@ -39,6 +48,7 @@
 <section class="horizon-block conflicts-panel" data-panel="{{ bucket }}" style="margin:0.25rem 0 0.75rem;display:none">
   {% for c in items %}
   <div class="conflict {{ c.severity }}" data-search="{{ c.message | lower }}">
+    <input type="checkbox" class="conflict-check" form="conflicts-bulk" name="conflict_keys" value="{{ c.key }}" style="float:right;margin:0.15rem 0 0 0.5rem" />
     <a href="/season/{{ season.id }}/conflict/{{ c.key }}" style="display:block;text-decoration:none;color:inherit;font-weight:600;margin-bottom:0.35rem">{{ c.message }}</a>
     <div class="conflict-actions">
       {% if c.match_ids %}
@@ -83,6 +93,7 @@
     <li style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0;border-bottom:1px solid var(--line)">
       <span class="muted">{{ c.message }}</span>
       <form method="post" action="/season/{{ season.id }}/conflict/{{ c.conflict_key }}/unignore" style="margin:0">
+        <input type="hidden" name="scope" value="series" />
         <button type="submit" class="secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem">{{ t('conflict_unignore') }}</button>
       </form>
     </li>
@@ -156,6 +167,35 @@
       noResults.style.display = any ? 'none' : 'block';
     });
   }
+
+  var bulkBtn = document.getElementById('conflicts-bulk-btn');
+  var bulkCount = document.getElementById('conflicts-bulk-count');
+  var checkAll = document.getElementById('conflicts-check-all');
+  function updateBulk() {
+    var n = document.querySelectorAll('.conflict-check:checked').length;
+    if (bulkCount) bulkCount.textContent = n;
+    if (bulkBtn) bulkBtn.disabled = !n;
+  }
+  document.querySelectorAll('.conflict-check').forEach(function (cb) {
+    cb.addEventListener('change', updateBulk);
+  });
+  if (checkAll) {
+    checkAll.addEventListener('change', function () {
+      var activePanel = document.querySelector('.conflicts-panel:not([style*="display: none"])');
+      if (!activePanel) return;
+      activePanel.querySelectorAll('.conflict').forEach(function (card) {
+        if (card.style.display === 'none') return;
+        var cb = card.querySelector('.conflict-check');
+        if (cb) cb.checked = checkAll.checked;
+      });
+      updateBulk();
+    });
+    // En canviar de pestanya, el "tot" s'aplica només al panell visible
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { checkAll.checked = false; });
+    });
+  }
+  updateBulk();
 })();
 </script>
 {% endblock %}

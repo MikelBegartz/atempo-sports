@@ -5705,6 +5705,41 @@ async def conflict_unignore(
     return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 
+@app.post("/season/{season_id}/conflicts/ignore-bulk")
+async def conflicts_ignore_bulk(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    season = db.get(Season, season_id)
+    if not season:
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    form = await request.form()
+    keys = {str(k) for k in form.getlist("conflict_keys") if str(k).strip()}
+    n = 0
+    if keys:
+        rows = (
+            db.query(Conflict)
+            .filter(
+                Conflict.season_id == season_id,
+                Conflict.conflict_key.in_(keys),
+            )
+            .all()
+        )
+        now = datetime.utcnow()
+        for row in rows:
+            if not row.ignored:
+                row.ignored = True
+                row.ignored_at = now
+                n += 1
+        db.commit()
+    request.session["conflict_flash"] = translate(
+        lang, "conflicts_ignored_count"
+    ).format(n=n)
+    return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+
+
 @app.post("/season/{season_id}/conflict/{conflict_key}/training-edit")
 async def conflict_training_edit(
     season_id: int,
