@@ -55,7 +55,7 @@
   {% if conflicts_count %}
   <h2>{{ t('nav_conflicts') }}</h2>
   {% for c in conflicts_unique %}
-  <a href="/season/{{ season.id }}/conflict/{{ c.key }}" class="conflict {{ c.severity }}" style="display:block;text-decoration:none;color:inherit">
+  <a href="/season/{{ season.id }}/{{ 'conflict-group' if c.is_group else 'conflict' }}/{{ c.key }}" class="conflict {{ c.severity }}" style="display:block;text-decoration:none;color:inherit">
     <div>{{ c.message }}</div>
   </a>
   {% endfor %}

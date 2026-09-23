@@ -381,25 +381,31 @@ def _active_context(
         for bucket in HORIZON_ORDER:
             if bucket in conflicts_by_horizon:
                 conflicts_by_horizon[bucket] = [c for c in conflicts_by_horizon[bucket] if not c.ignored]
+        # Mateixa agrupació que la llista: els comptadors compten línies
+        # d'equip, no persones.
+        for bucket in HORIZON_ORDER:
+            conflicts_by_horizon[bucket] = group_person_conflicts(
+                conflicts_by_horizon.get(bucket, []),
+                match_team,
+                training_team,
+                by_day=True,
+            )
         conflicts = []
         for bucket in HORIZON_ORDER:
             conflicts.extend(conflicts_by_horizon.get(bucket, []))
         conflicts_count = len(conflicts)
-        first_bucket_by_key: dict[tuple, str] = {}
-        for bucket in HORIZON_ORDER:
-            for c in conflicts_by_horizon.get(bucket, []):
-                teams = {
-                    match_team.get(mid) for mid in c.match_ids
-                } | {
-                    training_team.get(tid) for tid in c.training_ids
-                }
-                key = (c.kind, c.person_id, c.severity, frozenset(teams))
-                if key not in first_bucket_by_key:
-                    first_bucket_by_key[key] = bucket
-        conflicts_unique_count = len(first_bucket_by_key)
+        seen_series: set[str] = set()
         conflicts_unique_by_horizon = {b: 0 for b in HORIZON_ORDER}
-        for bucket in first_bucket_by_key.values():
-            conflicts_unique_by_horizon[bucket] += 1
+        for bucket in HORIZON_ORDER:
+            for it in conflicts_by_horizon.get(bucket, []):
+                if getattr(it, "is_group", False):
+                    skey = it.key.rsplit(":", 1)[0] + ":all"
+                else:
+                    skey = conflict_key(it, match_team, training_team)
+                if skey not in seen_series:
+                    seen_series.add(skey)
+                    conflicts_unique_by_horizon[bucket] += 1
+        conflicts_unique_count = len(seen_series)
     return {
         "club": club,
         "season": season,
@@ -437,14 +443,30 @@ def _dashboard_data(
         conflicts.extend(by_h.get(bucket, []))
     match_team = {m.id: m.team_id for m in matches}
     training_team = {t.id: t.team_id for t in trainings}
+    teams_by_id = {
+        t.id: t for t in db.query(Team).filter(Team.season_id == season.id).all()
+    }
     seen_keys = set()
     conflicts_unique = []
-    for c in conflicts:
-        key = conflict_key(c, match_team, training_team)
-        if key not in seen_keys:
-            seen_keys.add(key)
-            c.key = key
-            conflicts_unique.append(c)
+    for bucket in HORIZON_ORDER:
+        for it in group_person_conflicts(
+            by_h.get(bucket, []), match_team, training_team, by_day=False
+        ):
+            if getattr(it, "is_group", False):
+                if it.key in seen_keys:
+                    continue
+                seen_keys.add(it.key)
+                it.message = _conflict_group_message(
+                    lang or "ca", it, teams_by_id, True
+                )
+                conflicts_unique.append(it)
+            else:
+                key = conflict_key(it, match_team, training_team)
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                it.key = key
+                conflicts_unique.append(it)
     unseen = (
         db.query(FedMatchChange)
         .join(Match)
