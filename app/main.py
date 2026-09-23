@@ -78,12 +78,16 @@ from app.changes import (
 from app.names import match_away_name, match_local_name, match_place_label
 from app.conflicts import (
     _month_short,
+    ConflictGroup,
     conflict_key,
+    conflict_teams,
     find_conflicts,
+    group_person_conflicts,
     hard_conflicts,
     mark_ignored,
     people_for_team,
     persist_conflicts,
+    person_group_key,
 )
 from app.db import (
     Club,
@@ -5592,6 +5596,27 @@ def trainings_delete_series(
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
+def _conflict_group_message(lang: str, g, teams_by_id: dict, show_unique: bool) -> str:
+    names = [teams_by_id[t].name for t in g.team_ids if t in teams_by_id]
+    a = names[0] if names else "?"
+    b = names[1] if len(names) > 1 else a
+    if g.sub == "unavailable":
+        msg = translate(lang, "cgrp_unavailable").format(team=a, n=g.n_people)
+    elif g.sub == "coach_gap":
+        msg = translate(lang, "cgrp_coach_gap").format(a=a, b=b, n=g.n_people)
+    else:
+        msg = translate(lang, "cgrp_overlap").format(a=a, b=b, n=g.n_people)
+    if g.d:
+        day = (
+            f"{weekdays(lang)[g.d.weekday()]} {g.d.day} "
+            f"{_month_short(lang, g.d.month)} {g.d.strftime('%y')}"
+        )
+        msg = f"{day} · {msg}"
+    if show_unique and g.n_days > 1:
+        msg += " · " + translate(lang, "cgrp_days").format(n=g.n_days)
+    return msg
+
+
 @app.get("/season/{season_id}/conflicts", response_class=HTMLResponse)
 def conflicts_page(
     season_id: int,
@@ -5624,6 +5649,30 @@ def conflicts_page(
     for bucket in HORIZON_ORDER:
         for c in by_h.get(bucket, []):
             c.key = conflict_key(c, match_team, training_team)
+    # Colapsa els conflictes de persona en línies d'equip: mateix subtipus,
+    # equips i dia (o la sèrie sencera si show_unique).
+    for bucket in HORIZON_ORDER:
+        by_h[bucket] = group_person_conflicts(
+            by_h.get(bucket, []),
+            match_team,
+            training_team,
+            by_day=not show_unique,
+        )
+    teams_by_id = {
+        t.id: t for t in db.query(Team).filter(Team.season_id == season_id).all()
+    }
+    people_names = {
+        p.id: p.full_name
+        for p in db.query(Person).filter(Person.season_id == season_id).all()
+    }
+    for bucket in HORIZON_ORDER:
+        for item in by_h.get(bucket, []):
+            if not getattr(item, "is_group", False):
+                continue
+            item.message = _conflict_group_message(lang, item, teams_by_id, show_unique)
+            item.member_names = sorted(
+                {people_names.get(m.person_id, "") for m in item.members} - {""}
+            )
     if show_unique:
         seen_keys: set[str] = set()
         for bucket in HORIZON_ORDER:
@@ -5796,6 +5845,183 @@ def conflict_detail(
     )
 
 
+@app.get("/season/{season_id}/conflict-group/{gkey}", response_class=HTMLResponse)
+def conflict_group_detail(
+    season_id: int,
+    gkey: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    try:
+        sub, teams_str, day_str = gkey.split(":", 2)
+    except ValueError:
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    by_day = day_str != "all"
+    conflicts = find_conflicts(db, season_id, lang=lang)
+    matches = db.query(Match).filter(Match.season_id == season_id).all()
+    trainings = db.query(Training).filter(Training.season_id == season_id).all()
+    match_team = {m.id: m.team_id for m in matches}
+    training_team = {t.id: t.team_id for t in trainings}
+    persist_conflicts(db, season_id, conflicts, match_team, training_team)
+    members = [
+        c
+        for c in conflicts
+        if c.kind == "person"
+        and person_group_key(c, match_team, training_team, by_day=by_day) == gkey
+    ]
+    if not members:
+        request.session["conflict_flash"] = translate(
+            lang, "conflict_already_resolved"
+        )
+        return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    for c in members:
+        c.key = conflict_key(c, match_team, training_team)
+    teams_by_id = {
+        t.id: t for t in db.query(Team).filter(Team.season_id == season_id).all()
+    }
+    people_by_id = {
+        p.id: p
+        for p in db.query(Person).filter(Person.season_id == season_id).all()
+    }
+    team_ids = sorted(
+        {t for c in members for t in conflict_teams(c, match_team, training_team)}
+    )
+    person_ids = {c.person_id for c in members if c.person_id}
+    tm_rows = (
+        db.query(TeamMembership)
+        .filter(
+            TeamMembership.person_id.in_(person_ids or {0}),
+            TeamMembership.team_id.in_(team_ids or {0}),
+        )
+        .all()
+    )
+    roles_map = {(r.person_id, r.team_id): r.role for r in tm_rows}
+    rows_db = {
+        r.conflict_key: r
+        for r in db.query(Conflict)
+        .filter(Conflict.season_id == season_id)
+        .all()
+    }
+
+    # Per persona: cada sèrie (conflict_key) és una fila
+    by_series: dict[str, list] = {}
+    for c in sorted(members, key=lambda x: (x.d or date.max)):
+        by_series.setdefault(c.key, []).append(c)
+    people_rows = []
+    for key, cs in by_series.items():
+        pid = cs[0].person_id
+        row = rows_db.get(key)
+        people_rows.append(
+            {
+                "key": key,
+                "person": people_by_id.get(pid),
+                "roles": [
+                    (
+                        tid,
+                        teams_by_id[tid].name if tid in teams_by_id else "?",
+                        roles_map.get((pid, tid), ""),
+                    )
+                    for tid in team_ids
+                ],
+                "severity": "hard" if any(x.severity == "hard" for x in cs) else "soft",
+                "days": sorted({x.d for x in cs if x.d}),
+                "ignored": bool(row and row.ignored),
+            }
+        )
+    people_rows.sort(key=lambda r: (r["severity"] != "hard", r["person"].full_name if r["person"] else ""))
+
+    # Per dia: cronològic amb els events implicats
+    matches_by_id = {m.id: m for m in matches}
+    trainings_by_id = {t.id: t for t in trainings}
+    by_day_map: dict[date, list] = {}
+    for c in members:
+        by_day_map.setdefault(c.d, []).append(c)
+    days = []
+    for d in sorted(by_day_map, key=lambda x: x or date.max):
+        entries = []
+        for c in sorted(
+            by_day_map[d],
+            key=lambda x: people_by_id[x.person_id].full_name
+            if people_by_id.get(x.person_id)
+            else "",
+        ):
+            evts = []
+            for mid in c.match_ids:
+                m = matches_by_id.get(mid)
+                if m and m.team:
+                    evts.append(
+                        {
+                            "label": m.team.name,
+                            "sub": f"vs {m.opponent or '?'}",
+                            "time": f"{m.start_time.strftime('%H:%M')}–{m.end_time.strftime('%H:%M')}"
+                            if m.start_time and m.end_time
+                            else "",
+                        }
+                    )
+            for tid in c.training_ids:
+                t = trainings_by_id.get(tid)
+                if t and t.team:
+                    evts.append(
+                        {
+                            "label": t.team.name,
+                            "sub": translate(lang, "training_title"),
+                            "time": f"{t.start_time.strftime('%H:%M')}–{t.end_time.strftime('%H:%M')}"
+                            if t.start_time and t.end_time
+                            else "",
+                        }
+                    )
+            entries.append(
+                {
+                    "person": people_by_id.get(c.person_id),
+                    "severity": c.severity,
+                    "key": c.key,
+                    "events": evts,
+                }
+            )
+        label = ""
+        if d:
+            label = (
+                f"{weekdays(lang)[d.weekday()]} {d.day} "
+                f"{_month_short(lang, d.month)} {d.strftime('%y')}"
+            )
+        days.append({"d": d, "label": label, "entries": entries})
+
+    group = ConflictGroup(
+        key=gkey,
+        sub=sub,
+        severity="hard" if any(c.severity == "hard" for c in members) else "soft",
+        d=members[0].d if by_day else None,
+        team_ids=team_ids,
+        members=members,
+    )
+    return templates.TemplateResponse(
+        request,
+        "conflict_group.html",
+        {
+            **ctx,
+            "group": group,
+            "group_message": _conflict_group_message(
+                lang, group, teams_by_id, not by_day
+            ),
+            "gkey": gkey,
+            "people_rows": people_rows,
+            "days": days,
+            "member_keys": sorted(by_series),
+            "n_days": len(days),
+            "role_labels": {
+                "player": translate(lang, "role_player"),
+                "coach": translate(lang, "role_coach"),
+                "reinforce": translate(lang, "role_reinforce"),
+                "delegate": translate(lang, "people_role_delegate"),
+            },
+        },
+    )
+
+
 @app.post("/season/{season_id}/conflict/{conflict_key}/ignore")
 async def conflict_ignore(
     season_id: int,
@@ -5837,8 +6063,13 @@ async def conflict_ignore(
                 if not exists:
                     db.add(ConflictIgnored(conflict_id=row.id, ignored_date=day))
     db.commit()
-    if str(form.get("back") or "") == "list":
+    back = str(form.get("back") or "")
+    if back == "list":
         return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
+    if back.startswith("group:"):
+        return RedirectResponse(
+            f"/season/{season_id}/conflict-group/{back[6:]}", status_code=303
+        )
     return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 
@@ -5877,6 +6108,11 @@ async def conflict_unignore(
                     ConflictIgnored.ignored_date == day,
                 ).delete()
     db.commit()
+    back = str(form.get("back") or "")
+    if back.startswith("group:"):
+        return RedirectResponse(
+            f"/season/{season_id}/conflict-group/{back[6:]}", status_code=303
+        )
     return RedirectResponse(f"/season/{season_id}/conflict/{conflict_key}", status_code=303)
 
 
@@ -5891,7 +6127,12 @@ async def conflicts_ignore_bulk(
         return RedirectResponse("/app", status_code=303)
     lang = get_lang(request)
     form = await request.form()
-    keys = {str(k) for k in form.getlist("conflict_keys") if str(k).strip()}
+    keys = {
+        k
+        for v in form.getlist("conflict_keys")
+        for k in str(v).split("|")
+        if k.strip()
+    }
     n = 0
     if keys:
         rows = (
@@ -5912,6 +6153,12 @@ async def conflicts_ignore_bulk(
     request.session["conflict_flash"] = translate(
         lang, "conflicts_ignored_count"
     ).format(n=n)
+    back = str(form.get("back") or "")
+    if back == "group":
+        gkey = str(form.get("gkey") or "")
+        return RedirectResponse(
+            f"/season/{season_id}/conflict-group/{gkey}", status_code=303
+        )
     return RedirectResponse(f"/season/{season_id}/conflicts", status_code=303)
 
 

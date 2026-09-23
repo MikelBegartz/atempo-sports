@@ -59,10 +59,18 @@ No usar `python -m uvicorn` des d'aquest directori, perquè altres paquets `app`
 
 ## Conflictes (fet, últim commit 2197aed)
 - Checkbox per conflicte + "selecciona-ho tot" (panell visible) + botó "Ignora els seleccionats" → `POST /season/{sid}/conflicts/ignore-bulk` marca `Conflict.ignored=True` per `conflict_key` (scope=sèrie, reversible des de la llista d'ignorats).
-- Si TOTA la plantilla d'un equip és a l'altre → una sola línia "Tot l'equip X també juga a Y" (`team_shared_all` a `conflicts.py` `_MSGS`), en lloc d'un conflicte per persona. Solapaments parcials segueixen per-persona. Igual a `/overlaps` (`full_overlap_team` + `overlaps_shared_full`).
+- Si TOTA la plantilla d'un equip és a l'altre → una sola línia "Tot l'equip X també juga a Y" (`team_shared_all` a `conflicts.py` `_MSGS`), en lloc d'un conflicte per persona. Igual a `/overlaps` (`full_overlap_team` + `overlaps_shared_full`).
 - `conflict_key` = `kind-person_id-severity-team_ids` (sense data → cada clau és una sèrie; `scope=day` usa `ConflictIgnored`, `scope=series` usa `Conflict.ignored`).
 - Claus noves a `i18n_fed_sync.py` (SYNC_PACKS, 9 idiomes): `conflicts_select_all`, `conflicts_ignore_selected`, `conflicts_bulk_hint`, `conflicts_ignored_count`, `overlaps_shared_full`.
-- Test: `python scripts/test_conflicts_bulk.py` (fixture propi sobre còpia de la BD: col·lapse, parcial, bulk, unignore, ?unique=1).
+
+## Conflictes agrupats per equip (aquesta sessió)
+- La **detecció segueix per persona**; el que canvia és la presentació. `conflicts.py`: `Conflict.sub` (`overlap|unavailable|coach_gap|team_overlap|team_shared_all`) + `ConflictGroup` + `conflict_teams`, `person_group_key`, `group_person_conflicts`.
+- La llista `/conflicts` colapsa conflictes de persona per **(subtipus, parella d'equips, dia)** → `dm. 8 oct · A ⇄ B — N persones`. Amb `?unique=1` el grup és per **(subtipus, equips)** i mostra "· N dies" (sèrie recurrente). La clau del grup: `sub:t1-t2:dia|all`.
+- **Severitat per rol**: persona que és `reinforce` en un dels dos equips → el seu solape baixa a `soft`. Jugador als dos o entrenador → es manté (hard si hi ha partit). El grup hereta la màxima.
+- Detall a `GET /season/{sid}/conflict-group/{gkey}` (`conflict_group.html`): seccions **Per persona** (rol a cada equip, severitat, dies, ignorar sèrie / anar a fitxa) i **Per dia** (cronològic amb events i qui xoca). "Ignora tot el grup" reusa `ignore-bulk`.
+- `ignore-bulk` accepta valors `conflict_keys` amb claus unides per `|` (checkbox de grup = tots els membres). `back=group`/`group:{gkey}` tornen al detall.
+- Claus noves ×9: `cgrp_*` (SYNC_PACKS).
+- Test: `scripts/test_conflicts_bulk.py` actualitzat (grup parcial 2 persones, detall, severitat per rol, bulk amb `|`).
 
 ## Gestor de persones (fase 1, aquesta sessió)
 - Lògica nova a `app/people_ops.py`: `bulk_people`, `build_replace_plan`/`apply_replace`, `export_people_csv`, `parse_sel_pairs` (`"team_id:person_id"`, team 0 = sense equip), `delete_people` (esborra persona + membresies + indisponibilitats + conflictes).

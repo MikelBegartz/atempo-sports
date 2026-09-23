@@ -434,7 +434,7 @@ def _format_date(lang: str, d: date | None) -> str:
 
 @dataclass
 class Conflict:
-    kind: str  # person|venue|category
+    kind: str  # person|venue|category|team
     severity: str  # hard|soft
     message: str
     match_ids: list[int] = field(default_factory=list)
@@ -443,6 +443,39 @@ class Conflict:
     d: date | None = None
     ignored: bool = False
     id: int | None = None
+    # Subtipus per a conflictes de persona/equip: overlap | unavailable |
+    # coach_gap | team_overlap | team_shared_all. Serveix per agrupar a la
+    # llista sense canviar la detecció (que segueix per persona).
+    sub: str = ""
+    is_group: bool = False
+
+
+@dataclass
+class ConflictGroup:
+    """Vista agrupada: conflictes de persona amb el mateix subtipus,
+    equips implicats i dia (o sèrie sencera si by_day=False)."""
+
+    key: str
+    sub: str
+    severity: str
+    d: date | None
+    team_ids: list[int]
+    members: list[Conflict] = field(default_factory=list)
+    match_ids: list[int] = field(default_factory=list)
+    training_ids: list[int] = field(default_factory=list)
+    member_keys: list[str] = field(default_factory=list)
+    member_names: list[str] = field(default_factory=list)
+    message: str = ""
+    is_group: bool = True
+    ignored: bool = False
+
+    @property
+    def n_people(self) -> int:
+        return len({m.person_id for m in self.members if m.person_id})
+
+    @property
+    def n_days(self) -> int:
+        return len({m.d for m in self.members if m.d})
 
 
 @dataclass
@@ -610,11 +643,20 @@ def find_conflicts(
 
     conflicts: list[Conflict] = []
     people_cache: dict[int, list[Person]] = {}
+    roles_cache: dict[int, dict[int, set[str]]] = {}
 
     def people(team_id: int) -> list[Person]:
         if team_id not in people_cache:
             people_cache[team_id] = people_for_team(db, team_id)
         return people_cache[team_id]
+
+    def roles(team_id: int) -> dict[int, set[str]]:
+        if team_id not in roles_cache:
+            rows = db.query(TeamMembership).filter(TeamMembership.team_id == team_id).all()
+            roles_cache[team_id] = {}
+            for r in rows:
+                roles_cache[team_id].setdefault(r.person_id, set()).add(r.role)
+        return roles_cache[team_id]
 
     # Person overlaps
     for i, a in enumerate(occs):
@@ -661,6 +703,7 @@ def find_conflicts(
                         ),
                         match_ids=mids, d=d,
                         training_ids=tids,
+                        sub="team_overlap",
                     )
                 )
                 continue
@@ -711,16 +754,27 @@ def find_conflicts(
                         ),
                         match_ids=mids, d=d,
                         training_ids=tids,
+                        sub="team_shared_all",
                     )
                 )
                 continue
+            roles_a = roles(a.team_id)
+            roles_b = roles(b.team_id)
             for pid in shared:
                 p = people_a[pid]
+                # Reforç en algun dels dos equips = situació intencionada → soft.
+                # Jugador als dos o entrenador implicat → es manté la severitat.
+                p_sev = (
+                    "soft"
+                    if "reinforce" in (roles_a.get(pid, set()) | roles_b.get(pid, set()))
+                    else severity
+                )
                 mids, tids, d = _ids(a, b)
                 conflicts.append(
                     Conflict(
                         kind="person",
-                        severity=severity,
+                        severity=p_sev,
+                        sub="overlap",
                         message=_t(
                             lang,
                             "person",
@@ -958,6 +1012,7 @@ def find_conflicts(
                         match_ids=mids, d=d,
                         training_ids=tids,
                         person_id=p.id,
+                        sub="unavailable",
                     )
                 )
 
@@ -1082,10 +1137,91 @@ def find_conflicts(
                         match_ids=mids, d=d,
                         training_ids=tids,
                         person_id=p.id,
+                        sub="coach_gap",
                     )
                 )
 
     return conflicts
+
+
+def conflict_teams(
+    c: Conflict, match_team: dict[int, int], training_team: dict[int, int]
+) -> frozenset[int]:
+    """Equips implicats en un conflicte (resolts des dels events)."""
+    return frozenset(
+        t
+        for t in (
+            {match_team.get(m) for m in c.match_ids}
+            | {training_team.get(t) for t in c.training_ids}
+        )
+        if t is not None
+    )
+
+
+def person_group_key(
+    c: Conflict,
+    match_team: dict[int, int],
+    training_team: dict[int, int],
+    *,
+    by_day: bool = True,
+) -> str | None:
+    """Clau d'agrupació per a conflictes de persona.
+
+    by_day=True  → un grup per (subtipus, equips, dia): cada choque.
+    by_day=False → un grup per (subtipus, equips): la sèrie recurrente.
+    Retorna None si el conflicte no és de persona agrupable.
+    """
+    if c.kind != "person" or not c.sub:
+        return None
+    teams = "-".join(str(t) for t in sorted(conflict_teams(c, match_team, training_team)))
+    day = c.d.isoformat() if (by_day and c.d) else "all"
+    return f"{c.sub}:{teams or 'x'}:{day}"
+
+
+def group_person_conflicts(
+    items: list[Conflict],
+    match_team: dict[int, int],
+    training_team: dict[int, int],
+    *,
+    by_day: bool = True,
+) -> list:
+    """Col·lapsa conflictes de persona en ConflictGroup per a la llista.
+
+    Manté l'ordre: cada grup ocupa la posició del seu primer membre.
+    Els conflictes que no són de persona passen tal qual.
+    """
+    out: list = []
+    groups: dict[str, ConflictGroup] = {}
+    for c in items:
+        gk = person_group_key(c, match_team, training_team, by_day=by_day)
+        if gk is None or c.person_id is None:
+            out.append(c)
+            continue
+        g = groups.get(gk)
+        if g is None:
+            g = ConflictGroup(
+                key=gk,
+                sub=c.sub,
+                severity=c.severity,
+                d=c.d if by_day else None,
+                team_ids=sorted(conflict_teams(c, match_team, training_team)),
+            )
+            groups[gk] = g
+            out.append(g)
+        g.members.append(c)
+        if c.severity == "hard":
+            g.severity = "hard"
+        for m in c.match_ids:
+            if m not in g.match_ids:
+                g.match_ids.append(m)
+        for t in c.training_ids:
+            if t not in g.training_ids:
+                g.training_ids.append(t)
+    for g in groups.values():
+        keys = {conflict_key(m, match_team, training_team) for m in g.members}
+        g.member_keys = sorted(keys)
+        g.ignored = all(m.ignored for m in g.members)
+    return out
 
 
 def _minutes_between(a_end: time, b_start: time) -> int | None:

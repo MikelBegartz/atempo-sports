@@ -47,6 +47,19 @@
 {% if items %}
 <section class="horizon-block conflicts-panel" data-panel="{{ bucket }}" style="margin:0.25rem 0 0.75rem;display:none">
   {% for c in items %}
+  {% if c.is_group %}
+  <div class="conflict {{ c.severity }}" data-search="{{ (c.message ~ ' ' ~ c.member_names|join(' ')) | lower }}">
+    <input type="checkbox" class="conflict-check" form="conflicts-bulk" name="conflict_keys" value="{{ c.member_keys|join('|') }}" style="float:right;margin:0.15rem 0 0 0.5rem" />
+    <a href="/season/{{ season.id }}/conflict-group/{{ c.key }}" style="display:block;text-decoration:none;color:inherit;font-weight:600;margin-bottom:0.35rem">{{ c.message }}</a>
+    <div class="muted" style="font-size:0.85rem;margin-bottom:0.35rem">{{ c.member_names[:4]|join(', ') }}{% if c.member_names|length > 4 %}…{% endif %}</div>
+    <div class="conflict-actions">
+      <form method="post" action="/season/{{ season.id }}/conflicts/ignore-bulk" style="display:inline;margin:0">
+        <input type="hidden" name="conflict_keys" value="{{ c.member_keys|join('|') }}" />
+        <button type="submit" class="secondary" style="padding:0.15rem 0.55rem;font-size:0.8rem">{{ t('conflict_action_ignore') }}</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
   <div class="conflict {{ c.severity }}" data-search="{{ c.message | lower }}">
     <input type="checkbox" class="conflict-check" form="conflicts-bulk" name="conflict_keys" value="{{ c.key }}" style="float:right;margin:0.15rem 0 0 0.5rem" />
     <a href="/season/{{ season.id }}/conflict/{{ c.key }}" style="display:block;text-decoration:none;color:inherit;font-weight:600;margin-bottom:0.35rem">{{ c.message }}</a>
@@ -76,6 +89,7 @@
       </div>
     </details>
   </div>
+  {% endif %}
   {% endfor %}
 </section>
 {% endif %}

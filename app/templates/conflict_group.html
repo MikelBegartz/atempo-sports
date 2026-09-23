@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('cgrp_title') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head-copy">
+    <h1>{{ t('cgrp_title') }}</h1>
+    <p class="muted">{{ t('cgrp_subtitle') }}</p>
+  </div>
+</div>
+
+<div class="conflict {{ group.severity }}" style="margin:1rem 0;padding:1rem;border-radius:10px">
+  <div style="font-size:1.05rem;font-weight:600">{{ group_message }}</div>
+  {% if group.d %}
+  <div class="muted" style="font-size:0.9rem;margin-top:0.25rem">{{ group.d }}</div>
+  {% endif %}
+  <div class="muted" style="font-size:0.9rem;margin-top:0.25rem">{{ group.n_people }} {{ t('cgrp_people_count') }} · {{ n_days }} {{ t('cgrp_days_word') }}</div>
+</div>
+
+<div class="setup-banner" style="margin:0.75rem 0;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between">
+  <p style="margin:0;font-weight:600">{{ t('cgrp_actions') }}</p>
+  <form method="post" action="/season/{{ season.id }}/conflicts/ignore-bulk" style="margin:0" onsubmit="return confirm('{{ t('cgrp_ignore_all') }}?')">
+    <input type="hidden" name="conflict_keys" value="{{ member_keys|join('|') }}" />
+    <input type="hidden" name="back" value="group" />
+    <input type="hidden" name="gkey" value="{{ gkey }}" />
+    <button type="submit" class="secondary">{{ t('cgrp_ignore_all') }}</button>
+  </form>
+</div>
+
+<h2 style="font-size:1.05rem;margin:1.25rem 0 0.5rem">{{ t('cgrp_people') }}</h2>
+<ul style="margin:0;padding:0;list-style:none">
+  {% for r in people_rows %}
+  <li style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.6rem 0;border-bottom:1px solid var(--line)">
+    <div>
+      {% if r.person %}
+      <a href="/season/{{ season.id }}/people#person-{{ r.person.id }}" style="font-weight:600;text-decoration:none">{{ r.person.full_name }}</a>
+      {% else %}
+      <span style="font-weight:600">?</span>
+      {% endif %}
+      <span class="badge {{ 'warn' if r.severity == 'soft' else 'danger' }}" style="margin-left:0.4rem">{{ r.severity }}</span>
+      <div class="muted" style="font-size:0.85rem;margin-top:0.15rem">
+        {% for tid, tname, role in r.roles %}
+        {{ tname }}: {{ role_labels.get(role, role) or '—' }}{% if not loop.last %} · {% endif %}
+        {% endfor %}
+        {% if r.days|length > 1 %} · {{ t('cgrp_days').format(n=r.days|length) }}{% endif %}
+        {% if r.ignored %} · <em>{{ t('cgrp_ignored') }}</em>{% endif %}
+      </div>
+    </div>
+    <div style="display:flex;gap:0.4rem;align-items:center">
+      <a class="text-action" href="/season/{{ season.id }}/conflict/{{ r.key }}">{{ t('cgrp_open') }}</a>
+      {% if r.ignored %}
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ r.key }}/unignore" style="margin:0">
+        <input type="hidden" name="scope" value="series" />
+        <input type="hidden" name="back" value="group:{{ gkey }}" />
+        <button type="submit" class="secondary" style="padding:0.2rem 0.6rem;font-size:0.8rem">{{ t('conflict_unignore') }}</button>
+      </form>
+      {% else %}
+      <form method="post" action="/season/{{ season.id }}/conflict/{{ r.key }}/ignore" style="margin:0" onsubmit="return confirm('{{ t('conflict_action_ignore') }}?')">
+        <input type="hidden" name="scope" value="series" />
+        <input type="hidden" name="back" value="group:{{ gkey }}" />
+        <button type="submit" class="secondary" style="padding:0.2rem 0.6rem;font-size:0.8rem">{{ t('conflict_action_ignore') }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+<h2 style="font-size:1.05rem;margin:1.5rem 0 0.5rem">{{ t('cgrp_byday') }}</h2>
+{% for day in days %}
+<div style="margin:0.6rem 0;padding:0.6rem 0.8rem;border:1px solid var(--line);border-radius:8px">
+  <div style="font-weight:600;margin-bottom:0.35rem">{{ day.label }}</div>
+  {% for e in day.entries %}
+  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:baseline;padding:0.2rem 0;font-size:0.9rem">
+    <span class="badge {{ 'warn' if e.severity == 'soft' else 'danger' }}">{{ e.severity }}</span>
+    <span style="font-weight:600">{{ e.person.full_name if e.person else '?' }}</span>
+    <span class="muted">
+      {% for ev in e.events %}{{ ev.label }}{% if ev.sub %} {{ ev.sub }}{% endif %}{% if ev.time %} {{ ev.time }}{% endif %}{% if not loop.last %} ⇄ {% endif %}{% endfor %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<p style="margin-top:1.5rem">
+  <a href="/season/{{ season.id }}/conflicts">{{ t('cgrp_back') }}</a>
+</p>
+{% endblock %}

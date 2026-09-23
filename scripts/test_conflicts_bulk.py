@@ -31,7 +31,10 @@ def free_port() -> int:
 
 
 def fixture(db_path: Path, sid: int, club_id: int) -> None:
-    """TEST_A i TEST_B comparteixen TOTA la plantilla; TEST_C només P4."""
+    """TEST_A i TEST_B comparteixen TOTA la plantilla (col·lapse 'tot l'equip');
+    TEST_C comparteix P4 (jugador, hard) i P5 (reforç a C, soft) amb A
+    i té P6 que no és a A (solapament parcial real)
+    -> UN sol grup 'TEST_A ⇄ TEST_C — 2 persones'."""
     day = (date.today() + timedelta(days=10)).isoformat()
     con = sqlite3.connect(db_path)
     cur = con.cursor()
@@ -53,7 +56,7 @@ def fixture(db_path: Path, sid: int, club_id: int) -> None:
         )
         team_ids[name] = cur.lastrowid
     person_ids = {}
-    for name in ("TEST P1", "TEST P2", "TEST P3", "TEST P4", "TEST P5"):
+    for name in ("TEST P1", "TEST P2", "TEST P3", "TEST P4", "TEST P5", "TEST P6"):
         cur.execute(
             "INSERT INTO people (season_id, full_name, is_player, is_coach) "
             "VALUES (?, ?, 1, 0)",
@@ -66,15 +69,23 @@ def fixture(db_path: Path, sid: int, club_id: int) -> None:
                 "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'player')",
                 (team_ids[tname], person_ids[pname]),
             )
-    cur.execute(
-        "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'player')",
-        (team_ids["TEST_A"], person_ids["TEST P4"]),
-    )
     for pname in ("TEST P4", "TEST P5"):
         cur.execute(
             "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'player')",
-            (team_ids["TEST_C"], person_ids[pname]),
+            (team_ids["TEST_A"], person_ids[pname]),
         )
+    cur.execute(
+        "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'player')",
+        (team_ids["TEST_C"], person_ids["TEST P4"]),
+    )
+    cur.execute(
+        "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'reinforce')",
+        (team_ids["TEST_C"], person_ids["TEST P5"]),
+    )
+    cur.execute(
+        "INSERT INTO team_memberships (team_id, person_id, role) VALUES (?, ?, 'player')",
+        (team_ids["TEST_C"], person_ids["TEST P6"]),
+    )
     now = "2026-01-01 00:00:00"
     cur.execute(
         "INSERT INTO trainings (season_id, team_id, session_date, start_time, end_time, venue_id, "
@@ -83,10 +94,10 @@ def fixture(db_path: Path, sid: int, club_id: int) -> None:
         (sid, team_ids["TEST_A"], day, vid, now),
     )
     cur.execute(
-        "INSERT INTO trainings (season_id, team_id, session_date, start_time, end_time, venue_id, "
-        "allows_share, is_draft, is_manual, created_at) "
-        "VALUES (?, ?, ?, '10:15:00', '11:15:00', ?, 0, 0, 0, ?)",
-        (sid, team_ids["TEST_C"], day, vid2, now),
+        "INSERT INTO matches (season_id, team_id, opponent, is_home, match_date, start_time, end_time, "
+        "locked, source, created_at) "
+        "VALUES (?, ?, 'RIVAL_C', 0, ?, '10:15:00', '11:15:00', 0, 'manual', ?)",
+        (sid, team_ids["TEST_C"], day, now),
     )
     cur.execute(
         "INSERT INTO matches (season_id, team_id, opponent, is_home, match_date, start_time, end_time, "
@@ -144,17 +155,38 @@ def main() -> int:
         collapse_ok = "TEST_B tamb" in html and "TEST_A" in html
         print("2) Col·lapse 'tot l'equip':", collapse_ok)
         ok &= collapse_ok
-        for p in ("TEST P1", "TEST P2", "TEST P3"):
+        for p in ("TEST P1", "TEST P2", "TEST P3", "TEST P4", "TEST P5"):
             if f"{p} est" in html:
                 print(f"   !! {p} segueix com a conflicte individual")
                 ok = False
-        p4 = "TEST P4 est" in html
-        print("3) Solapament parcial (P4) segueix per-persona:", p4)
-        ok &= p4
+        grp = "TEST_A ⇄ TEST_C — 2 persones" in html
+        print("3) Solapament parcial A<->C agrupat (2 persones):", grp)
+        ok &= grp
+
+        # Detall del grup: per persona + per dia, amb severitat per rol
+        gkeys = re.findall(r'/conflict-group/([^"\']+)', html)
+        gkey = next((k for k in gkeys if k.startswith("overlap:")), None)
+        print("3b) Enllaç a detall de grup trobat:", bool(gkey))
+        ok &= gkey is not None
+        if gkey:
+            r = s.get(f"{base}/season/{sid}/conflict-group/{gkey}")
+            det = r.text
+            print("3c) Detall grup:", r.status_code,
+                  "| P4:", "TEST P4" in det, "| P5:", "TEST P5" in det,
+                  "| per persona:", "Per persona" in det, "| per dia:", "Per dia" in det)
+            ok &= r.status_code == 200
+            ok &= "TEST P4" in det and "TEST P5" in det
+            ok &= "Per persona" in det and "Per dia" in det
+            # P5 és reforç a C -> soft (badge warn); P4 jugador als dos -> hard
+            ok &= "badge warn" in det and "badge danger" in det
+            print("3d) Severitat per rol (warn+danger):", "badge warn" in det and "badge danger" in det)
 
         keys = re.findall(r'name="conflict_keys" value="([^"]+)"', html)
         keys = list(dict.fromkeys(keys))
-        print(f"4) Checkboxes trobats: {len(keys)}")
+        # els valors de grup porten claus de membres separades per '|'
+        flat_keys = [k for v in keys for k in v.split("|")]
+        flat_keys = list(dict.fromkeys(flat_keys))
+        print(f"4) Checkboxes trobats: {len(keys)} (claus reals: {len(flat_keys)})")
         ok &= len(keys) >= 3
 
         r = s.post(
@@ -172,8 +204,8 @@ def main() -> int:
         ).fetchall()
         con.close()
         n_ignored = len(rows)
-        print(f"6) Files ignorades a BD: {n_ignored} (esperades {len(keys)}, duplicat deduplicat)")
-        ok &= n_ignored == len(keys)
+        print(f"6) Files ignorades a BD: {n_ignored} (esperades {len(flat_keys)}, duplicat deduplicat)")
+        ok &= n_ignored == len(flat_keys)
 
         r = s.get(f"{base}/season/{sid}/conflicts")
         gone = "TEST_B tamb" not in r.text.split("ignored-conflicts")[0]
