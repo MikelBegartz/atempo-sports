@@ -131,6 +131,36 @@
 </div>
 {% endif %}
 
+{% if multi_players %}
+<div class="card" style="margin-top:0.75rem;border-left:4px solid #b45309">
+  <strong>{{ t('people_multi_title') }}</strong>
+  <p class="muted" style="margin:0.3rem 0">{{ t('people_multi_hint') }}</p>
+  {% for p, ms in multi_players %}
+  <div class="row" style="align-items:center;gap:0.75rem;margin-top:0.4rem;flex-wrap:wrap">
+    <a href="#person-{{ p.id }}"><strong>{{ p.full_name|person_name }}</strong></a>
+    {% for m, tname in ms %}
+    <span style="display:inline-flex;align-items:center;gap:0.35rem">
+      {{ tname }}
+      <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/role" style="display:inline;margin:0">
+        <input type="hidden" name="back" value="people" />
+        <select name="role" class="badge ok" style="border:none;background:transparent;cursor:pointer" onchange="this.form.submit()">
+          <option value="player" {% if m.role == 'player' %}selected{% endif %}>{{ t('role_player') }}</option>
+          <option value="coach" {% if m.role == 'coach' %}selected{% endif %}>{{ t('role_coach') }}</option>
+          <option value="reinforce" {% if m.role == 'reinforce' %}selected{% endif %}>{{ t('role_reinforce') }}</option>
+          <option value="delegate" {% if m.role == 'delegate' %}selected{% endif %}>{{ t('people_role_delegate') }}</option>
+        </select>
+      </form>
+      <form method="post" action="/season/{{ season.id }}/teams/memberships/{{ m.id }}/delete" style="display:inline;margin:0">
+        <input type="hidden" name="back" value="people" />
+        <button type="submit" class="text-action-btn danger" style="font-size:0.8rem">{{ t('teams_unlink') }}</button>
+      </form>
+    </span>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if unassigned_count %}
 <div class="setup-banner" style="margin-top:0.75rem">
   {{ t('people_unassigned_hint').format(n=unassigned_count) }}

@@ -74,6 +74,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Cancel·la",
         "people_rep_done": "Substitució aplicada: {created} noves, {linked} vinculades, {unlinked} tretes, {deleted} esborrades.",
         "people_rep_done_teams": " S'han creat {n} equips nous.",
+        "people_multi_title": "Jugadors a més d'un equip",
+        "people_multi_hint": "La mateixa persona com a jugador a dos equips sol ser un duplicat o un rol mal posat. Si n'és reforç o entrenador, posa-li el rol correcte a cada equip.",
     },
     "es": {
         "sync_now": "Sincronizar ahora",
@@ -146,6 +148,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Cancelar",
         "people_rep_done": "Sustitución aplicada: {created} nuevas, {linked} vinculadas, {unlinked} quitadas, {deleted} borradas.",
         "people_rep_done_teams": " Se han creado {n} equipos nuevos.",
+        "people_multi_title": "Jugadores en más de un equipo",
+        "people_multi_hint": "La misma persona como jugador en dos equipos suele ser un duplicado o un rol mal puesto. Si es refuerzo o entrenador, ponle el rol correcto en cada equipo.",
     },
     "eu": {
         "sync_now": "Sinkronizatu orain",
@@ -218,6 +222,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Utzi",
         "people_rep_done": "Ordezketa aplikatu da: {created} berri, {linked} lotuta, {unlinked} kenduta, {deleted} ezabatuta.",
         "people_rep_done_teams": " {n} talde berri sortu dira.",
+        "people_multi_title": "Jokalariak talde baino gehiagotan",
+        "people_multi_hint": "Pertsona bera jokalari gisa bi taldetan egotea normalean bikoiztu edo rol gaizki jarria da. Sendotzea edo entrenatzailea bada, jarri rol egokia talde bakoitzean.",
     },
     "gl": {
         "sync_now": "Sincronizar agora",
@@ -290,6 +296,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Cancelar",
         "people_rep_done": "Substitución aplicada: {created} novas, {linked} vinculadas, {unlinked} quitadas, {deleted} borradas.",
         "people_rep_done_teams": " Creáronse {n} equipos novos.",
+        "people_multi_title": "Xogadores en máis dun equipo",
+        "people_multi_hint": "A mesma persoa como xogador en dous equipos adoita ser un duplicado ou un rol mal posto. Se é reforzo ou adestrador, ponlle o rol correcto en cada equipo.",
     },
     "pt": {
         "sync_now": "Sincronizar agora",
@@ -362,6 +370,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Cancelar",
         "people_rep_done": "Substituição aplicada: {created} novas, {linked} vinculadas, {unlinked} removidas, {deleted} apagadas.",
         "people_rep_done_teams": " Foram criadas {n} equipas novas.",
+        "people_multi_title": "Jogadores em mais de uma equipa",
+        "people_multi_hint": "A mesma pessoa como jogador em duas equipas costuma ser um duplicado ou um papel mal posto. Se é reforço ou treinador, mete o papel correto em cada equipa.",
     },
     "fr": {
         "sync_now": "Synchroniser maintenant",
@@ -434,6 +444,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Annuler",
         "people_rep_done": "Remplacement appliqué : {created} nouvelles, {linked} liées, {unlinked} retirées, {deleted} supprimées.",
         "people_rep_done_teams": " {n} équipes nouvelles créées.",
+        "people_multi_title": "Joueurs dans plus d'une équipe",
+        "people_multi_hint": "La même personne comme joueur dans deux équipes est souvent un doublon ou un rôle mal mis. Si c'est un renfort ou un entraîneur, mets le bon rôle dans chaque équipe.",
     },
     "it": {
         "sync_now": "Sincronizza ora",
@@ -506,6 +518,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Annulla",
         "people_rep_done": "Sostituzione applicata: {created} nuove, {linked} collegate, {unlinked} tolte, {deleted} eliminate.",
         "people_rep_done_teams": " Create {n} squadre nuove.",
+        "people_multi_title": "Giocatori in più di una squadra",
+        "people_multi_hint": "La stessa persona come giocatore in due squadre di solito è un duplicato o un ruolo sbagliato. Se è rinforzo o allenatore, metti il ruolo giusto in ogni squadra.",
     },
     "en": {
         "sync_now": "Sync now",
@@ -578,6 +592,8 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Cancel",
         "people_rep_done": "Replacement applied: {created} new, {linked} linked, {unlinked} removed, {deleted} deleted.",
         "people_rep_done_teams": " {n} new teams created.",
+        "people_multi_title": "Players in more than one team",
+        "people_multi_hint": "The same person as a player in two teams is usually a duplicate or a wrong role. If they're a reinforcement or coach, set the right role in each team.",
     },
     "de": {
         "sync_now": "Jetzt synchronisieren",
@@ -650,5 +666,7 @@ SYNC_PACKS: dict[str, dict[str, str]] = {
         "people_rep_cancel": "Abbrechen",
         "people_rep_done": "Ersetzung angewendet: {created} neu, {linked} verknüpft, {unlinked} entfernt, {deleted} gelöscht.",
         "people_rep_done_teams": " {n} neue Teams erstellt.",
+        "people_multi_title": "Spieler in mehr als einem Team",
+        "people_multi_hint": "Dieselbe Person als Spieler in zwei Teams ist meist ein Duplikat oder eine falsche Rolle. Wenn sie Verstärkung oder Trainer ist, setze in jedem Team die richtige Rolle.",
     },
 }

@@ -75,12 +75,14 @@ No usar `python -m uvicorn` des d'aquest directori, perquè altres paquets `app`
 - `_get_or_create_team` ara desempata per categoria quan hi ha equips amb el mateix nom.
 - `people_groups` a `people_list` porta tuples `(Team|None, members)` (abans `(str, members)`) — el template usa `gteam.name`, `branch_map`, `categories`.
 - Claus noves a SYNC_PACKS ×9 idiomes: `people_bulk_*`, `people_rep_*`, `people_replace_*`, `people_export*`, `people_filter_*`, `people_search_ph`, `people_group_all`, `people_tools_title`.
-- Test: `python scripts/test_people_ops.py` (còpia BD: checkboxes, move/remove/delete, export, preview no escriu, apply team+club).
+- **Avís "jugador a més d'un equip"**: a `/people`, panell amb persones que tenen rol `player` a 2+ equips (legítim com a coach/reinforce/delegate, sospitós com a jugador). Cada membresia porta select de rol + "treure" inline reutilitzant `teams/memberships/{id}/role|delete` amb `back=people` per tornar a /people.
+- `team_update_member_role` ara accepta rol `delegate` (abans el select de teams.html l'oferia però el rebutjava — bug) i `back=people` a ambdós endpoints de membresia.
+- Test: `python scripts/test_people_ops.py` (còpia BD: checkboxes, avís multi-equip, move/remove/delete, export, preview no escriu, apply team+club).
 - ATENCIÓ: noms de test amb dígits ("TA1") fallen al parser headerless (les columnes amb dígits no són candidata a nom). Fixture usa noms sense dígits.
 
 ## Pendent / a vigilar
-- Gestor fase 2 (no feta): editar fitxa individual (nom/rols), duplicats "semblants" (fuzzy, no només clau exacta), vista "persones en més d'un equip" per netejar l'origen dels conflictes massius.
-- Si la llista de conflictes segueix enorme, pot ser que els equips tinguin membres duplicats entre si per la importació — valorar neteja a l'origen en lloc d'ignorar.
+- Gestor fase 2 (no feta): editar fitxa individual (nom/rols), duplicats "semblants" (fuzzy, no només clau exacta).
+- L'avís "jugador a més d'un equip" ja cobreix la neteja de membres duplicats entre equips; vigilar si la llista de conflictes s'alleugera.
 - Verificar amb l'usuari que el redeploy de Render ha agafat els últims commits.
 - `data_test*/` i `data/atempo.db.bak` són restes de tests (no commitejats); es poden esborrar.
 

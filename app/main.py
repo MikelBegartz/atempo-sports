@@ -1602,6 +1602,24 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
     unassigned = [p for p in people if p.id not in assigned]
     if unassigned or not people_groups:
         people_groups.append((None, unassigned))
+    # Avís: mateixa persona com a JUGADOR a més d'un equip. Com a
+    # reforç/entrenador/delegat és legítim; com a jugador sol ser un
+    # duplicat o un rol mal posat.
+    player_ms: dict[int, list[tuple[TeamMembership, str]]] = {}
+    team_name_by_id = {t.id: t.name for t in teams}
+    for m in memberships:
+        if m.role == "player" and m.person_id in people_by_id:
+            player_ms.setdefault(m.person_id, []).append(
+                (m, team_name_by_id.get(m.team_id, ""))
+            )
+    multi_players = [
+        (people_by_id[pid], sorted(ms, key=lambda x: x[1].casefold()))
+        for pid, ms in player_ms.items()
+        if len(ms) > 1
+    ]
+    multi_players.sort(
+        key=lambda x: canon_person_name(x[0].full_name).casefold()
+    )
     # Detectar duplicats: mateixa clau (espais, comes, rol, accents,
     # majúscules — tot ignorat)
     dup_groups = _dup_groups(db, season_id)
@@ -1633,6 +1651,7 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             "branch_map": branch_map,
             "categories": categories,
             "dup_groups": dup_groups,
+            "multi_players": multi_players,
             "merged": merged,
             "unassigned_count": len(unassigned),
             "purged": int(q.get("purged") or 0),
@@ -2754,6 +2773,7 @@ def team_add_member(
 def team_remove_member(
     season_id: int,
     membership_id: int,
+    back: str = Form(""),
     db: Session = Depends(get_db),
 ):
     m = db.get(TeamMembership, membership_id)
@@ -2765,6 +2785,8 @@ def team_remove_member(
     tid = team.id
     db.delete(m)
     db.commit()
+    if back == "people":
+        return RedirectResponse(f"/season/{season_id}/people", status_code=303)
     return RedirectResponse(f"/season/{season_id}/teams?t={tid}", status_code=303)
 
 
@@ -2773,6 +2795,7 @@ def team_update_member_role(
     season_id: int,
     membership_id: int,
     role: str = Form(...),
+    back: str = Form(""),
     db: Session = Depends(get_db),
 ):
     m = db.get(TeamMembership, membership_id)
@@ -2781,9 +2804,11 @@ def team_update_member_role(
     team = db.get(Team, m.team_id)
     if not team or team.season_id != season_id:
         return RedirectResponse(f"/season/{season_id}/teams", status_code=303)
-    if role in ("player", "coach", "reinforce"):
+    if role in ("player", "coach", "reinforce", "delegate"):
         m.role = role
         db.commit()
+    if back == "people":
+        return RedirectResponse(f"/season/{season_id}/people", status_code=303)
     return RedirectResponse(f"/season/{season_id}/teams?t={team.id}", status_code=303)
 
 

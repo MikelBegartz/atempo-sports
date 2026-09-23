@@ -125,6 +125,33 @@ def main() -> int:
         print("   checkboxes sel:", len(sels))
         ok &= f"{ids['TEST_A']}:{ids['TPBOTH']}" in sels
 
+        # 1b) Avís "jugador a més d'un equip": TPBOTH és player a A i B
+        both_ms = q(
+            db,
+            "SELECT id FROM team_memberships WHERE person_id=? AND role='player'",
+            (ids["TPBOTH"],),
+        )
+        multi_shown = all(
+            f"memberships/{m[0]}/role" in r.text for m in both_ms
+        ) and len(both_ms) == 2
+        print("   avís jugador multi-equip:", multi_shown)
+        ok &= multi_shown
+
+        # 1c) Canvi de rol amb back=people torna a /people
+        tpc_m = q(
+            db,
+            "SELECT id FROM team_memberships WHERE person_id=? AND team_id=?",
+            (ids["TPC"], ids["TEST_B"]),
+        )[0][0]
+        r2 = s.post(
+            f"{base}/season/{sid}/teams/memberships/{tpc_m}/role",
+            data={"role": "coach", "back": "people"},
+            allow_redirects=False,
+        )
+        cond = r2.status_code == 303 and "/people" in (r2.headers.get("location") or "")
+        print("   role amb back=people:", cond)
+        ok &= cond
+
         # 2) Bulk move TPBOTH de TEST_A a TEST_B
         r = s.post(
             f"{base}/season/{sid}/people/bulk",
