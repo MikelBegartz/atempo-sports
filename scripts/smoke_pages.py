@@ -35,6 +35,7 @@ PAGES = [
     "/app",
     "/season/{sid}/teams",
     "/season/{sid}/people",
+    "/season/{sid}/people/export?scope=club",
     "/season/{sid}/venues",
     "/season/{sid}/matches",
     "/season/{sid}/matches/month",

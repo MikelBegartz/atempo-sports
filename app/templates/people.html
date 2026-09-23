@@ -6,9 +6,9 @@
 
 {% if people %}
 <nav class="name-links" aria-label="{{ t('nav_people') }}">
-  {% for gname, gpeople in people_groups %}
+  {% for gteam, gpeople in people_groups %}
   {% if gpeople %}
-  <div style="margin-top:0.5rem"><strong>{{ gname }}</strong><br>
+  <div style="margin-top:0.5rem"><strong>{{ gteam.name if gteam else t('people_no_team') }}</strong><br>
     {% for p in gpeople %}
     <a href="#person-{{ p.id }}">{{ p.full_name|person_name }}</a>
     {% endfor %}
@@ -101,6 +101,17 @@
 <div class="setup-banner" style="margin-top:0.75rem">{{ t('people_purged').format(n=purged) }}</div>
 {% endif %}
 
+{% if bulk_action %}
+<div class="setup-banner" style="margin-top:0.75rem">{{ t('people_bulk_done_' + bulk_action).format(n=bulk_n) }}</div>
+{% endif %}
+
+{% if rep %}
+<div class="setup-banner" style="margin-top:0.75rem">
+  {{ t('people_rep_done').format(created=rep.created, linked=rep.linked, unlinked=rep.unlinked, deleted=rep.deleted) }}
+  {% if rep.teams_created %}{{ t('people_rep_done_teams').format(n=rep.teams_created) }}{% endif %}
+</div>
+{% endif %}
+
 {% if dup_groups %}
 <div class="card" style="margin-top:0.75rem;border-left:4px solid #b91c1c">
   <strong>{{ t('people_dupes_title') }}</strong>
@@ -130,14 +141,229 @@
 </div>
 {% endif %}
 
-<h2>{{ t('people_list') }} ({{ people|length }})</h2>
-{% for gname, gpeople in people_groups %}
-<h3 style="margin-top:1.1rem">{{ gname }} <span class="muted">({{ gpeople|length }})</span></h3>
-{% for p in gpeople %}
-{% include "_person_card.html" %}
-{% endfor %}
+<details class="data-more" style="margin-top:1rem">
+  <summary>{{ t('people_tools_title') }}</summary>
+  <div class="grid" style="margin-top:1rem">
+    <section class="setup-panel">
+      <h2>{{ t('people_export_title') }}</h2>
+      <p class="muted">{{ t('people_export_hint') }}</p>
+      <form class="stack" method="get" action="/season/{{ season.id }}/people/export">
+        <label>{{ t('people_replace_scope') }}
+          <select name="scope" id="export-scope">
+            <option value="club">{{ t('people_replace_club') }}</option>
+            <option value="team">{{ t('people_replace_team') }}</option>
+          </select>
+        </label>
+        <label id="export-team-wrap">{{ t('nav_teams') }}
+          <select name="team_id">
+            {% for t in teams %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="secondary">{{ t('people_export') }}</button>
+      </form>
+    </section>
+    <section class="setup-panel">
+      <h2>{{ t('people_replace_title') }}</h2>
+      <p class="muted">{{ t('people_replace_hint') }}</p>
+      <form class="stack" method="post" action="/season/{{ season.id }}/people/replace" enctype="multipart/form-data">
+        <label>{{ t('people_replace_scope') }}
+          <select name="scope" id="replace-scope">
+            <option value="team">{{ t('people_replace_team') }}</option>
+            <option value="club">{{ t('people_replace_club') }}</option>
+          </select>
+        </label>
+        <label id="replace-team-wrap">{{ t('nav_teams') }}
+          <select name="scope_team_id">
+            {% for t in teams %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{{ t('data_file') }}
+          <input type="file" name="file" accept=".csv,.txt,.xlsx,.xlsm,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        </label>
+        <label>{{ t('data_paste') }}
+          <textarea name="paste" rows="5" placeholder="equip;nom;rol"></textarea>
+        </label>
+        <button type="submit" class="secondary">{{ t('people_replace_btn') }}</button>
+      </form>
+    </section>
+  </div>
+</details>
+
+{% if people %}
+<div class="setup-panel" style="margin-top:1rem">
+  <div class="row" style="align-items:flex-end;gap:0.75rem;flex-wrap:wrap">
+    <label>{{ t('people_filter_branch') }}
+      <select id="pf-branch">
+        <option value="">{{ t('people_filter_all') }}</option>
+        <option value="base_mixed">{{ t('teams_branch_base_mixed') }}</option>
+        <option value="base_female">{{ t('teams_branch_base_female') }}</option>
+        <option value="senior_male">{{ t('teams_branch_senior_male') }}</option>
+        <option value="senior_female">{{ t('teams_branch_senior_female') }}</option>
+      </select>
+    </label>
+    <label>{{ t('people_filter_category') }}
+      <select id="pf-cat">
+        <option value="">{{ t('people_filter_all') }}</option>
+        {% for c in categories %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label style="flex:1;min-width:10rem">{{ t('people_search_ph') }}
+      <input type="search" id="pf-q" placeholder="{{ t('people_search_ph') }}" />
+    </label>
+  </div>
+  <form id="people-bulk" method="post" action="/season/{{ season.id }}/people/bulk"
+        class="row" style="align-items:center;gap:0.6rem;flex-wrap:wrap;margin-top:0.6rem">
+    <label class="check" style="font-size:0.9rem"><input type="checkbox" id="pb-all" /> {{ t('conflicts_select_all') }}</label>
+    <select name="action" id="pb-action">
+      <option value="">{{ t('people_bulk_none') }}</option>
+      <option value="move">{{ t('people_bulk_move') }}</option>
+      <option value="add">{{ t('people_bulk_add') }}</option>
+      <option value="remove">{{ t('people_bulk_remove') }}</option>
+      <option value="role">{{ t('people_bulk_role') }}</option>
+      <option value="delete">{{ t('people_bulk_delete') }}</option>
+    </select>
+    <select name="target_team_id" id="pb-target" style="display:none">
+      {% for t in teams %}
+      <option value="{{ t.id }}">{{ t.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="role" id="pb-role" style="display:none">
+      <option value="player">{{ t('role_player') }}</option>
+      <option value="coach">{{ t('role_coach') }}</option>
+      <option value="reinforce">{{ t('role_reinforce') }}</option>
+      <option value="delegate">{{ t('people_role_delegate') }}</option>
+    </select>
+    <button type="submit" id="pb-btn" class="secondary" disabled>{{ t('people_bulk_apply') }} (<span id="pb-count">0</span>)</button>
+  </form>
+</div>
+{% endif %}
+
+<h2 style="margin-top:1.25rem">{{ t('people_list') }} ({{ people|length }})</h2>
+{% for gteam, gpeople in people_groups %}
+<section class="pgroup" data-branch="{{ branch_map[gteam.id] if gteam else '' }}" data-cat="{{ (gteam.category or '') if gteam else '' }}" style="margin-top:1.1rem">
+  <h3 style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
+    <label class="check" style="font-weight:400;font-size:0.8rem;margin:0"><input type="checkbox" class="pgroup-check" /> {{ t('people_group_all') }}</label>
+    <span>{{ gteam.name if gteam else t('people_no_team') }} <span class="muted">({{ gpeople|length }})</span></span>
+    {% if gteam %}<a href="/season/{{ season.id }}/people/export?scope=team&team_id={{ gteam.id }}" class="muted" style="font-size:0.8rem;font-weight:400">CSV</a>{% endif %}
+  </h3>
+  {% for p in gpeople %}
+  {% set cur_team = gteam %}
+  {% include "_person_card.html" %}
+  {% endfor %}
+</section>
 {% endfor %}
 {% if not people %}
 <p class="muted">{{ t('people_empty') }}</p>
 {% endif %}
+
+<script>
+(function () {
+  var bulkForm = document.getElementById('people-bulk');
+  if (!bulkForm) return;
+  var btn = document.getElementById('pb-btn');
+  var countEl = document.getElementById('pb-count');
+  var checkAll = document.getElementById('pb-all');
+  var actionSel = document.getElementById('pb-action');
+  var targetSel = document.getElementById('pb-target');
+  var roleSel = document.getElementById('pb-role');
+  var branchSel = document.getElementById('pf-branch');
+  var catSel = document.getElementById('pf-cat');
+  var qInput = document.getElementById('pf-q');
+  var confirmDelete = {{ t('people_bulk_confirm_delete')|tojson }};
+
+  function visibleChecks() {
+    return Array.prototype.filter.call(
+      document.querySelectorAll('.pb-check'),
+      function (cb) {
+        var card = cb.closest('.pcard');
+        var group = cb.closest('.pgroup');
+        return (!group || group.style.display !== 'none') &&
+               (!card || card.style.display !== 'none');
+      }
+    );
+  }
+
+  function updateCount() {
+    var n = visibleChecks().filter(function (cb) { return cb.checked; }).length;
+    countEl.textContent = n;
+    btn.disabled = !n || !actionSel.value;
+  }
+
+  function applyFilters() {
+    var b = branchSel ? branchSel.value : '';
+    var c = catSel ? catSel.value : '';
+    var q = qInput ? qInput.value.trim().toLowerCase() : '';
+    document.querySelectorAll('.pgroup').forEach(function (g) {
+      var show = (!b || g.dataset.branch === b) && (!c || g.dataset.cat === c);
+      var anyCard = false;
+      g.querySelectorAll('.pcard').forEach(function (card) {
+        var ok = show && (!q || (card.dataset.name || '').indexOf(q) !== -1);
+        card.style.display = ok ? '' : 'none';
+        if (ok) anyCard = true;
+      });
+      g.style.display = anyCard ? '' : 'none';
+    });
+    if (checkAll) checkAll.checked = false;
+    updateCount();
+  }
+
+  document.querySelectorAll('.pb-check').forEach(function (cb) {
+    cb.addEventListener('change', updateCount);
+  });
+  document.querySelectorAll('.pgroup-check').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      cb.closest('.pgroup').querySelectorAll('.pcard').forEach(function (card) {
+        if (card.style.display === 'none') return;
+        var cc = card.querySelector('.pb-check');
+        if (cc) cc.checked = cb.checked;
+      });
+      updateCount();
+    });
+  });
+  if (checkAll) {
+    checkAll.addEventListener('change', function () {
+      visibleChecks().forEach(function (cb) { cb.checked = checkAll.checked; });
+      updateCount();
+    });
+  }
+  [branchSel, catSel].forEach(function (el) {
+    if (el) el.addEventListener('change', applyFilters);
+  });
+  if (qInput) qInput.addEventListener('input', applyFilters);
+
+  actionSel.addEventListener('change', function () {
+    var a = actionSel.value;
+    targetSel.style.display = (a === 'move' || a === 'add') ? '' : 'none';
+    roleSel.style.display = (a === 'add' || a === 'role') ? '' : 'none';
+    updateCount();
+  });
+
+  bulkForm.addEventListener('submit', function (e) {
+    if (!actionSel.value) { e.preventDefault(); return; }
+    if (actionSel.value === 'delete' && !confirm(confirmDelete)) {
+      e.preventDefault();
+    }
+  });
+
+  // Mostrar/amagar selector d'equip segons abast (exporta i substitueix)
+  [['export-scope', 'export-team-wrap', 'team'],
+   ['replace-scope', 'replace-team-wrap', 'team']].forEach(function (pair) {
+    var sel = document.getElementById(pair[0]);
+    var wrap = document.getElementById(pair[1]);
+    if (sel && wrap) {
+      var f = function () { wrap.style.display = sel.value === pair[2] ? '' : 'none'; };
+      sel.addEventListener('change', f);
+      f();
+    }
+  });
+
+  updateCount();
+})();
+</script>
 {% endblock %}

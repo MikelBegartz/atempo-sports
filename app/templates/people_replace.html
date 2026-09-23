@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}AtempoSports · {{ t('people_rep_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('people_rep_title') }}</h1>
+<p class="muted">
+  {% if scope == 'club' %}{{ t('people_rep_scope_club') }}{% else %}{{ t('people_rep_scope_team').format(name=scope_team_name) }}{% endif %}
+</p>
+
+{% if plan.errors %}
+<div class="conflict hard" style="margin-top:1rem">
+  <ul style="margin:0;padding-left:1.2rem">
+    {% for e in plan.errors %}
+    <li>{{ t('people_rep_err_' + e) if e == 'team_missing' else t('data_err_' + e) }}</li>
+    {% endfor %}
+  </ul>
+</div>
+<p style="margin-top:1rem"><a class="text-action" href="/season/{{ season.id }}/people">{{ t('people_rep_cancel') }}</a></p>
+{% else %}
+<div class="card" style="margin-top:1rem">
+  <ul style="margin:0;padding-left:1.2rem;line-height:1.6">
+    <li>{{ t('people_rep_kept').format(n=plan.keep) }}</li>
+    {% if plan.new_people %}<li>{{ t('people_rep_new_people').format(n=plan.new_people|length) }}</li>{% endif %}
+    {% if plan.new_links %}<li>{{ t('people_rep_new_links').format(n=plan.new_links|length) }}</li>{% endif %}
+    {% if plan.new_teams %}<li>{{ t('people_rep_new_teams').format(n=plan.new_teams|length) }}</li>{% endif %}
+    {% if plan.unlinks %}<li><strong>{{ t('people_rep_unlink').format(n=plan.unlinks|length) }}</strong></li>{% endif %}
+    {% if plan.deletes %}<li><strong class="conflict hard" style="padding:0.1rem 0.4rem">{{ t('people_rep_delete').format(n=plan.deletes|length) }}</strong></li>{% endif %}
+    {% if plan.also_elsewhere %}<li class="muted">{{ t('people_rep_elsewhere').format(n=plan.also_elsewhere|length) }}</li>{% endif %}
+  </ul>
+</div>
+
+{% if plan.new_people %}
+<details style="margin-top:0.5rem"><summary>{{ t('people_rep_new_people').format(n=plan.new_people|length) }}</summary>
+  <p class="muted">{{ plan.new_people|join(', ') }}</p>
+</details>
+{% endif %}
+{% if plan.unlinks %}
+<details style="margin-top:0.5rem"><summary>{{ t('people_rep_unlink').format(n=plan.unlinks|length) }}</summary>
+  <p class="muted">{% for pn, tn in plan.unlinks %}{{ pn }} ({{ tn }}){% if not loop.last %}, {% endif %}{% endfor %}</p>
+</details>
+{% endif %}
+{% if plan.deletes %}
+<details style="margin-top:0.5rem"><summary>{{ t('people_rep_delete').format(n=plan.deletes|length) }}</summary>
+  <p class="muted">{{ plan.deletes|join(', ') }}</p>
+</details>
+{% endif %}
+{% if plan.also_elsewhere %}
+<details style="margin-top:0.5rem"><summary>{{ t('people_rep_elsewhere').format(n=plan.also_elsewhere|length) }}</summary>
+  <p class="muted">{{ plan.also_elsewhere|join(', ') }}</p>
+</details>
+{% endif %}
+
+{% if plan.applicable %}
+<p class="muted" style="margin-top:1rem">{{ t('people_rep_warn') }}</p>
+<form method="post" action="/season/{{ season.id }}/people/replace/apply" style="display:flex;gap:0.75rem;align-items:center;margin-top:0.5rem"
+      onsubmit="return confirm({{ t('people_rep_apply_confirm')|tojson }})">
+  <textarea name="rows_text" style="display:none">{{ rows_text }}</textarea>
+  <input type="hidden" name="scope" value="{{ scope }}" />
+  <input type="hidden" name="scope_team_id" value="{{ scope_team_id or '' }}" />
+  <button type="submit">{{ t('people_rep_apply') }}</button>
+  <a class="text-action" href="/season/{{ season.id }}/people">{{ t('people_rep_cancel') }}</a>
+</form>
+{% else %}
+<p style="margin-top:1rem"><a class="text-action" href="/season/{{ season.id }}/people">{{ t('people_rep_cancel') }}</a></p>
+{% endif %}
+{% endif %}
+{% endblock %}

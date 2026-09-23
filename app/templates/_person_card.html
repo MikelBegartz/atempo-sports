@@ -1,4 +1,7 @@
-<div class="card" style="margin-top:0.75rem" id="person-{{ p.id }}">
+<div class="card pcard" style="margin-top:0.75rem" id="person-{{ p.id }}" data-name="{{ p.full_name|lower }}">
+  <input type="checkbox" class="pb-check" form="people-bulk" name="sel"
+         value="{{ (cur_team.id if cur_team else 0) }}:{{ p.id }}"
+         style="float:right;margin:0.15rem 0 0 0.5rem" title="{{ t('people_bulk_pick') }}" />
   <strong><a href="#person-{{ p.id }}">{{ p.full_name|person_name }}</a></strong>
   <span class="muted">
     {% if p.is_player %}{{ t('people_role_player') }}{% endif %}

@@ -432,17 +432,23 @@ def _get_or_create_team(db: Session, season_id: int, name: str, category: str | 
     name = _norm(name)
     if not name:
         return None
-    team = (
-        db.query(Team)
-        .filter(Team.season_id == season_id, Team.name == name)
-        .first()
-    )
-    if not team:
-        key = _team_key(name)
-        for t in db.query(Team).filter(Team.season_id == season_id).all():
-            if _team_key(t.name) == key:
-                team = t
-                break
+    # Candidats per nom canònic; si el fitxer porta categoria i hi ha
+    # més d'un equip amb el mateix nom, preferim el que hi coincideixi.
+    key = _team_key(name)
+    cands = [
+        t
+        for t in db.query(Team).filter(Team.season_id == season_id).all()
+        if _team_key(t.name) == key
+    ]
+    team = None
+    if cands:
+        ck = _team_key(category)
+        if ck:
+            team = next(
+                (t for t in cands if _team_key(t.category) == ck), None
+            )
+        if team is None:
+            team = next((t for t in cands if t.name == name), cands[0])
     if team:
         return team
     cat = _norm(category) or None

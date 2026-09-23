@@ -64,7 +64,22 @@ No usar `python -m uvicorn` des d'aquest directori, perquè altres paquets `app`
 - Claus noves a `i18n_fed_sync.py` (SYNC_PACKS, 9 idiomes): `conflicts_select_all`, `conflicts_ignore_selected`, `conflicts_bulk_hint`, `conflicts_ignored_count`, `overlaps_shared_full`.
 - Test: `python scripts/test_conflicts_bulk.py` (fixture propi sobre còpia de la BD: col·lapse, parcial, bulk, unignore, ?unique=1).
 
+## Gestor de persones (fase 1, aquesta sessió)
+- Lògica nova a `app/people_ops.py`: `bulk_people`, `build_replace_plan`/`apply_replace`, `export_people_csv`, `parse_sel_pairs` (`"team_id:person_id"`, team 0 = sense equip), `delete_people` (esborra persona + membresies + indisponibilitats + conflictes).
+- `/season/{sid}/people`: checkbox per persona (atribut `form="people-bulk"`, sense forms niats), "tot el grup" per equip, filtres línia (`data-branch`) + categoria (`data-cat`) + cerca per nom (`data-name`), barra d'accions massives: `move`/`add`/`remove`/`role`/`delete` → `POST /people/bulk`.
+- **Substituir des de fitxer**: `POST /people/replace` (preview, NO escriu) → `people_replace.html` amb `rows_text` (format `equip;categoria;persona;rol`) en `<textarea>` oculta → `POST /people/replace/apply` recalcula i aplica.
+  - Abast `team`: el que no és al fitxer surt de l'equip però segueix al club. La columna equip del fitxer s'ignora.
+  - Abast `club`: membresies no llistades es treuen; persones que no són al fitxer s'esborren del club. Files sense equip = persona que queda sense equip (no s'esborra).
+  - El preview bloqueja si 0 files vàlides (mai substituir per un fitxer buit).
+- **Export**: `GET /people/export?scope=club|team&team_id=N` → CSV `equipo;categoria;nombre;rol` (rols en català: jugador/entrenador/reforç/delegat — reimportable via ROLE_MAP). També enllaç "CSV" per equip a la capçalera de cada grup.
+- `_get_or_create_team` ara desempata per categoria quan hi ha equips amb el mateix nom.
+- `people_groups` a `people_list` porta tuples `(Team|None, members)` (abans `(str, members)`) — el template usa `gteam.name`, `branch_map`, `categories`.
+- Claus noves a SYNC_PACKS ×9 idiomes: `people_bulk_*`, `people_rep_*`, `people_replace_*`, `people_export*`, `people_filter_*`, `people_search_ph`, `people_group_all`, `people_tools_title`.
+- Test: `python scripts/test_people_ops.py` (còpia BD: checkboxes, move/remove/delete, export, preview no escriu, apply team+club).
+- ATENCIÓ: noms de test amb dígits ("TA1") fallen al parser headerless (les columnes amb dígits no són candidata a nom). Fixture usa noms sense dígits.
+
 ## Pendent / a vigilar
+- Gestor fase 2 (no feta): editar fitxa individual (nom/rols), duplicats "semblants" (fuzzy, no només clau exacta), vista "persones en més d'un equip" per netejar l'origen dels conflictes massius.
 - Si la llista de conflictes segueix enorme, pot ser que els equips tinguin membres duplicats entre si per la importació — valorar neteja a l'origen en lloc d'ignorar.
 - Verificar amb l'usuari que el redeploy de Render ha agafat els últims commits.
 - `data_test*/` i `data/atempo.db.bak` són restes de tests (no commitejats); es poden esborrar.

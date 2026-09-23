@@ -131,6 +131,16 @@ from app.import_lists import (
     parse_csv_text,
     rows_from_upload,
 )
+from app.people_ops import (
+    MEMBER_ROLES,
+    apply_replace,
+    build_replace_plan,
+    bulk_people,
+    export_people_csv,
+    parse_rows_text,
+    parse_sel_pairs,
+    rows_to_rows_text,
+)
 from app.guide_content import get_guide
 from app.help_content import get_help
 from app.i18n import get_lang, i18n_context, month_name, set_lang, translate, weekdays, weekdays_short
@@ -1579,7 +1589,7 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             team_person_ids[m.team_id].append(m.person_id)
     people_by_id = {p.id: p for p in people}
     assigned: set[int] = set()
-    people_groups: list[tuple[str, list[Person]]] = []
+    people_groups: list[tuple[Team | None, list[Person]]] = []
     for t in teams:
         members = sorted(
             (people_by_id[pid] for pid in team_person_ids[t.id] if pid in people_by_id),
@@ -1588,10 +1598,10 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
         for pid in team_person_ids[t.id]:
             assigned.add(pid)
         if members:
-            people_groups.append((t.name, members))
+            people_groups.append((t, members))
     unassigned = [p for p in people if p.id not in assigned]
     if unassigned or not people_groups:
-        people_groups.append((translate(lang, "people_no_team"), unassigned))
+        people_groups.append((None, unassigned))
     # Detectar duplicats: mateixa clau (espais, comes, rol, accents,
     # majúscules — tot ignorat)
     dup_groups = _dup_groups(db, season_id)
@@ -1606,6 +1616,11 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             "already": int(q.get("already") or 0),
             "team_created": int(q.get("team_created") or 0),
         }
+    branch_map = {t.id: team_branch(t) for t in teams}
+    categories = sorted(
+        {(t.category or "").strip() for t in teams if (t.category or "").strip()},
+        key=str.casefold,
+    )
     return templates.TemplateResponse(
         request,
         "people.html",
@@ -1615,11 +1630,146 @@ def people_list(season_id: int, request: Request, db: Session = Depends(get_db))
             "teams": teams,
             "paste_result": paste_result,
             "people_groups": people_groups,
+            "branch_map": branch_map,
+            "categories": categories,
             "dup_groups": dup_groups,
             "merged": merged,
             "unassigned_count": len(unassigned),
             "purged": int(q.get("purged") or 0),
+            "bulk_action": q.get("ba") or "",
+            "bulk_n": int(q.get("bn") or 0),
+            "rep": {k: int(q.get(f"rep_{k}") or 0) for k in
+                    ("created", "linked", "unlinked", "deleted", "teams_created")}
+            if q.get("rep") else None,
         },
+    )
+
+
+@app.post("/season/{season_id}/people/bulk")
+async def people_bulk(
+    season_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Accions massives sobre els parells (equip, persona) marcats."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    form = await request.form()
+    action = str(form.get("action") or "")
+    pairs = parse_sel_pairs([str(v) for v in form.getlist("sel")])
+    try:
+        target = int(str(form.get("target_team_id") or "0")) or None
+    except ValueError:
+        target = None
+    role = str(form.get("role") or "") or None
+    n = 0
+    if pairs and action:
+        n = bulk_people(db, season_id, action, pairs, target, role)
+    return RedirectResponse(
+        f"/season/{season_id}/people?ba={action}&bn={n}", status_code=303
+    )
+
+
+@app.post("/season/{season_id}/people/replace", response_class=HTMLResponse)
+async def people_replace_preview(
+    season_id: int,
+    request: Request,
+    scope: str = Form("team"),
+    scope_team_id: str = Form(""),
+    paste: str = Form(""),
+    file: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+):
+    """Vista prèvia de la substitució: diff fitxer vs BD, sense escriure."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    lang = get_lang(request)
+    scope = scope if scope in ("team", "club") else "team"
+    try:
+        stid = int(scope_team_id) or None
+    except ValueError:
+        stid = None
+
+    rows: list[dict[str, str]] = []
+    parse_error: str | None = None
+    if file and file.filename:
+        content = await file.read()
+        try:
+            rows = rows_from_upload(file.filename, content, "roster")
+        except ValueError as e:
+            parse_error = str(e)
+    else:
+        rows = parse_csv_text((paste or "").strip(), "roster")
+
+    plan = build_replace_plan(db, season_id, rows, scope, stid)
+    if parse_error:
+        plan.errors.append(parse_error)
+    teams = db.query(Team).filter(Team.season_id == season_id).all()
+    return templates.TemplateResponse(
+        request,
+        "people_replace.html",
+        {
+            **ctx,
+            "plan": plan,
+            "rows_text": rows_to_rows_text(rows),
+            "scope": scope,
+            "scope_team_id": stid,
+            "teams": teams,
+            "scope_team_name": plan.scope_team_name,
+        },
+    )
+
+
+@app.post("/season/{season_id}/people/replace/apply")
+async def people_replace_apply(
+    season_id: int,
+    request: Request,
+    rows_text: str = Form(""),
+    scope: str = Form("team"),
+    scope_team_id: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Aplica la substitució confirmada a la vista prèvia."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    scope = scope if scope in ("team", "club") else "team"
+    try:
+        stid = int(scope_team_id) or None
+    except ValueError:
+        stid = None
+    rows = parse_rows_text(rows_text)
+    counts = apply_replace(db, season_id, rows, scope, stid)
+    if counts.get("error"):
+        return RedirectResponse(f"/season/{season_id}/people", status_code=303)
+    qs = "&".join(f"rep_{k}={v}" for k, v in counts.items())
+    return RedirectResponse(
+        f"/season/{season_id}/people?rep=1&{qs}", status_code=303
+    )
+
+
+@app.get("/season/{season_id}/people/export")
+def people_export_csv(
+    season_id: int,
+    request: Request,
+    scope: str = "club",
+    team_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """CSV reimportable: equip;categoria;nom;rol (una fila per membresia)."""
+    ctx = _active_context(request, db, season_id)
+    if not ctx or not ctx.get("season"):
+        return RedirectResponse("/app", status_code=303)
+    season = ctx["season"]
+    tid = team_id or None
+    text = "﻿" + export_people_csv(db, season_id, scope, tid)
+    fname = export_filename("persones", season.name)
+    return Response(
+        text,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
     )
 
 
