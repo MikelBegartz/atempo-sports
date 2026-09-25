@@ -731,33 +731,11 @@ def find_conflicts(
                 if a.etype == "training" and b.etype == "training"
                 else "hard"
             )
-            # Si tota la plantilla d'un equip també és a l'altre, una sola
-            # línia — no un conflicte per cada persona.
-            full_a = bool(people_a) and shared == set(people_a)
-            full_b = bool(people_b) and shared == set(people_b)
-            if full_a or full_b:
-                mids, tids, d = _ids(a, b)
-                conflicts.append(
-                    Conflict(
-                        kind="team",
-                        severity=severity,
-                        message=_t(
-                            lang,
-                            "team_shared_all",
-                            team=a.team_name if full_a else b.team_name,
-                            other=b.team_name if full_a else a.team_name,
-                            title_a=a.title,
-                            title_b=b.title,
-                            date=_format_date(lang, a.d),
-                            time_a=f"{a.start.strftime('%H:%M')}–{a.end.strftime('%H:%M')}",
-                            time_b=f"{b.start.strftime('%H:%M')}–{b.end.strftime('%H:%M')}",
-                        ),
-                        match_ids=mids, d=d,
-                        training_ids=tids,
-                        sub="team_shared_all",
-                    )
-                )
-                continue
+            # Un conflicte per persona compartida; la llista els col·lapsa en
+            # una línia d'equip ("A ⇄ B — N persones") i, si la plantilla
+            # sencera està duplicada, el marcador s'afegeix al missatge del
+            # grup (mai com a línia pròpia: amb 1 sola persona compartida el
+            # text "tot l'equip" mentia).
             roles_a = roles(a.team_id)
             roles_b = roles(b.team_id)
             for pid in shared:

@@ -457,7 +457,8 @@ def _dashboard_data(
                     continue
                 seen_keys.add(it.key)
                 it.message = _conflict_group_message(
-                    lang or "ca", it, teams_by_id, True
+                    lang or "ca", it, teams_by_id, True,
+                    _overlap_full_team(db, it, teams_by_id),
                 )
                 conflicts_unique.append(it)
             else:
@@ -5618,16 +5619,43 @@ def trainings_delete_series(
     return RedirectResponse(f"/season/{season_id}/trainings", status_code=303)
 
 
-def _conflict_group_message(lang: str, g, teams_by_id: dict, show_unique: bool) -> str:
+def _overlap_full_team(db: Session, g, teams_by_id: dict) -> str | None:
+    """Nom de l'equip la plantilla del qual està COMPLETAMENT dins el grup
+    de solapament (mínim 3 persones; amb menys el text seria enganyós)."""
+    if g.sub != "overlap" or g.n_people < 3:
+        return None
+    member_pids = {m.person_id for m in g.members}
+    for tid in g.team_ids:
+        roster = {
+            r.person_id
+            for r in db.query(TeamMembership)
+            .filter(TeamMembership.team_id == tid)
+            .all()
+        }
+        if roster and roster <= member_pids:
+            return teams_by_id[tid].name if tid in teams_by_id else None
+    return None
+
+
+def _conflict_group_message(
+    lang: str,
+    g,
+    teams_by_id: dict,
+    show_unique: bool,
+    full_team: str | None = None,
+) -> str:
     names = [teams_by_id[t].name for t in g.team_ids if t in teams_by_id]
     a = names[0] if names else "?"
     b = names[1] if len(names) > 1 else a
+    suffix = "_1" if g.n_people == 1 else ""
     if g.sub == "unavailable":
-        msg = translate(lang, "cgrp_unavailable").format(team=a, n=g.n_people)
+        msg = translate(lang, f"cgrp_unavailable{suffix}").format(team=a, n=g.n_people)
     elif g.sub == "coach_gap":
-        msg = translate(lang, "cgrp_coach_gap").format(a=a, b=b, n=g.n_people)
+        msg = translate(lang, f"cgrp_coach_gap{suffix}").format(a=a, b=b, n=g.n_people)
     else:
-        msg = translate(lang, "cgrp_overlap").format(a=a, b=b, n=g.n_people)
+        msg = translate(lang, f"cgrp_overlap{suffix}").format(a=a, b=b, n=g.n_people)
+    if full_team:
+        msg += " · " + translate(lang, "cgrp_full_team").format(team=full_team)
     if g.d:
         day = (
             f"{weekdays(lang)[g.d.weekday()]} {g.d.day} "
@@ -5691,7 +5719,10 @@ def conflicts_page(
         for item in by_h.get(bucket, []):
             if not getattr(item, "is_group", False):
                 continue
-            item.message = _conflict_group_message(lang, item, teams_by_id, show_unique)
+            item.message = _conflict_group_message(
+                lang, item, teams_by_id, show_unique,
+                _overlap_full_team(db, item, teams_by_id),
+            )
             item.member_names = sorted(
                 {people_names.get(m.person_id, "") for m in item.members} - {""}
             )
@@ -6027,7 +6058,8 @@ def conflict_group_detail(
             **ctx,
             "group": group,
             "group_message": _conflict_group_message(
-                lang, group, teams_by_id, not by_day
+                lang, group, teams_by_id, not by_day,
+                _overlap_full_team(db, group, teams_by_id),
             ),
             "gkey": gkey,
             "people_rows": people_rows,

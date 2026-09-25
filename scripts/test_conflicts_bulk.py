@@ -1,7 +1,8 @@
 """Test real dels conflictes: arrenca uvicorn amb CÒPIA de la BD i prova
 
-1. Solapament de plantilla completa -> UNA línia "Tot l'equip", no una per persona.
-2. Solapament parcial -> línia per persona (sense colapsar).
+1. Solapament de plantilla completa -> grup "A ⇄ B — N persones" amb marca
+   "tot l'equip", no una línia per persona.
+2. Solapament parcial -> grup d'equip amb detall per persona/dia.
 3. POST /season/{sid}/conflicts/ignore-bulk -> ignora les claus seleccionades.
 4. Unignore scope=series -> el conflicte torna.
 """
@@ -152,8 +153,12 @@ def main() -> int:
         print("1) GET conflicts:", r.status_code)
         ok &= r.status_code == 200
 
-        collapse_ok = "TEST_B tamb" in html and "TEST_A" in html
-        print("2) Col·lapse 'tot l'equip':", collapse_ok)
+        collapse_ok = (
+            "TEST_A ⇄ TEST_B" in html
+            and "3 persones" in html
+            and ("tot l'equip TEST_B" in html or "tot l&#39;equip TEST_B" in html)
+        )
+        print("2) Grup A<->B amb marca 'tot l'equip':", collapse_ok)
         ok &= collapse_ok
         for p in ("TEST P1", "TEST P2", "TEST P3", "TEST P4", "TEST P5"):
             if f"{p} est" in html:
@@ -208,10 +213,10 @@ def main() -> int:
         ok &= n_ignored == len(flat_keys)
 
         r = s.get(f"{base}/season/{sid}/conflicts")
-        gone = "TEST_B tamb" not in r.text.split("ignored-conflicts")[0]
+        gone = "TEST_A ⇄ TEST_B" not in r.text.split("ignored-conflicts")[0]
         print("7) El conflicte ja no surt a la llista activa:", gone)
         ok &= gone
-        print("8) Apareix a la secció d'ignorats:", "Tot l" in r.text and "ignorats" in r.text.lower() or "ignored" in r.text.lower())
+        print("8) Apareix a la secció d'ignorats:", "TEST P1" in r.text and ("ignorats" in r.text.lower() or "ignored" in r.text.lower()))
 
         # Unignore de la primera clau -> torna
         r = s.post(
