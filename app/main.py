@@ -459,6 +459,7 @@ def _dashboard_data(
                 it.message = _conflict_group_message(
                     lang or "ca", it, teams_by_id, True,
                     _overlap_full_team(db, it, teams_by_id),
+                    _group_who(db, it, lang or "ca"),
                 )
                 conflicts_unique.append(it)
             else:
@@ -5637,12 +5638,56 @@ def _overlap_full_team(db: Session, g, teams_by_id: dict) -> str | None:
     return None
 
 
+def _group_who(db: Session, g, lang: str) -> str | None:
+    """Composició per rol de les persones del grup:
+    '1 entrenador', '12 jugadors', '2 jugadors, 1 reforç'.
+    Rol per persona = el de més pes als equips implicats
+    (coach > delegate > reinforce > player), coherent amb la severitat."""
+    pids = {m.person_id for m in g.members if m.person_id}
+    if not pids or not g.team_ids:
+        return None
+    rows = (
+        db.query(TeamMembership)
+        .filter(
+            TeamMembership.person_id.in_(pids),
+            TeamMembership.team_id.in_(g.team_ids),
+        )
+        .all()
+    )
+    roles_by_pid: dict[int, set[str]] = {}
+    for r in rows:
+        roles_by_pid.setdefault(r.person_id, set()).add(r.role)
+    priority = ("coach", "delegate", "reinforce", "player")
+    counts = {k: 0 for k in priority}
+    for pid in pids:
+        u = roles_by_pid.get(pid, set())
+        for k in priority:
+            if k in u:
+                counts[k] += 1
+                break
+    singular = {
+        "coach": "role_coach",
+        "delegate": "people_role_delegate",
+        "reinforce": "role_reinforce",
+        "player": "role_player",
+    }
+    parts = []
+    for k in ("player", "reinforce", "coach", "delegate"):
+        n = counts[k]
+        if not n:
+            continue
+        key = singular[k] if n == 1 else f"cgrp_role_{k}_pl"
+        parts.append(f"{n} {translate(lang, key)}")
+    return ", ".join(parts) or None
+
+
 def _conflict_group_message(
     lang: str,
     g,
     teams_by_id: dict,
     show_unique: bool,
     full_team: str | None = None,
+    who: str | None = None,
 ) -> str:
     names = [teams_by_id[t].name for t in g.team_ids if t in teams_by_id]
     a = names[0] if names else "?"
@@ -5651,7 +5696,12 @@ def _conflict_group_message(
     if g.sub == "unavailable":
         msg = translate(lang, f"cgrp_unavailable{suffix}").format(team=a, n=g.n_people)
     elif g.sub == "coach_gap":
-        msg = translate(lang, f"cgrp_coach_gap{suffix}").format(a=a, b=b, n=g.n_people)
+        if who:
+            msg = translate(lang, "cgrp_coach_gap_who").format(a=a, b=b, who=who)
+        else:
+            msg = translate(lang, f"cgrp_coach_gap{suffix}").format(a=a, b=b, n=g.n_people)
+    elif who:
+        msg = translate(lang, "cgrp_overlap_who").format(a=a, b=b, who=who)
     else:
         msg = translate(lang, f"cgrp_overlap{suffix}").format(a=a, b=b, n=g.n_people)
     if full_team:
@@ -5722,6 +5772,7 @@ def conflicts_page(
             item.message = _conflict_group_message(
                 lang, item, teams_by_id, show_unique,
                 _overlap_full_team(db, item, teams_by_id),
+                _group_who(db, item, lang),
             )
             item.member_names = sorted(
                 {people_names.get(m.person_id, "") for m in item.members} - {""}
@@ -6060,6 +6111,7 @@ def conflict_group_detail(
             "group_message": _conflict_group_message(
                 lang, group, teams_by_id, not by_day,
                 _overlap_full_team(db, group, teams_by_id),
+                _group_who(db, group, lang),
             ),
             "gkey": gkey,
             "people_rows": people_rows,

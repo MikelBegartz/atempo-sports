@@ -1084,6 +1084,12 @@ cgrp_unavailable_1,{team} — 1 persona no disponible,{team} — pertsona 1 ez d
 cgrp_coach_gap,{a} ⇄ {b} — {n} persones amb marge just,{a} ⇄ {b} — {n} pertsona tarte estuarekin,{a} ⇄ {b} — {n} persoas con marxe xusto,{a} ⇄ {b} — {n} personas con margen justo,{a} ⇄ {b} — {n} pessoas com margem curta,{a} ⇄ {b} — {n} personnes avec marge courte,{a} ⇄ {b} — {n} persone con margine stretto,{a} ⇄ {b} — {n} people with tight margin,{a} ⇄ {b} — {n} Personen mit knappem Abstand
 cgrp_coach_gap_1,{a} ⇄ {b} — 1 persona amb marge just,{a} ⇄ {b} — pertsona 1 tarte estuarekin,{a} ⇄ {b} — 1 persoa con marxe xusto,{a} ⇄ {b} — 1 persona con margen justo,{a} ⇄ {b} — 1 pessoa com margem curta,{a} ⇄ {b} — 1 personne avec marge courte,{a} ⇄ {b} — 1 persona con margine stretto,{a} ⇄ {b} — 1 person with tight margin,{a} ⇄ {b} — 1 Person mit knappem Abstand
 cgrp_full_team,tot l'equip {team},{team} talde osoa,todo o equipo {team},todo el equipo {team},toda a equipa {team},toute l'équipe {team},tutta la squadra {team},whole team {team},ganzes Team {team}
+cgrp_overlap_who,{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who},{a} ⇄ {b} — {who}
+cgrp_coach_gap_who,{a} ⇄ {b} — {who} amb marge just,{a} ⇄ {b} — {who} tarte estuarekin,{a} ⇄ {b} — {who} con marxe xusto,{a} ⇄ {b} — {who} con margen justo,{a} ⇄ {b} — {who} com margem curta,{a} ⇄ {b} — {who} avec marge courte,{a} ⇄ {b} — {who} con margine stretto,{a} ⇄ {b} — {who} with tight margin,{a} ⇄ {b} — {who} mit knappem Abstand
+cgrp_role_coach_pl,entrenadors,entrenatzaileak,adestradores,entrenadores,treinadores,entraîneurs,allenatori,coaches,Trainer
+cgrp_role_player_pl,jugadors,jokalariak,xogadores,jugadores,jogadores,joueurs,giocatori,players,Spieler
+cgrp_role_reinforce_pl,reforços,errefortzuak,reforzos,refuerzos,reforços,renforts,rinforzi,reinforcements,Verstärkungen
+cgrp_role_delegate_pl,delegats,ordezkariak,delegados,delegados,delegados,délégués,delegati,delegates,Delegierte
 cgrp_days,{n} dies,{n} egun,{n} días,{n} días,{n} dias,{n} jours,{n} giorni,{n} days,{n} Tage
 cgrp_days_word,dies,egun,días,días,dias,jours,giorni,days,Tage
 cgrp_people_count,persones,pertsona,persoas,personas,pessoas,personnes,persone,people,Personen

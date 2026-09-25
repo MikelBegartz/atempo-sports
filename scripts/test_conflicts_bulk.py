@@ -155,7 +155,7 @@ def main() -> int:
 
         collapse_ok = (
             "TEST_A ⇄ TEST_B" in html
-            and "3 persones" in html
+            and "3 jugadors" in html
             and ("tot l'equip TEST_B" in html or "tot l&#39;equip TEST_B" in html)
         )
         print("2) Grup A<->B amb marca 'tot l'equip':", collapse_ok)
@@ -164,8 +164,8 @@ def main() -> int:
             if f"{p} est" in html:
                 print(f"   !! {p} segueix com a conflicte individual")
                 ok = False
-        grp = "TEST_A ⇄ TEST_C — 2 persones" in html
-        print("3) Solapament parcial A<->C agrupat (2 persones):", grp)
+        grp = "TEST_A ⇄ TEST_C — 1 jugador, 1 reforç" in html
+        print("3) Solapament parcial A<->C agrupat (1 jugador, 1 reforç):", grp)
         ok &= grp
 
         # Detall del grup: per persona + per dia, amb severitat per rol
