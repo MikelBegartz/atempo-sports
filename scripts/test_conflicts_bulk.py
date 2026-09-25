@@ -155,6 +155,7 @@ def main() -> int:
 
         collapse_ok = (
             "TEST_A ⇄ TEST_B" in html
+            and "solapament" in html
             and "3 jugadors" in html
             and ("tot l'equip TEST_B" in html or "tot l&#39;equip TEST_B" in html)
         )
@@ -164,7 +165,7 @@ def main() -> int:
             if f"{p} est" in html:
                 print(f"   !! {p} segueix com a conflicte individual")
                 ok = False
-        grp = "TEST_A ⇄ TEST_C — 1 jugador, 1 reforç" in html
+        grp = "TEST_A ⇄ TEST_C" in html and "solapament" in html and "1 jugador, 1 reforç" in html
         print("3) Solapament parcial A<->C agrupat (1 jugador, 1 reforç):", grp)
         ok &= grp
 
