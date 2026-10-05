@@ -90,10 +90,15 @@ No usar `python -m uvicorn` des d'aquest directori, perquè altres paquets `app`
 - Test: `python scripts/test_people_ops.py` (còpia BD: checkboxes, avís multi-equip, move/remove/delete, export, preview no escriu, apply team+club).
 - ATENCIÓ: noms de test amb dígits ("TA1") fallen al parser headerless (les columnes amb dígits no són candidata a nom). Fixture usa noms sense dígits.
 
+## Duració de partits (fet, commit f52a7fa)
+- `match_duration_min(category, branch)` a `calendar_week.py`: la **línia** (`Team.branch`) mana — `senior_male`/`senior_female` → 90 min, `base_*` → 75. `team_branch(team)` resol stored/legacy/inferència.
+- El camp `category` és la **competició** ("2CAT", "Lliga Catalana"...), no la línia; només compta si és explícita: "senior"/"junior" o nombre ≥19 → 90.
+- Migració `user_version=5` a `db.py::_ensure_match_durations`: recalcula `end_time`/`official_end_time` que siguin auto-calculats (start+75/+90), respectant edits manuals. Reimportació federativa també els corregeix (`et` es recalcula i entra a `changed`).
+- Callers: `main.py` (alta manual), `import_fed.py`, `fvp.py`, `calendar_week._end_default` (×3).
+
 ## Pendent / a vigilar
 - Gestor fase 2 (no feta): editar fitxa individual (nom/rols), duplicats "semblants" (fuzzy, no només clau exacta).
 - L'avís "jugador a més d'un equip" ja cobreix la neteja de membres duplicats entre equips; vigilar si la llista de conflictes s'alleugera.
-- Verificar amb l'usuari que el redeploy de Render ha agafat els últims commits.
 - `data_test*/` i `data/atempo.db.bak` són restes de tests (no commitejats); es poden esborrar.
 
 ## Autonomia de l'agent
