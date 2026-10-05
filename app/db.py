@@ -651,7 +651,7 @@ def _ensure_match_durations() -> None:
         for m in matches:
             if not m.team:
                 continue
-            dur = match_duration_min(m.team.category, m.team.name)
+            dur = match_duration_min(m.team.category)
             base = datetime.combine(m.match_date, m.start_time)
             expected = (base + timedelta(minutes=dur)).time()
             auto_ends = {

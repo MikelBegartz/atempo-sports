@@ -262,7 +262,7 @@ def import_fvp_competition(
         if match_date and start_time:
             end_time = (
                 datetime.combine(match_date, start_time)
-                + timedelta(minutes=match_duration_min(team.category, team.name))
+                + timedelta(minutes=match_duration_min(team.category))
             ).time()
         jornada = _parse_fvp_jornada(p.get("NombreJornada", ""))
         place = (p.get("Instalacion") or "").strip()

@@ -404,7 +404,7 @@ def import_competition(
             dur = (
                 default_duration_min
                 if default_duration_min is not None
-                else match_duration_min(team.category, team.name)
+                else match_duration_min(team.category)
             )
             et = (datetime.combine(md, st) + timedelta(minutes=dur)).time()
         place = (cm.lugar or "").strip() or None
