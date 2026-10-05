@@ -631,16 +631,17 @@ def _ensure_sqlite_columns() -> None:
 def _ensure_match_durations() -> None:
     """Recalcula end_time dels partits segons categoria de l'equip.
 
-    v4: només toca els partits que encara portin una duració
-    auto-calculada antiga (75/90) i que ara donarien una altra;
-    respecta end_time editats manualment.
+    v5: la duració es decideix per la línia de l'equip (sènior -> 90);
+    només toca partits amb un end_time auto-calculat antic (75/90) que
+    ara donaria diferent; respecta end_time editats manualment.
     """
     from sqlalchemy import text
     from app.calendar_week import match_duration_min
+    from app.teams_meta import team_branch
 
     with SessionLocal() as s:
         version = s.execute(text("PRAGMA user_version")).scalar() or 0
-        if version >= 4:
+        if version >= 5:
             return
         matches = (
             s.query(Match)
@@ -651,7 +652,7 @@ def _ensure_match_durations() -> None:
         for m in matches:
             if not m.team:
                 continue
-            dur = match_duration_min(m.team.category)
+            dur = match_duration_min(m.team.category, team_branch(m.team))
             base = datetime.combine(m.match_date, m.start_time)
             expected = (base + timedelta(minutes=dur)).time()
             auto_ends = {
@@ -673,7 +674,7 @@ def _ensure_match_durations() -> None:
                 if m.official_end_time in oauto and m.official_end_time != oexpected:
                     m.official_end_time = oexpected
         s.commit()
-        s.execute(text("PRAGMA user_version = 4"))
+        s.execute(text("PRAGMA user_version = 5"))
         s.commit()
 
 

@@ -11,6 +11,11 @@ from sqlalchemy.orm import Session, joinedload
 from app.conflicts import find_conflicts, mark_ignored
 from app.db import CompetitionSource, Match, Training
 from app.names import match_away_name, match_local_name, match_place_label
+from app.teams_meta import (
+    BRANCH_SENIOR_FEMALE,
+    BRANCH_SENIOR_MALE,
+    team_branch,
+)
 
 
 WEEKDAYS = [
@@ -129,11 +134,12 @@ def _norm_duration(s: str | None) -> str:
     )
 
 
-def match_duration_min(category: str | None) -> int:
+def match_duration_min(category: str | None, branch: str | None = None) -> int:
+    # La línia de l'equip mana: sènior (masc/fem) -> 90, base -> 75.
+    if branch in {BRANCH_SENIOR_MALE, BRANCH_SENIOR_FEMALE}:
+        return 90
     c = _norm_duration(category)
-    if not c:
-        return 75
-    # Senior o junior (no juvenil) -> 90. La línia (fem/masc/mixt) no hi és.
+    # Categoria explícita: senior/junior (no juvenil) o edat >= 19 -> 90
     if "senior" in c or "junior" in c:
         return 90
     nums = re.findall(r"\d+", c)
@@ -144,13 +150,17 @@ def match_duration_min(category: str | None) -> int:
 
 
 def _end_default(
-    d: date, start: time, end: time | None, category: str | None = None
+    d: date,
+    start: time,
+    end: time | None,
+    category: str | None = None,
+    branch: str | None = None,
 ) -> time:
     if end:
         return end
     return (
         datetime.combine(d, start)
-        + timedelta(minutes=match_duration_min(category))
+        + timedelta(minutes=match_duration_min(category, branch))
     ).time()
 
 
@@ -241,7 +251,7 @@ def build_four_weeks(
     for m in matches:
         assert m.match_date
         st = m.start_time
-        et = _end_default(m.match_date, st, m.end_time, m.team.category) if st else None
+        et = _end_default(m.match_date, st, m.end_time, m.team.category, team_branch(m.team)) if st else None
         local = match_local_name(m)
         visit = match_away_name(m)
         by_day.setdefault(m.match_date, []).append(
@@ -359,7 +369,7 @@ def build_match_draft(
     for m in matches:
         if not m.match_date or not m.start_time:
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category, team_branch(m.team))
         status = _match_status(m, hard_ids, soft_ids)
         slot = {
             "id": m.id,
@@ -472,7 +482,7 @@ def build_global_draft(
                 }
             )
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category, team_branch(m.team))
         slot = {
             "id": m.id,
             "kind": "match",

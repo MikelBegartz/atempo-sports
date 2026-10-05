@@ -14,6 +14,7 @@ from app.db import CompetitionSource, Match, Season, Training
 from app.calendar_week import match_duration_min
 from app.import_fed import ImportReport, ImportRow, _match_home_venue_id
 from app.link_rfep import ClubTeamHit, FedTeam, ensure_team_for_fed
+from app.teams_meta import team_branch
 
 FVP_BASE = "https://fvpatinaje.eus"
 FVP_WS = f"{FVP_BASE}/webservices/WSCompeticiones.asmx"
@@ -262,7 +263,7 @@ def import_fvp_competition(
         if match_date and start_time:
             end_time = (
                 datetime.combine(match_date, start_time)
-                + timedelta(minutes=match_duration_min(team.category))
+                + timedelta(minutes=match_duration_min(team.category, team_branch(team)))
             ).time()
         jornada = _parse_fvp_jornada(p.get("NombreJornada", ""))
         place = (p.get("Instalacion") or "").strip()
