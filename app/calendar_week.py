@@ -129,33 +129,44 @@ def _norm_duration(s: str | None) -> str:
     )
 
 
-def match_duration_min(category: str | None) -> int:
+def match_duration_min(category: str | None, name: str | None = None) -> int:
     c = _norm_duration(category)
-    if not c:
+    n = _norm_duration(name)
+    label = f"{c} {n}".strip()
+    if not label:
         return 75
-    # Femení: senior/junior o edat >= 19 -> 90
-    if "fem" in c:
-        if "senior" in c or "junior" in c:
+    # Sènior/junior es detecta per categoria o per nom d'equip
+    senior = "senior" in label or "junior" in label
+    if "fem" in label:
+        # Categoria femenina sense edat (p.ex. "Femení") = equip sènior
+        if c in {"fem", "femeni", "femenina", "femenino", "femenil", "dones"}:
             return 90
+        if senior:
+            return 90
+        # Edat >= 19 a la categoria (mai al nom: "Benjamí 2017" -> any de naixement)
         nums = re.findall(r"\d+", c)
-        if nums and max(int(n) for n in nums) >= 19:
+        if nums and max(int(x) for x in nums) >= 19:
             return 90
         return 75
-    # Masculí: senior o junior (no juvenil) -> 90
-    if "senior" in c or "junior" in c:
+    # Masculí/mixte: senior o junior (no juvenil) -> 90
+    if senior:
         return 90
     # Prebenjamí, benjamí, aleví, infantil, cadet, juvenil...
     return 75
 
 
 def _end_default(
-    d: date, start: time, end: time | None, category: str | None = None
+    d: date,
+    start: time,
+    end: time | None,
+    category: str | None = None,
+    name: str | None = None,
 ) -> time:
     if end:
         return end
     return (
         datetime.combine(d, start)
-        + timedelta(minutes=match_duration_min(category))
+        + timedelta(minutes=match_duration_min(category, name))
     ).time()
 
 
@@ -246,7 +257,7 @@ def build_four_weeks(
     for m in matches:
         assert m.match_date
         st = m.start_time
-        et = _end_default(m.match_date, st, m.end_time, m.team.category) if st else None
+        et = _end_default(m.match_date, st, m.end_time, m.team.category, m.team.name) if st else None
         local = match_local_name(m)
         visit = match_away_name(m)
         by_day.setdefault(m.match_date, []).append(
@@ -364,7 +375,7 @@ def build_match_draft(
     for m in matches:
         if not m.match_date or not m.start_time:
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category, m.team.name)
         status = _match_status(m, hard_ids, soft_ids)
         slot = {
             "id": m.id,
@@ -477,7 +488,7 @@ def build_global_draft(
                 }
             )
             continue
-        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category)
+        end_t = _end_default(m.match_date, m.start_time, m.end_time, m.team.category, m.team.name)
         slot = {
             "id": m.id,
             "kind": "match",

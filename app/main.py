@@ -3603,7 +3603,7 @@ def match_create(
     if not et and st:
         et = (
             datetime.combine(md, st)
-            + timedelta(minutes=match_duration_min(team.category if team else None))
+            + timedelta(minutes=match_duration_min(team.category if team else None, team.name if team else None))
         ).time()
     home = is_home in ("1", "true", "on", "True")
     vid = int(venue_id) if venue_id else None

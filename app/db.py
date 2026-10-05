@@ -629,13 +629,18 @@ def _ensure_sqlite_columns() -> None:
 
 
 def _ensure_match_durations() -> None:
-    """Recalcula end_time dels partits segons categoria de l'equip."""
+    """Recalcula end_time dels partits segons categoria de l'equip.
+
+    v4: només toca els partits que encara portin una duració
+    auto-calculada antiga (75/90) i que ara donarien una altra;
+    respecta end_time editats manualment.
+    """
     from sqlalchemy import text
     from app.calendar_week import match_duration_min
 
     with SessionLocal() as s:
         version = s.execute(text("PRAGMA user_version")).scalar() or 0
-        if version >= 3:
+        if version >= 4:
             return
         matches = (
             s.query(Match)
@@ -646,23 +651,29 @@ def _ensure_match_durations() -> None:
         for m in matches:
             if not m.team:
                 continue
-            dur = match_duration_min(m.team.category)
-            m.end_time = (
-                datetime.combine(m.match_date, m.start_time)
-                + timedelta(minutes=dur)
-            ).time()
+            dur = match_duration_min(m.team.category, m.team.name)
+            base = datetime.combine(m.match_date, m.start_time)
+            expected = (base + timedelta(minutes=dur)).time()
+            auto_ends = {
+                (base + timedelta(minutes=x)).time() for x in (75, 90)
+            }
+            if m.end_time in auto_ends and m.end_time != expected:
+                m.end_time = expected
             if (
                 m.official_date
                 and m.official_start_time
                 and m.source
                 in {"rfep", "fecapa", "fvp", "fgp", "fap", "fmp", "fnp"}
             ):
-                m.official_end_time = (
-                    datetime.combine(m.official_date, m.official_start_time)
-                    + timedelta(minutes=dur)
-                ).time()
+                obase = datetime.combine(m.official_date, m.official_start_time)
+                oexpected = (obase + timedelta(minutes=dur)).time()
+                oauto = {
+                    (obase + timedelta(minutes=x)).time() for x in (75, 90)
+                }
+                if m.official_end_time in oauto and m.official_end_time != oexpected:
+                    m.official_end_time = oexpected
         s.commit()
-        s.execute(text("PRAGMA user_version = 3"))
+        s.execute(text("PRAGMA user_version = 4"))
         s.commit()
 
 
